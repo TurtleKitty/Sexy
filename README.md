@@ -1,7 +1,7 @@
 Sexy
 ====
 
-*(real.languages (have 'curves))* 
+**(real.languages (have 'curves))**
 
 This is a compiler extension for Chicken Scheme (http://call-cc.org/).
 
@@ -28,11 +28,12 @@ It implements a prototype of a Sexy language.
 
 Output:
 
+```scheme
 12
 (2 3 ())
 (2 3 (4 5))
 (2 3 #t #f (4 5))
 (2 3 #t Yarr! (4 5))
-
+```
 
 
