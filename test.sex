@@ -1,0 +1,54 @@
+
+(def foo (obj 'x 1 'y 2))
+
+(fun show x (display x) (newline))
+
+(show foo.x)
+(show foo.y)
+(show (foo))
+(show ((foo 'y 3 'z 4)))
+(show '(foo.bar.baz.bax.quux))
+
+(def bar (fn x y z (list (* x y z) argv)))
+
+(show (bar 3 4 5 6 7))
+
+(show ((fn argv) 1 2 3))
+
+(def fact
+	(fn x
+		(if (eq? x 1)
+			1
+			(* x (this (sub1 x))))))
+
+(show (map fact '(1 2 3 4 5 6 7)))
+
+(fun foo a b
+	(def x (* 2 a) y (* 3 b))
+	(def bar (fn x (* x 10)))
+	(show (list x y (bar x) (bar y))))
+
+(foo 3 2)
+
+(fun bar x
+	(if argo.snazz
+		(* x 10)
+		x))
+
+(show (bar 10))
+(show (bar snazz: #t 10))
+
+(fun baz x y z
+	(show (argo))
+	(list x y z argo.foo argo.bar argv))
+
+(show (baz 1 2 3))
+(show (baz 1 2 3 foo: 4 5 6))
+(show (baz 1 2 3 bar: 4 5 6))
+(show (baz 1 2 3 foo: 4 bar: 5 6 7))
+
+
+
+
+
+
