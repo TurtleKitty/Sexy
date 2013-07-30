@@ -24,6 +24,15 @@ It implements a prototype of a Sexy language.
         (bar 2 3 4 5)
         (bar 2 snazz: #t 3 4 5)
         (bar 2 snazz: #t snarf: "Yarr!" 3 4 5)))
+
+(def fibby
+	(fn x
+		(if (< x 3)
+			1
+			(+ (this (- x 2)) (this (- x 1))))))
+
+(show (map fibby '(1 2 3 4 5)))
+
 ```
 
 Output:
@@ -34,6 +43,7 @@ Output:
 (2 3 (4 5))
 (2 3 #t #f (4 5))
 (2 3 #t Yarr! (4 5))
+(1 1 2 3 5)
 ```
 
 
