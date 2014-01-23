@@ -1,0 +1,112 @@
+
+(use srfi-1)
+(use srfi-69)
+(use uuid)
+
+(define (map-pairs fn args)
+    (let loop ((newlist '()) (pairs args))
+        (if (null? pairs)
+            newlist
+            (let ((key (first pairs)) (val (second pairs)))
+                (loop (fn key val) (cddr pairs))))))
+
+(define (thunk? fn)
+    (define pinfo (procedure-information fn))
+    (and
+        (list? pinfo)
+        (= 0 (sub1 (length pinfo)))))
+
+(define (send obj msg)
+    (define val (hash-table-ref obj msg))
+    (if (eq? (send val 'null?) 'true)
+        (let ((meta (hash-table-ref obj 'meta)))
+            (if (eq? ((send meta 'to) 'bool) 'true)
+                (send meta msg)
+                (sexy-null)))
+        val))
+
+(define (sexy-error form . args)
+    (display form))
+
+(define (sexy-null)
+    (define vtable #f)
+    (set! vtable (make-hash-table #:initial vtable))
+    (hash-table-set! vtable 'null? 'true)
+    (hash-table-set! vtable 'to
+        (lambda (what)
+            (case what
+                (('bool) 'false)
+                (else (sexy-error "to %s not found!" what)))))
+    vtable)
+
+(define (sexy-object args resends autos default)
+    (define vtable (make-hash-table #:initial (sexy-null)))
+    (define (vset! k v)
+            (hash-table-set! vtable k v))
+    (define (default k v)
+        (if (not (hash-table-exists? vtable k))
+            (vset! k v)))
+    (define (keys) (hash-table-keys vtable))
+    (define (objvalues) (hash-table-values vtable))
+    (define (pairs) (map sexy-pair (hash-table->alist vtable)))
+    (define (clone) (alist->hash-table (hash-table->alist vtable)))
+    (define (objset! . kvs) (map-pairs vset! kvs))
+    (map-pairs vset! args)
+    (map-pairs default
+        (list
+            'meta (sexy-object
+                'type 'obj
+                'meta (sexy-null)
+                'keys keys
+                'values objvalues
+                'pairs pairs
+                'clone clone
+                'set! objset!
+                'null? 'false
+            )))
+    vtable)
+
+(define (sexy-pair x y)
+    (cons x y))
+
+(define (sexy-list . this)
+    (define (head) (car this))
+    (define (tail) (cdr this))
+    (define (len) (length this))
+    (define (has? x) (member x this))
+    (define (mymap fn) (map fn this))
+    (sexy-object
+        'type 'list
+        'head head
+        'tail tail
+        'len len
+        'has? has?
+        'map mymap
+        'clone
+        'scheme
+))
+
+
+
+; testies
+
+(define kewl (sexy-object 'foo 1 'bar 2 'baz (lambda (x) (* x x))))
+(define kewler (sexy-object 'type 'foonballardy 'value 10))
+(define kewllist (sexy-list 1 2 3 4 5 7 'beta))
+
+(map
+    (lambda (x) (display x) (newline))
+    (list
+        (send kewl 'foo)
+        ((send kewl 'keys))
+        ((send kewl 'baz) 10)
+        (send kewler 'type)
+        (send kewler 'value)
+        ((send kewllist 'len))
+        ((send kewllist 'head))
+        ((send kewllist 'tail))
+        ((send kewllist 'map) (lambda (x) (if (number? x) (* x 10) x))) 
+))
+
+
+
