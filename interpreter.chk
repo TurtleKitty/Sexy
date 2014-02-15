@@ -16,12 +16,12 @@
         (list? pinfo)
         (= 0 (sub1 (length pinfo)))))
 
-(define (send obj msg)
+(define (sexy-send obj msg)
     (define val (hash-table-ref obj msg))
-    (if (eq? (send val 'null?) 'true)
+    (if (eq? (sexy-send val 'null?) 'true)
         (let ((meta (hash-table-ref obj 'meta)))
-            (if (eq? ((send meta 'to) 'bool) 'true)
-                (send meta msg)
+            (if (eq? ((sexy-send meta 'to) 'bool) 'true)
+                (sexy-send meta msg)
                 (sexy-null)))
         val))
 
@@ -39,31 +39,41 @@
                 (else (sexy-error "to %s not found!" what)))))
     vtable)
 
-(define (sexy-object args resends autos default)
-    (define vtable (make-hash-table #:initial (sexy-null)))
+
+; (obj x 1 y 2 meh (lambda (x) (* x 10)) mah (lambda () 7) resend: ((obj2 'foo 'bar) (obj3 'baz)) auto: (mah) default: true)
+
+(define (sexy-object args resends initial)
+    (define this (make-hash-table))
+    (define vtable (make-hash-table))
+    (define meta (make-hash-table))
     (define (vset! k v)
             (hash-table-set! vtable k v))
-    (define (default k v)
-        (if (not (hash-table-exists? vtable k))
-            (vset! k v)))
+    (define (mset! k v)
+            (hash-table-set! meta k v))
+    (define (set-resend! rlist)
+        (let ((delegate (car rlist)) (msgs (cdr rlist)))
+            (map (lambda (msg) (mset! msg (lambda () (sexy-send delegate msg)) msgs)))))
+    (define (set-default! k v)
+        (if ((and (not (hash-table-exists? vtable k)) (not (hash-table-exists? meta k))))
+            (mset! k v)))
     (define (keys) (hash-table-keys vtable))
     (define (objvalues) (hash-table-values vtable))
-    (define (pairs) (map sexy-pair (hash-table->alist vtable)))
-    (define (clone) (alist->hash-table (hash-table->alist vtable)))
+    (define (pairs) (map sexy-pair (hash-table->alist vtable)))     ; FIXME
+    (define (clone) (alist->hash-table (hash-table->alist vtable))) ; FIXME
     (define (objset! . kvs) (map-pairs vset! kvs))
     (map-pairs vset! args)
-    (map-pairs default
+    (map set-resend! resends)
+    (map-pairs set-default!
         (list
-            'meta (sexy-object
-                'type 'obj
-                'meta (sexy-null)
-                'keys keys
+                'id     (uuid-v4)
+                'type   'obj
+                'keys   keys
                 'values objvalues
-                'pairs pairs
-                'clone clone
-                'set! objset!
-                'null? 'false
-            )))
+                'pairs  pairs
+                'clone  clone
+                'set!   objset!
+                'null?  (sexy-bool 'false)
+            ))
     vtable)
 
 (define (sexy-pair x y)
@@ -87,6 +97,11 @@
 ))
 
 
+(define (sexy-eval code env cont)
+    (if (atom? code)
+        (cond ((symbol? code) ()))))
+
+
 
 ; testies
 
@@ -97,15 +112,15 @@
 (map
     (lambda (x) (display x) (newline))
     (list
-        (send kewl 'foo)
-        ((send kewl 'keys))
-        ((send kewl 'baz) 10)
-        (send kewler 'type)
-        (send kewler 'value)
-        ((send kewllist 'len))
-        ((send kewllist 'head))
-        ((send kewllist 'tail))
-        ((send kewllist 'map) (lambda (x) (if (number? x) (* x 10) x))) 
+        (sexy-send kewl 'foo)
+        ((sexy-send kewl 'keys))
+        ((sexy-send kewl 'baz) 10)
+        (sexy-send kewler 'type)
+        (sexy-send kewler 'value)
+        ((sexy-send kewllist 'len))
+        ((sexy-send kewllist 'head))
+        ((sexy-send kewllist 'tail))
+        ((sexy-send kewllist 'map) (lambda (x) (if (number? x) (* x 10) x))) 
 ))
 
 
