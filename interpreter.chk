@@ -1,6 +1,8 @@
 
 (use srfi-1)
 (use srfi-69)
+
+(use numbers)
 (use uuid)
 
 (define (map-pairs fn args)
@@ -16,28 +18,110 @@
         (list? pinfo)
         (= 0 (sub1 (length pinfo)))))
 
+(define (idk obj msg)
+    (error (list "Message not understood!" obj msg)))
+
 (define (sexy-send obj msg)
-    (define val (hash-table-ref obj msg))
-    (if (eq? (sexy-send val 'null?) 'true)
-        (let ((meta (hash-table-ref obj 'meta)))
-            (if (eq? ((sexy-send meta 'to) 'bool) 'true)
-                (sexy-send meta msg)
-                (sexy-null)))
-        val))
+    (cond
+        ((symbol? obj) (sexy-send-symbol obj msg))
+        ((number? obj) (sexy-send-number obj msg))
+        ((string? obj) (sexy-send-string obj msg))
+        ((pair? obj) (sexy-send-pair obj msg))
+        ((vector? obj) (sexy-send-vector obj msg))
+        ((hash-table? obj) (sexy-send-obj obj msg))
+        ((procedure? obj) (sexy-send-proc obj msg))
+        ((port? obj) (sexy-send-port obj msg))
+        (else (error (list "WTF kind of object was THAT?" obj msg)))))
+
+(define (sexy-send-symbol obj msg)
+    (case msg
+        ((to-string) (symbol->string obj))
+        (else
+            (case obj
+                ((true false) (sexy-send-bool obj msg))
+                ((null) (sexy-send-null obj msg))
+                (else
+                    (case msg
+                        ((type) 'symbol)
+                        ((null?) 'false)
+                        ((to-bool) 'true)
+                        (else (idk obj msg))))))
+
+(define (sexy-send-bool obj msg)
+    (case msg
+        ((type) 'bool)
+        ((null?) 'false)
+        ((to-bool) obj)
+        (else (idk obj msg))))
+
+(define (sexy-send-null obj msg)
+    (case msg
+        ((to-bool) 'false)
+        ((null?) 'true)
+        ((type) 'null)
+        ((id) 'null)
+        (else (idk obj msg))))
+
+(define (sexy-send-number obj msg)
+    (case msg
+        ((zero?) (if (eq? obj 0) 'true 'false))
+        ((null?) 'false)
+        ((to-bool) (if (eq? obj 0) 'false 'true))
+        ((to-string) (number->string obj))
+        ((id) obj)
+        (else
+            (cond
+                ((integer? obj) (sexy-send-int obj msg))
+                ((rational? obj) (sexy-send-rat obj msg))
+                ((real? obj) (sexy-send-real obj msg))
+                (else (idk obj msg))))))
+
+(define (sexy-send-int obj msg)
+    (case msg
+        ((type) 'int)
+        (else (idk obj msg))))
+ 
+(define (sexy-send-rat obj msg)
+    (case msg
+        ((type) 'rational)
+        ((numerator) (numerator obj))
+        ((denominator) (denominator obj))
+        ((floor) (floor obj))
+        ((ceiling) (ceiling obj))
+        ((round) (round obj))
+        (else (idk obj msg))))
+
+(define (sexy-send-real obj msg)
+    (case msg
+        ((type) 'real)
+        ((floor) (floor obj))
+        ((ceiling) (ceiling obj))
+        ((round) (round obj))
+        (else (idk obj msg))))
+
+(define (sexy-send-string obj msg)
+    (case msg
+        ((to-symbol) (string->symbol obj))
+        ((to-number) (string->number obj))
+        (else (idk obj msg))))
+
+(define (sexy-send-pair obj msg)
+)
+
+(define (sexy-send-vector obj msg)
+)
+
+(define (sexy-send-obj obj msg)
+)
+
+(define (sexy-send-proc obj msg)
+)
+
+(define (sexy-send-port obj msg)
+)
 
 (define (sexy-error form . args)
     (display form))
-
-(define (sexy-null)
-    (define vtable #f)
-    (set! vtable (make-hash-table #:initial vtable))
-    (hash-table-set! vtable 'null? 'true)
-    (hash-table-set! vtable 'to
-        (lambda (what)
-            (case what
-                (('bool) 'false)
-                (else (sexy-error "to %s not found!" what)))))
-    vtable)
 
 
 ; (obj x 1 y 2 meh (lambda (x) (* x 10)) mah (lambda () 7) resend: ((obj2 'foo 'bar) (obj3 'baz)) auto: (mah) default: true)
@@ -56,6 +140,7 @@
     (define (set-default! k v)
         (if ((and (not (hash-table-exists? vtable k)) (not (hash-table-exists? meta k))))
             (mset! k v)))
+    (define (has? x) (hash-table-exists? vtable x))
     (define (keys) (hash-table-keys vtable))
     (define (objvalues) (hash-table-values vtable))
     (define (pairs) (map sexy-pair (hash-table->alist vtable)))     ; FIXME
@@ -67,6 +152,7 @@
         (list
                 'id     (uuid-v4)
                 'type   'obj
+                'has    has?
                 'keys   keys
                 'values objvalues
                 'pairs  pairs
@@ -75,6 +161,9 @@
                 'null?  (sexy-bool 'false)
             ))
     vtable)
+
+(define (sexy-function args body env)
+    ())
 
 (define (sexy-pair x y)
     (cons x y))
@@ -96,11 +185,67 @@
         'scheme
 ))
 
-
-(define (sexy-eval code env cont)
-    (if (atom? code)
-        (cond ((symbol? code) ()))))
-
+(define (sexy-environment parent)
+    (define env (sexy-object () () (lambda () (error "Symbol not defined"))))
+    (define self (sexy-object ('lookup lookup 'extend extend 'eval sexy-eval) ((env 'set 'keys))))
+    (define (lookup name)
+        (sexy-send env name))
+    (define (extend names vals)
+        (define noob (sexy-environment env))
+        (map (lambda (x y) ((sexy-send noob 'set!) x y)) names vals))
+    (define (mutate! name val)
+        ((lookup 'set!) name val))
+    (define (set-null! name)
+        (mutate! name 'null))
+    (define (sexy-def code cont)
+        (let ((name (cadr code)) (val (caddr code)))
+            (set-null! name)
+            (sexy-eval val (lambda (x) (mutate! name x) (cont x)))))
+    (define (sexy-quote code cont)
+        (cont code))
+    (define (sexy-if code cont)
+        (let ((pred (cadr code)) (iftrue (caddr code)) (iffalse (cadddr code)))
+            (sexy-eval pred
+                (lambda (b)
+                    (if (eq? (sexy-send b 'as-bool) 'true)
+                        (sexy-eval iftrue cont)
+                        (sexy-eval iffalse cont))))))
+    (define (sexy-seq code cont)
+        (if (pair? (cdr code))
+            (begin
+                (map set-null! (map cadr (filter (lambda (x) (and (pair? x) (eq? (car x) 'def)))))) ; predefine all defs for mutual recursion
+                (let loop ((head (cadr code)) (tail (caddr code)))
+                    (if (pair? tail)
+                        (sexy-eval head
+                            (lambda (h) (loop tail cont)))
+                        (sexy-eval head cont))))
+            (cont 'null)))
+    (define (sexy-set! code cont)
+        (if (symbol? code)
+            (cont (mutate!))
+            (error "Symbol not defined!")))
+    (define (sexy-fn code cont)
+        cont)
+    (define (sexy-eval-list xs cont)
+        (if (pair? xs)
+            (sexy-eval (car xs)
+                (lambda (v) (sexy-eval-list (cdr xs)
+                    (lambda (t) (cont (cons v t))))))
+            (sexy-eval xs cont)))
+    (define (sexy-eval code cont)
+        (if (atom? code)
+            (if (symbol? code)
+                (cont (lookup code))
+                'eval-atom)
+            (let ((head (car code)) (tail (cdr code)))
+                (case head
+                    ((def) 'def-cont)
+                    ((quote) 'quote-cont)
+                    ((if) 'if-cont)
+                    ((seq) 'seq-cont)
+                    ((set!) 'set!-cont)
+                    ((fn) 'fn-cont)
+                    (else 'apply-cont))))))
 
 
 ; testies
