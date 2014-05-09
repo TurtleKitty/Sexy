@@ -23,15 +23,43 @@
 (define (idk obj msg)
     (error (list "Message not understood!" obj msg)))
 
+(define (sexy-object args autos resends initial)
+    (define this (make-hash-table))
+    (define fields (make-hash-table))
+    (define delegates (make-hash-table))
+    (define autoexec (make-hash-table))
+    (define (tset! k v)
+            (hash-table-set! this k v))
+    (define (fset! k v)
+            (hash-table-set! fields k v))
+    (define (aset! k)
+            (hash-table-set! autoexec k #t))
+    (define (rset! k v)
+            (hash-table-set! delegates k v))
+    (define (set-resend! rlist)
+        (let ((delegate (car rlist)) (msgs (cdr rlist)))
+            (map (lambda (msg) (rset! msg (lambda () (sexy-send delegate msg)))) msgs)))
+    (map-pairs fset! args)
+    (if resends
+        (map set-resend! resends)
+        #f)
+    (if autos
+        (map aset! autos))
+    (tset! 'fields fields)
+    (tset! 'autos autoexec)
+    (tset! 'resends delegates)
+    (tset! 'default (or initial (lambda (msg) 'null)))
+    this)
+
 (define (sexy-send obj msg)
     (cond
         ((symbol? obj) (sexy-send-symbol obj msg))
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
+        ((procedure? obj) (sexy-send-proc obj msg))
         ((hash-table? obj) (sexy-send-obj obj msg))
         ((vector? obj) (sexy-send-vector obj msg))
-        ((procedure? obj) (sexy-send-proc obj msg))
         ((port? obj) (sexy-send-port obj msg))
         (else (error (list "WTF kind of object was THAT?" obj msg)))))
 
@@ -58,9 +86,9 @@
 
 (define (sexy-send-null obj msg)
     (case msg
-        ((to-bool) 'false)
-        ((null?) 'true)
         ((type) 'null)
+        ((null?) 'true)
+        ((to-bool) 'false)
         (else (idk obj msg))))
 
 (define (sexy-send-number obj msg)
@@ -132,8 +160,12 @@
 (define (sexy-send-obj obj msg)
     (define fields (hash-table-ref obj 'fields))
     (define resends (hash-table-ref obj 'resends))
+    (define autos (hash-table-ref obj 'autos))
     (if (hash-table-exists? fields msg)
-        (hash-table-ref fields msg)
+        (let ((v (hash-table-ref fields msg)))
+            (if (hash-table-exists? autos msg)
+                (v) ; exec the thunk
+                v))
         (if (hash-table-exists? resends msg)
             ((hash-table-ref resends msg)) ; exec the thunk
             (case msg
@@ -142,9 +174,22 @@
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
                 ((pairs) (hash-table->alist fields))
-                ((clone) (hash-table-copy fields))
+                ((clone) (hash-table-copy fields)) ; fixme
                 ((set!) (lambda args (map-pairs (lambda (k v) (hash-table-set! fields k v)) args)))
                 (else ((hash-table-ref obj 'default) msg))))))
+
+(define (sexy-send-proc obj msg)
+    (case msg
+        ((type) 'fn)
+        ((null?) 'false)
+        ((to-bool) 'true)
+        ((arity) 'niy)
+        ((apply)
+            (lambda (xs cont)
+                (define opts (get-sexy-options xs))
+                (define args (remove-sexy-options xs))
+                (obj args opts cont)))
+        (else (idk msg obj))))
 
 (define (sexy-send-vector obj msg)
     (case msg
@@ -160,18 +205,6 @@
                 (vector-ref obj msg)
                 (idk obj msg)))))
 
-(define (sexy-send-proc obj msg)
-    (case msg
-        ((type) 'fn)
-        ((null?) 'false)
-        ((to-bool) 'true)
-        ((arity) 'niy)
-        ((apply)
-            (lambda (args)
-                (define argo (sexy-options args))
-                (obj argo)))
-        (else (idk msg obj))))
-
 (define (sexy-send-port obj msg) 
     (case msg
         ((type) 'port)
@@ -183,21 +216,8 @@
         (else (idk msg obj))))
 
 (define (sexy-error form . args)
-    (display form))
-
-(define (sexy-options code)
-    (let loop ((head (car code)) (tail (cdr code)) (options (sexy-object '() '() #f)) (argv '()))
-        (define (go-on xs options args)
-            (if (pair? xs)
-                (loop (car xs) (cdr xs) options args)
-                (sexy-object (list 'options options 'args (reverse args)) '() #f)))
-        (if head
-            (if (keyword? head)
-                (begin
-                    ((sexy-send options 'set!) (string->symbol (keyword->string head)) (car tail))
-                    (go-on (cdr tail) options argv))
-                (go-on tail options (cons head argv)))
-            (go-on #f options argv))))
+    (display form)
+    (display args))
 
 ; (define (doterator)
 ;     (define (match? x)
@@ -216,28 +236,36 @@
 
 ; (obj x 1 y 2 meh (lambda (x) (* x 10)) mah (lambda () 7) resend: ((obj2 'foo 'bar) (obj3 'baz)) auto: (mah) default: true)
 
-(define (sexy-object args resends initial)
-    (define this (make-hash-table))
-    (define fields (make-hash-table))
-    (define delegates (make-hash-table))
-    (define (tset! k v)
-            (hash-table-set! this k v))
-    (define (fset! k v)
-            (hash-table-set! fields k v))
-    (define (rset! k v)
-            (hash-table-set! delegates k v))
-    (define (set-resend! rlist)
-        (let ((delegate (car rlist)) (msgs (cdr rlist)))
-            (map (lambda (msg) (rset! msg (lambda () (sexy-send delegate msg)))) msgs)))
-    (map-pairs fset! args)
-    (map set-resend! resends)
-    (tset! 'fields fields)
-    (tset! 'resends delegates)
-    (tset! 'default (or initial (lambda (msg) 'null)))
-    this)
+(define (get-sexy-options xs)
+    (if (pair? xs)
+        (let loop ((head (car xs)) (tail (cdr xs)) (options (sexy-object '() #f #f #f)))
+            (if head
+                (if (keyword? head)
+                    (begin
+                        ((sexy-send options 'set!) (string->symbol (keyword->string head)) (car tail))
+                        (if (pair? (cdr tail))
+                            (loop (cdr tail) (cddr tail) options)
+                            (loop #f #f options))))
+                options))
+        (sexy-object '() #f #f #f)))
+
+(define (remove-sexy-options xs)
+    (if (pair? xs)
+        (let loop ((head (car xs)) (tail (cdr xs)) (argv '()))
+            (if (pair? tail)
+                (let* ((butt (cdr tail)) (is-pair (pair? butt)))
+                    (if (keyword? head)
+                        (if is-pair
+                            (loop butt (cdr butt) argv)
+                            (reverse argv))
+                        (if is-pair
+                            (loop butt (cdr butt) (cons head argv))
+                            (reverse argv))))
+                (reverse argv)))
+        '()))
 
 (define (sexy-environment parent)
-    (define env (sexy-object '() '() #f))
+    (define env (sexy-object '() #f #f #f))
     (define (lookup name)
         (if (eq? name 'env)
             this
@@ -285,26 +313,26 @@
         (let ((name (car code)) (val (cadr code)))
             (if (symbol? name)
                 (if ((sexy-send env 'has?) name)
-                    (sexy-eval val (lambda (v) (cont (mutate! name v))))
+                    (sexy-eval val (lambda (v) (cont (begin (mutate! name v) 'null))))
                     (error (list "Unknown name" name)))
                 (error "set! wants a symbol!"))))
     (define (sexy-fn code cont)
         (let* ((formals (car code)) (bodies (cdr code)) (flen (length formals)))
             ; what do do about opts and rest?
             (cont
-                (lambda (argo)
-                    (define argv (sexy-send argo 'args))
-                    (define options (sexy-send argo 'options))
-                    (define fargs (take argv flen))
-                    (define the-rest (drop argv flen))
+                (lambda (args opts kont)
+(display args)
+(display opts)
+                    (define fargs (if (pair? args) (take args flen) '()))
+                    (define the-rest (if (pair? args) (drop args flen) '()))
 (display fargs)
 (display the-rest)
                     (define noob
                         ((sexy-send env 'extend)
                             (append formals '(opt rest))
-                            (append fargs (list options the-rest))))
+                            (append fargs (list opts the-rest))))
 (display noob)
-                    ((sexy-send noob 'eval) (cons 'seq bodies))))))
+                    ((sexy-send noob 'eval) (cons 'seq bodies) kont)))))
     (define (sexy-eval-list xs cont)
         (if (pair? xs)
             (sexy-eval (car xs)
@@ -317,7 +345,7 @@
                 (case code
                     ((true false null) (cont code))
                     (else
-                        (if (sexy-keyword? code)
+                        (if (keyword? code)
                             (cont code)
                             (cont (lookup code)))))
                 (cont code))
@@ -330,8 +358,9 @@
                     ((set!) (sexy-set! tail cont))
                     ((fn) (sexy-fn tail cont))
                     (else (sexy-eval head
-                        (lambda (f) (sexy-eval-list tail
-                            (lambda (args) (cont ((sexy-send f 'apply) args)))))))))))
+                        (lambda (f) 
+                            (sexy-eval-list tail
+                                (lambda (args) ((sexy-send f 'apply) args cont))))))))))
     (define this
         (sexy-object
             (list 'type 'env
@@ -340,18 +369,19 @@
                   'eval sexy-eval
                   'parent parent)
             (list (list env 'set! 'has? 'keys))
+            #f
             #f))
-    this)
+        this)
 
 (define (sexy-snarf fname)
-    (lambda (argo)
-        (apply fname (sexy-send argo 'args))))
+    (lambda (args opts cont)
+        (cont (apply fname args))))
 
 (define (global-env)
     (define (nodef x)
         (error (list "Symbol not defined" x)))
     (define toplevel
-        (sexy-object (list 'lookup nodef) '() #f))
+        (sexy-object (list 'lookup nodef) #f #f #f))
     (define prelude
         (sexy-environment toplevel))
     (define preset! (sexy-send prelude 'set!))
@@ -365,14 +395,14 @@
     (define primitives
         (list
             (cons 'send (sexy-snarf sexy-send))
-            (cons 'obj (lambda (argo)
-                (define args (sexy-send argo 'args))
-                (define opts (sexy-send argo 'options))
+            (cons 'obj (lambda (args opts cont)
+                (define autos (sexy-send opts 'auto))
                 (define rsend (sexy-send opts 'resend))
                 (define default (sexy-send opts 'default))
-                (if (eq? rsend 'null) (set! rsend '()) #f)
+                (if (eq? autos 'null) (set! autos #f) #f)
+                (if (eq? rsend 'null) (set! rsend #f) #f)
                 (if (eq? default 'null) (set! default #f) #f)
-                (sexy-object args rsend default)))))
+                (cont (sexy-object args autos rsend default))))))
     (fill-prelude (append snarfs primitives))
     prelude)
 
@@ -387,4 +417,4 @@
         ((sexy-send env 'eval) (sexy-send stdin 'read) (lambda (v) ((sexy-send stdout 'print) v) (loop))))
     (loop))
 
-
+(repl)
