@@ -1,9 +1,9 @@
 
 ; tiny metacircular interpreter for a subset of Scheme
 
-
 [use srfi-1]
 [use srfi-69]
+[use numbers]
 
 [define [square-eval code env]
     [if [atom? code]
@@ -22,6 +22,7 @@
                 [[eq? head '+] [apply + [square-eval-list tail env]]]
                 [[eq? head '-] [apply - [square-eval-list tail env]]]
                 [[eq? head '*] [apply * [square-eval-list tail env]]]
+                [[eq? head '/] [apply / [square-eval-list tail env]]]
                 [[eq? head 'eq?] [apply eq? [square-eval-list tail env]]]
                 [else [square-apply [square-eval head env] [square-eval-list tail env]]]]]]]
 
