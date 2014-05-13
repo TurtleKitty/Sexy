@@ -1,18 +1,36 @@
 
+; CHICKEN!
+
 (use srfi-1)
 (use srfi-69)
 
 (use numbers)
+(use posix)
 (use uuid)
 (use vector-lib)
 
+(define (start)
+    (define cmd (string->symbol (car (command-line-arguments))))
+    (case cmd
+        ((compile) 'niy)
+        ((expand) 'niy)
+        ((run) 'niy)
+        ((repl) (repl))
+        (else (printf "Unknown command: ~A~%" cmd))))
+
+(define (identity x) x)
+
+(define (debug x)
+    (display x) (newline))
 
 (define (map-pairs fn args)
-    (let loop ((newlist '()) (pairs args))
-        (if (atom? pairs)
-            newlist
-            (let ((key (first pairs)) (val (second pairs)))
-                (loop (fn key val) (cddr pairs))))))
+    (if (not (eq? (modulo (length args) 2) 0))
+        (error (list "map-pairs requires an even number of arguments!" args))
+        (let loop ((newlist '()) (pairs args))
+            (if (atom? pairs)
+                newlist
+                (let ((key (first pairs)) (val (second pairs)))
+                    (loop (fn key val) (cddr pairs)))))))
 
 (define (thunk? fn)
     (define pinfo (procedure-information fn))
@@ -29,16 +47,16 @@
     (define delegates (make-hash-table))
     (define autoexec (make-hash-table))
     (define (tset! k v)
-            (hash-table-set! this k v))
+        (hash-table-set! this k v))
     (define (fset! k v)
-            (hash-table-set! fields k v))
+        (hash-table-set! fields k v))
     (define (aset! k)
-            (hash-table-set! autoexec k #t))
+        (hash-table-set! autoexec k #t))
     (define (rset! k v)
-            (hash-table-set! delegates k v))
+        (hash-table-set! delegates k v))
     (define (set-resend! rlist)
         (let ((delegate (car rlist)) (msgs (cdr rlist)))
-            (map (lambda (msg) (rset! msg (lambda () (sexy-send delegate msg)))) msgs)))
+            (map (lambda (msg) (rset! msg (sexy-snarf (lambda () (sexy-send delegate msg))))) msgs)))
     (map-pairs fset! args)
     (if resends
         (map set-resend! resends)
@@ -48,8 +66,70 @@
     (tset! 'fields fields)
     (tset! 'autos autoexec)
     (tset! 'resends delegates)
-    (tset! 'default (or initial (lambda (msg) 'null)))
+    (tset! 'default (or initial (sexy-snarf (lambda (msg) 'null))))
     this)
+
+(define (sexy-proc code env compiled)
+    (define this (make-hash-table))
+    (define fields (make-hash-table))
+    (define my-apply-obj (make-hash-table))
+    (define (my-apply-proc xs cont)
+        (sexy-apply compiled xs cont))
+    (define proc-default
+        (define tmp (make-hash-table))
+        (hash-table-set! tmp 'exec
+            (lambda (args opts cont)
+                (error (sprintf "Procedure objects have no method ~A!" (car args))))))
+    (define (tset! k v)
+        (hash-table-set! this k v))
+    (define (fset! k v)
+        (hash-table-set! fields k v))
+    (define (appl-set! k v)
+        (hash-table-set! my-apply-obj k v))
+    (define (appl-fset! k v)
+        (hash-table-set! (hash-table-ref my-apply-obj 'fields) k v))
+
+    (fset! 'type 'fn)
+    (fset! 'null? 'false)
+    (fset! 'to-bool 'true)
+    (fset! 'env env)
+    (fset! 'code code)
+
+    (if (pair? code)
+        (let ((formals (car (cdr code))))
+            (fset! 'formals formals)
+            (fset! 'arity (length formals)))
+        'null)
+
+    (fset! 'apply my-apply-obj)
+
+    (appl-set! 'exec my-apply-proc)
+    (appl-set! 'fields (make-hash-table))
+    (appl-set! 'autos (make-hash-table))
+    (appl-set! 'resends (make-hash-table))
+    (appl-set! 'default proc-default)
+    (appl-fset! 'type 'fn)
+    (appl-fset! 'null? 'false)
+    (appl-fset! 'to-bool 'true)
+    (appl-fset! 'env env)
+    (appl-fset! 'code 'compiled)
+    (appl-fset! 'arity 2)
+    (appl-fset! 'apply 'WAT)
+    
+    (tset! 'exec compiled)
+    (tset! 'fields fields)
+    (tset! 'autos (make-hash-table))
+    (tset! 'resends (make-hash-table))
+    (tset! 'default proc-default)
+
+    this)
+
+(define (sexy-apply proc xs cont)
+    (define opts (get-sexy-options xs))
+    (define args (remove-sexy-options xs))
+    (if (and (hash-table? proc) (eq? 'fn (sexy-send proc 'type)))
+        ((hash-table-ref proc 'exec) args opts cont)
+        (error (list "Not a procedure!" proc))))
 
 (define (sexy-send obj msg)
     (cond
@@ -57,7 +137,6 @@
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
-        ((procedure? obj) (sexy-send-proc obj msg))
         ((hash-table? obj) (sexy-send-obj obj msg))
         ((vector? obj) (sexy-send-vector obj msg))
         ((port? obj) (sexy-send-port obj msg))
@@ -164,32 +243,24 @@
     (if (hash-table-exists? fields msg)
         (let ((v (hash-table-ref fields msg)))
             (if (hash-table-exists? autos msg)
-                (v) ; exec the thunk
+                (sexy-apply v '() identity) ; exec the thunk
                 v))
         (if (hash-table-exists? resends msg)
-            ((hash-table-ref resends msg)) ; exec the thunk
+            (hash-table-ref resends msg) ; exec the thunk
             (case msg
                 ((type) 'obj)
-                ((has?) (lambda (x) (hash-table-exists? fields x)))
+                ((has?) (sexy-snarf (lambda (x) (hash-table-exists? fields x))))
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
                 ((pairs) (hash-table->alist fields))
                 ((clone) (hash-table-copy fields)) ; fixme
-                ((set!) (lambda args (map-pairs (lambda (k v) (hash-table-set! fields k v)) args)))
-                (else ((hash-table-ref obj 'default) msg))))))
-
-(define (sexy-send-proc obj msg)
-    (case msg
-        ((type) 'fn)
-        ((null?) 'false)
-        ((to-bool) 'true)
-        ((arity) 'niy)
-        ((apply)
-            (lambda (xs cont)
-                (define opts (get-sexy-options xs))
-                (define args (remove-sexy-options xs))
-                (obj args opts cont)))
-        (else (idk msg obj))))
+                ((set!) (sexy-snarf
+                            (lambda args
+                                (map-pairs
+                                    (lambda (k v)
+                                        (hash-table-set! fields k v))
+                                    args))))
+                (else (sexy-apply (hash-table-ref obj 'default) (list msg) identity))))))
 
 (define (sexy-send-vector obj msg)
     (case msg
@@ -237,31 +308,30 @@
 ; (obj x 1 y 2 meh (lambda (x) (* x 10)) mah (lambda () 7) resend: ((obj2 'foo 'bar) (obj3 'baz)) auto: (mah) default: true)
 
 (define (get-sexy-options xs)
+    (define rval (sexy-object '() #f #f #f))
     (if (pair? xs)
-        (let loop ((head (car xs)) (tail (cdr xs)) (options (sexy-object '() #f #f #f)))
-            (if head
-                (if (keyword? head)
-                    (begin
-                        ((sexy-send options 'set!) (string->symbol (keyword->string head)) (car tail))
-                        (if (pair? (cdr tail))
-                            (loop (cdr tail) (cddr tail) options)
-                            (loop #f #f options))))
-                options))
-        (sexy-object '() #f #f #f)))
+        (let loop ((head (car xs)) (tail (cdr xs)) (options rval))
+            (if (keyword? head)
+                (begin
+                    (hash-table-set! (hash-table-ref options 'fields) (string->symbol (keyword->string head)) (car tail))
+                    (if (pair? (cdr tail))
+                        (loop (cdr tail) (cddr tail) options)
+                        options))
+                (if (pair? tail)
+                    (loop (car tail) (cdr tail) options)
+                    options)))
+        rval))
 
 (define (remove-sexy-options xs)
     (if (pair? xs)
         (let loop ((head (car xs)) (tail (cdr xs)) (argv '()))
-            (if (pair? tail)
-                (let* ((butt (cdr tail)) (is-pair (pair? butt)))
-                    (if (keyword? head)
-                        (if is-pair
-                            (loop butt (cdr butt) argv)
-                            (reverse argv))
-                        (if is-pair
-                            (loop butt (cdr butt) (cons head argv))
-                            (reverse argv))))
-                (reverse argv)))
+            (if (keyword? head)
+                (if (pair? (cdr tail))
+                    (loop (car (cdr tail)) (cddr tail) argv)
+                    (reverse argv))
+                (if (pair? tail)
+                    (loop (car tail) (cdr tail) (cons head argv))
+                    (reverse (cons head argv)))))
         '()))
 
 (define (sexy-environment parent)
@@ -270,14 +340,19 @@
         (if (eq? name 'env)
             this
             (let ((val (sexy-send env name)))
-                (if (eq? val 'null?)
+                (if (eq? val 'null)
                     (sexy-send parent name)
                     val))))
     (define (extend names vals)
         (define noob (sexy-environment env))
-        ((sexy-send noob 'set!) (zip names vals)))
+        (define xs (zip names vals))
+        (define setter (sexy-send noob 'set!))
+        (define (setme! pr)
+            (sexy-apply setter pr identity))
+        (map setme! xs)
+        noob)
     (define (mutate! name val)
-        ((lookup 'set!) name val))
+        (sexy-apply (lookup 'set!) (list name val) identity))
     (define (set-null! name)
         (mutate! name 'null))
     (define (prep-defs seq)
@@ -320,19 +395,17 @@
         (let* ((formals (car code)) (bodies (cdr code)) (flen (length formals)))
             ; what do do about opts and rest?
             (cont
-                (lambda (args opts kont)
-(display args)
-(display opts)
-                    (define fargs (if (pair? args) (take args flen) '()))
-                    (define the-rest (if (pair? args) (drop args flen) '()))
-(display fargs)
-(display the-rest)
-                    (define noob
-                        ((sexy-send env 'extend)
-                            (append formals '(opt rest))
-                            (append fargs (list opts the-rest))))
-(display noob)
-                    ((sexy-send noob 'eval) (cons 'seq bodies) kont)))))
+                (sexy-proc
+                    (cons 'fn code)
+                    env 
+                    (lambda (args opts kont)
+                        (define fargs (if (pair? args) (take args flen) '()))
+                        (define the-rest (if (pair? args) (drop args flen) '()))
+                        (define noob
+                            ((sexy-send this 'extend)
+                                (append formals '(opt rest))
+                                (append fargs (list opts the-rest))))
+                        ((sexy-send noob 'eval) (cons 'seq bodies) kont))))))
     (define (sexy-eval-list xs cont)
         (if (pair? xs)
             (sexy-eval (car xs)
@@ -360,7 +433,7 @@
                     (else (sexy-eval head
                         (lambda (f) 
                             (sexy-eval-list tail
-                                (lambda (args) ((sexy-send f 'apply) args cont))))))))))
+                                (lambda (args) (sexy-apply f args cont))))))))))
     (define this
         (sexy-object
             (list 'type 'env
@@ -368,14 +441,16 @@
                   'extend extend
                   'eval sexy-eval
                   'parent parent)
-            (list (list env 'set! 'has? 'keys))
             #f
+            (list (list env 'set! 'has? 'keys))
             #f))
         this)
 
-(define (sexy-snarf fname)
-    (lambda (args opts cont)
-        (cont (apply fname args))))
+(define (sexy-snarf proc)
+    (define compiled
+        (lambda (args opts cont)
+            (cont (apply proc args))))
+    (sexy-proc 'compiled 'global compiled))
 
 (define (global-env)
     (define (nodef x)
@@ -384,25 +459,30 @@
         (sexy-object (list 'lookup nodef) #f #f #f))
     (define prelude
         (sexy-environment toplevel))
-    (define preset! (sexy-send prelude 'set!))
+    (define (preset! k v)
+        (sexy-apply (sexy-send prelude 'set!) (list k v) identity))
     (define (fill-prelude fs)
         (define (setem! p)
             (preset! (car p) (cdr p)))
         (map setem! fs))
     (define snarfs
         (map (lambda (x) (cons x (sexy-snarf (eval x))))
-            '(+ - * / list vector eq? equal?)))
+            '(+ - * / > >= < <= eq? equal? list vector)))
     (define primitives
         (list
             (cons 'send (sexy-snarf sexy-send))
-            (cons 'obj (lambda (args opts cont)
-                (define autos (sexy-send opts 'auto))
-                (define rsend (sexy-send opts 'resend))
-                (define default (sexy-send opts 'default))
-                (if (eq? autos 'null) (set! autos #f) #f)
-                (if (eq? rsend 'null) (set! rsend #f) #f)
-                (if (eq? default 'null) (set! default #f) #f)
-                (cont (sexy-object args autos rsend default))))))
+            (cons 'obj
+                (sexy-proc
+                    'compiled
+                    'global
+                    (lambda (args opts cont)
+                        (define autos (sexy-send opts 'auto))
+                        (define rsend (sexy-send opts 'resend))
+                        (define default (sexy-send opts 'default))
+                        (if (eq? autos 'null) (set! autos #f) #f)
+                        (if (eq? rsend 'null) (set! rsend #f) #f)
+                        (if (eq? default 'null) (set! default #f) #f)
+                        (cont (sexy-object args autos rsend default)))))))
     (fill-prelude (append snarfs primitives))
     prelude)
 
@@ -417,4 +497,6 @@
         ((sexy-send env 'eval) (sexy-send stdin 'read) (lambda (v) ((sexy-send stdout 'print) v) (loop))))
     (loop))
 
-(repl)
+; (start)
+
+
