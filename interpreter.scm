@@ -246,14 +246,14 @@
                 (sexy-apply v '() identity) ; exec the thunk
                 v))
         (if (hash-table-exists? resends msg)
-            (hash-table-ref resends msg) ; exec the thunk
+            (sexy-apply (hash-table-ref resends msg) '() identity) ; exec the thunk
             (case msg
                 ((type) 'obj)
                 ((has?) (sexy-snarf (lambda (x) (hash-table-exists? fields x))))
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
                 ((pairs) (hash-table->alist fields))
-                ((clone) (hash-table-copy fields)) ; fixme
+                ((clone) 'niy) ; fixme
                 ((set!) (sexy-snarf
                             (lambda args
                                 (map-pairs
@@ -276,33 +276,74 @@
                 (vector-ref obj msg)
                 (idk obj msg)))))
 
-(define (sexy-send-port obj msg) 
+(define (sexy-send-port obj msg)
     (case msg
         ((type) 'port)
         ((null?) 'false)
         ((to-bool) 'true)
-        ((read) (read obj))
-        ((write) (write obj))
-        ((print) (lambda (x) (display x) (newline)))
+        ((read) (sexy-snarf
+            (lambda () 
+                (define blob (read))
+                (sexy-parse blob))))
+        ((write) (sexy-snarf (lambda (x) (write (sexy-send x 'view) obj))))
+        ((print) (sexy-snarf (lambda (x) (display x) (newline))))
         (else (idk msg obj))))
 
 (define (sexy-error form . args)
-    (display form)
-    (display args))
+    (newline)
+    (newline)
+    (display "ERRORED!!!") (newline)
+    (display form) (newline)
+    (display args) (newline)
+    (newline))
 
-; (define (doterator)
-;     (define (match? x)
-;         (and (symbol? x)
-;              (string-contains (symbol->string x) ".")))
-;     (define (transform x)
-;         (let* (
-;             (str (symbol->string x))
-;             (words (string-split str ".")))
-;             (let loop ((this (string->symbol (car words))) (left (cdr words)))
-;                 (if (eq? left '())
-;                     this
-;                     (loop (list this `(quote ,(string->symbol (car left)))) (cdr left))))))
-;     (cons match? transform))
+
+; mini-parser
+
+(define (sexy-parse form)
+	(define (desc form mt)
+		(descend form (car mt) (cdr mt)))
+    (define order
+        (list
+            (doterator)))
+	(define atomized
+		(let loop ((f form) (fns order))
+			(if (eq? fns '())
+				f
+				(loop (desc f (car fns)) (cdr fns)))))
+	atomized)
+
+(define (warp form match? transform)
+	(if (match? form)
+		(let ((changed (transform form)))
+			(if (equal? form changed)
+				changed
+				(begin 
+					;(display form) (display " -> ") (display changed) (newline) (newline)
+					changed)))
+		form))
+
+(define (descend form match? transform)
+	(define (curses x) (descend x match? transform))
+	(define newform (warp form match? transform))
+	(if (pair? newform)
+		(cons (curses (car newform)) (curses (cdr newform)))
+		newform))
+
+(define (doterator)
+    ; foo.bar.baz.bax -> (send (send (send foo 'bar) 'baz) 'bax)
+    (define (match? x)
+        (and (symbol? x)
+             (string-contains (symbol->string x) ".")))
+    (define (transform x)
+        (let* (
+            (str (symbol->string x))
+            (words (string-split str ".")))
+            (let loop ((this (string->symbol (car words))) (left (cdr words)))
+                (if (eq? left '())
+                    this
+                    (loop (list 'send this `(quote ,(string->symbol (car left)))) (cdr left))))))
+    (cons match? transform))
 
 
 ; (obj x 1 y 2 meh (lambda (x) (* x 10)) mah (lambda () 7) resend: ((obj2 'foo 'bar) (obj3 'baz)) auto: (mah) default: true)
@@ -402,9 +443,12 @@
                         (define fargs (if (pair? args) (take args flen) '()))
                         (define the-rest (if (pair? args) (drop args flen) '()))
                         (define noob
-                            ((sexy-send this 'extend)
-                                (append formals '(opt rest))
-                                (append fargs (list opts the-rest))))
+                            (sexy-apply
+                                (sexy-send this 'extend)
+                                (list
+                                    (append formals '(opt rest))
+                                    (append fargs (list opts the-rest)))
+                                identity))
                         ((sexy-send noob 'eval) (cons 'seq bodies) kont))))))
     (define (sexy-eval-list xs cont)
         (if (pair? xs)
@@ -437,9 +481,9 @@
     (define this
         (sexy-object
             (list 'type 'env
-                  'lookup lookup
-                  'extend extend
-                  'eval sexy-eval
+                  'lookup (sexy-snarf lookup)
+                  'extend (sexy-snarf extend)
+                  'eval (lambda (args opts cont) (sexy-eval (car args) cont))
                   'parent parent)
             #f
             (list (list env 'set! 'has? 'keys))
@@ -494,7 +538,18 @@
     (define env (global-env))
     (define (loop)
         (display "(sexy) ")
-        ((sexy-send env 'eval) (sexy-send stdin 'read) (lambda (v) ((sexy-send stdout 'print) v) (loop))))
+        (sexy-apply
+            (sexy-send stdin 'read)
+            '()
+            (lambda (expr)
+                ((sexy-send env 'eval)
+                    (list expr)
+                    (sexy-object '() #f #f #f)
+                    (lambda (v)
+                        (sexy-apply
+                            (sexy-send stdout 'print)
+                            (list v)
+                            (lambda (null) (loop))))))))
     (loop))
 
 ; (start)
