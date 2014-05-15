@@ -13,7 +13,8 @@
 ; start
 
 (define (start)
-    (define cmd (string->symbol (car (command-line-arguments))))
+    (define args (command-line-arguments))
+    (define cmd (string->symbol (car args)))
     (case cmd
         ((compile) 'niy)
         ((expand) 'niy)
@@ -28,8 +29,6 @@
 (define htr hash-table-ref)
 (define hte? hash-table-exists?)
 (define hts! hash-table-set!)
-
-(define (identity x) x)
 
 (define (debug x)
     (display x) (newline))
@@ -217,6 +216,7 @@
         ((symbol? obj) (sexy-send-symbol obj msg))
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
+        ((null? obj) (sexy-send-pair obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
         ((procedure? obj) (sexy-send-primitive obj msg))
         ((vector? obj) (sexy-send-vector obj msg))
@@ -232,6 +232,7 @@
 (define (sexy-send-symbol obj msg)
     (case msg
         ((to-string) (symbol->string obj))
+        ((view) obj)
         (else
             (case obj
                 ((true false) (sexy-send-bool obj msg))
@@ -263,6 +264,7 @@
         ((null?) 'false)
         ((to-bool) (if (eq? obj 0) 'false 'true))
         ((to-string) (number->string obj))
+        ((view) obj)
         (else
             (cond
                 ((integer? obj) (sexy-send-int obj msg))
@@ -298,6 +300,7 @@
     (case msg
         ((type) 'string)
         ((null?) 'false)
+        ((view) obj)
         ((to-bool) (if (eq? (string-length obj) 0) 'false 'true))
         ((to-symbol) (string->symbol obj))
         ((to-number) (string->number obj))
@@ -309,6 +312,7 @@
     (case msg
         ((type) 'pair)
         ((null?) 'false)
+        ((view) obj)
         ((to-bool) (if (eq? (length obj) 0) 'false 'true))
         ((head) (car obj))
         ((tail) (cdr obj))
@@ -327,6 +331,7 @@
     (case msg
         ((type) 'fn)
         ((null?) 'false)
+        ((view) obj)
         ((to-bool) 'true)
         ((env) 'global)
         ((code) 'compiled)
@@ -347,6 +352,9 @@
             (sexy-apply (htr resends msg) '() identity) ; exec the thunk
             (case msg
                 ((type) 'obj)
+                ((null?) 'false)
+                ((view) (hash-table->alist fields))
+                ((to-bool) (if (eq? 0 (length (hash-table-keys fields))) 'false 'true))
                 ((has?) (lambda (x) (hte? fields x)))
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
@@ -364,6 +372,7 @@
     (case msg
         ((type) 'fn)
         ((null?) 'false)
+        ((view) obj)
         ((to-bool) 'true)
         ((env) (reify-env (htr obj 'env)))
         ((code arity) (htr obj msg))
@@ -377,6 +386,7 @@
     (case msg
         ((type) 'env)
         ((null?) 'false)
+        ((view) (hash-table->alist vars))
         ((to-bool) 'true)
         ((has?) (lambda (x) (hte? vars x)))
         ((vars) (hash-table->alist vars))
@@ -388,6 +398,9 @@
 (define (sexy-send-vector obj msg)
     (case msg
         ((type) 'vector)
+        ((null?) 'false)
+        ((view) obj)
+        ((to-bool) (if (eq? (vector-length obj) 0) 'false 'true))
         ((len) (vector-length obj))
         ((has?) (lambda (item) (member item obj)))
         ((map) (lambda (funk) (vector-map funk obj)))
@@ -399,18 +412,25 @@
                 (vector-ref obj msg)
                 (idk obj msg)))))
 
+(define (sexy-read port)
+    (sexy-parse (read port)))
+
+(define (sexy-write obj port)
+    (write (sexy-send obj 'view)))
+
 (define (sexy-send-port obj msg)
     (case msg
         ((type) 'port)
         ((null?) 'false)
         ((to-bool) 'true)
-        ((read) 
-            (lambda () 
-                (sexy-parse (read))))
-        ((write) (lambda (x) (write (sexy-send x 'view) obj)))
-        ((print) (lambda (x) (display x) (newline)))
+        ((view) obj)
+        ((read) (lambda () (sexy-read obj)))
+        ((write) (lambda (x) (sexy-write x obj)))
+        ((print) (lambda (x) (sexy-write x obj) (newline)))
         (else (idk msg obj))))
 
+(define (sexy-bool obj)
+    (sexy-send obj 'to-bool))
 
 ; eval/apply
 
@@ -479,7 +499,7 @@
             pred
             env
             (lambda (b)
-                (if (eq? (sexy-send b 'to-bool) 'true)
+                (if (eq? (sexy-bool b) 'true)
                     (sexy-eval iftrue env cont)
                     (sexy-eval iffalse env cont))))))
 
@@ -507,19 +527,21 @@
             (error "set! wants a symbol!"))))
 
 (define (sexy-eval-fn code env cont)
-    (let* ((formals (cadr code)) (bodies (cddr code)) (flen (length formals)))
+    (let* ((formals (cadr code)) (bodies (cddr code)) (arity (length formals)))
         (cont
             (sexy-proc
                 code
                 env 
                 (lambda (args opts kont)
-                    (define fargs (if (pair? args) (take args flen) '()))
-                    (define the-rest (if (pair? args) (drop args flen) '()))
-                    (define noob
-                        ((sexy-send env 'extend)
-                            (append formals '(opt rest))
-                            (append fargs (list opts the-rest))))
-                    ((sexy-send noob 'eval) (cons 'seq bodies) kont))))))
+                    (if (< (length args) arity)
+                        (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
+                        (let* ((fargs (if (pair? args) (take args arity) '()))
+                               (the-rest (if (pair? args) (drop args arity) '()))
+                               (noob
+                                   ((sexy-send env 'extend)
+                                        (append formals '(opt rest))
+                                        (append fargs (list opts the-rest)))))
+                            ((sexy-send noob 'eval) (cons 'seq bodies) kont))))))))
 
 (define (sexy-eval-list xs env cont)
     (if (pair? xs)
@@ -560,9 +582,45 @@
         (map setem! fs))
     (define snarfs
         (map (lambda (x) (cons x (eval x)))
-            '(+ - * / > >= < <= eq? equal? cons list vector)))
+            '(+ - * / cons list vector)))
+    (define (bool-fixer op)
+        (lambda (x y)
+            (if (op x y)
+                'true
+                'false)))
+    (define (istrue x)
+        (eq? 'true (sexy-bool x)))
     (define primitives
         (list
+            (cons 'stdin (current-input-port))
+            (cons 'stdout (current-output-port))
+            (cons 'stderr (current-error-port))
+            (cons 'eq? (bool-fixer eq?))
+            (cons '> (bool-fixer >))
+            (cons '>= (bool-fixer >=))
+            (cons '< (bool-fixer <))
+            (cons '<= (bool-fixer <=))
+            (cons 'and?
+                (lambda args
+                    (let loop ((a (car args)) (xs (cdr args)))
+                        (if (istrue a)
+                            (if (pair? xs)
+                                (loop (car xs) (cdr xs))
+                                'true)
+                            'false))))
+            (cons 'or?
+                (lambda args
+                    (let loop ((a (car args)) (xs (cdr args)))
+                        (if (istrue a)
+                            'true
+                            (if (pair? xs)
+                                (loop (car xs) (cdr xs))
+                                'false)))))
+            (cons 'not
+                (lambda (b)
+                    (if (istrue b)
+                        'false
+                        'true))) 
             (cons 'send sexy-send)
             (cons 'obj
                 (sexy-proc
