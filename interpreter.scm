@@ -425,8 +425,8 @@
         ((to-bool) 'true)
         ((view) obj)
         ((read) (lambda () (sexy-read obj)))
-        ((write) (lambda (x) (sexy-write x obj)))
-        ((print) (lambda (x) (sexy-write x obj) (newline)))
+        ((write) (lambda (x) (sexy-write x obj) 'null))
+        ((print) (lambda (x) (sexy-write x obj) (newline) 'null))
         (else (idk msg obj))))
 
 (define (sexy-bool obj)

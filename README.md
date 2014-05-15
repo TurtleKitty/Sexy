@@ -9,29 +9,29 @@ It implements a prototype of a Sexy language.
 
 ```scheme
 
-(def foo (fn x y (* x y)))
+(def foo (fn (x y) (* x y)))
 
-(show (foo 3 4)) 
+(stdout.print (foo 3 4)) 
 
-(fun bar x y 
-    (if argo.snazz
-        (list x y argo.snazz argo.snarf argv)
-        (list x y argv)))
+(fun bar (x y) 
+    (if opt.snazz
+        (list x y opt.snazz opt.snarf rest)
+        (list x y rest)))
 
-(map show
+(map stdout.print
     (list
         (bar 2 3)
         (bar 2 3 4 5)
-        (bar 2 snazz: #t 3 4 5)
-        (bar 2 snazz: #t snarf: "Yarr!" 3 4 5)))
+        (bar 2 snazz: true 3 4 5)
+        (bar 2 snazz: true snarf: "Yarr!" 3 4 5)))
 
 (def fibby
-	(fn x
+	(fn (x)
 		(if (< x 3)
 			1
-			(+ (this (- x 2)) (this (- x 1))))))
+			(+ (fibby (- x 2)) (fibby (- x 1))))))
 
-(show (map fibby '(1 2 3 4 5)))
+(stdout.print (map fibby '(1 2 3 4 5)))
 
 ```
 
