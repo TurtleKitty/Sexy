@@ -182,7 +182,8 @@
     (define this (mkht))
     (define vars (mkht))
     (define (set-var! name val)
-        (hts! vars name val))
+        (hts! vars name val)
+        val)
     (define (lookup name)
         (if (eq? name 'env)
             (reify-env this)
@@ -197,15 +198,15 @@
             (setter! (car pr) (cadr pr)))
         (map setme! xs)
         noob)
-    (define (my-eval code cont)
-        (sexy-eval code this cont))
+    (define (my-eval code)
+        (sexy-eval code this identity))
     (hts! this 'type 'env)
     (hts! this 'vars vars)
     (hts! this 'set-var! set-var!)
     (hts! this 'lookup lookup)
     (hts! this 'extend extend)
     (hts! this 'eval my-eval)
-    (hts! this 'parent parent)
+    (hts! this 'parent (reify-env parent))
     this)
 
 
@@ -372,7 +373,7 @@
     (case msg
         ((type) 'fn)
         ((null?) 'false)
-        ((view) obj)
+        ((view) (sexy-send obj 'code))
         ((to-bool) 'true)
         ((env) (reify-env (htr obj 'env)))
         ((code arity) (htr obj msg))
@@ -541,7 +542,7 @@
                                    ((sexy-send env 'extend)
                                         (append formals '(opt rest))
                                         (append fargs (list opts the-rest)))))
-                            ((sexy-send noob 'eval) (cons 'seq bodies) kont))))))))
+                            (sexy-eval (cons 'seq bodies) noob kont))))))))
 
 (define (sexy-eval-list xs env cont)
     (if (pair? xs)
@@ -559,7 +560,7 @@
 ; reflection
 
 (define (reify-env env)
-    (cons env 'fixme))
+    env)
 
 (define (reify-cont cont)
     (cons cont 'fixme))
@@ -652,8 +653,9 @@
             (sexy-send stdin 'read)
             '()
             (lambda (expr)
-                ((sexy-send env 'eval)
+                (sexy-eval
                     expr
+                    env
                     (lambda (v)
                         (sexy-apply
                             (sexy-send stdout 'print)
