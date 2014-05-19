@@ -6,6 +6,7 @@
 
 (use numbers)
 (use posix)
+(use utils)
 (use uuid)
 (use vector-lib)
 
@@ -15,10 +16,25 @@
 (define (start)
     (define args (command-line-arguments))
     (define cmd (string->symbol (car args)))
+    (define (run)
+        (if (pair? (cdr args))
+            (let* ((file (cadr args)) (fport (open-input-file file)))
+                (define program
+                    (let loop ((noob (sexy-read fport)) (code '()))
+                        (if (eof-object? noob)
+                            (cons 'seq (reverse code))
+                            (loop (sexy-read fport) (cons noob code)))))
+                (close-input-port fport)
+                (display program) (newline)
+                (sexy-eval
+                    program
+                    (global-env)
+                    (lambda (v) (display v) (newline))))
+            (error "Usage: sexy run <filename>")))
     (case cmd
         ((compile) 'niy)
         ((expand) 'niy)
-        ((run) 'niy)
+        ((run) (run))
         ((repl) (repl))
         (else (printf "Unknown command: ~A~%" cmd))))
 
@@ -228,6 +244,7 @@
                     ((obj) (sexy-send-obj obj msg))
                     ((fn)  (sexy-send-fn obj msg))
                     ((env)  (sexy-send-env obj msg)))))
+        ((eof-object? obj) (exit))
         (else (error (list "WTF kind of object was THAT?" obj msg)))))
 
 (define (sexy-send-symbol obj msg)
@@ -506,15 +523,17 @@
 
 (define (sexy-eval-seq code env cont)
     (define seq (cdr code))
-    (if (pair? seq)
-        (let ((head (cadr code)) (tail (cddr code)))
-            (if (pair? tail)
-                (sexy-eval
-                    head
-                    env
-                    (lambda (h) (sexy-eval-seq tail env cont)))
-                (sexy-eval head env cont)))
-        (cont 'null)))
+    (define (subcontractor xs env cont)
+        (if (pair? xs)
+            (let ((head (car xs)) (tail (cdr xs)))
+                (if (pair? tail)
+                    (sexy-eval
+                        head
+                        env
+                        (lambda (h) (subcontractor tail env cont))))
+                (sexy-eval head env cont))
+            (sexy-error "Empty sequences are forbidden!" code)))
+    (subcontractor seq env cont))
 
 (define (sexy-eval-set! code env cont)
     (let ((name (cadr code)) (val (caddr code)))
@@ -623,6 +642,14 @@
                         'false
                         'true))) 
             (cons 'send sexy-send)
+            (cons 'test
+                (lambda (tname ok)
+                    (list tname (if (eq? ok 'true) 'ok 'FAIL))))
+            (cons 'show
+                (lambda (x)
+                    (sexy-write x (current-output-port))
+                    (newline)
+                    x))
             (cons 'obj
                 (sexy-proc
                     'compiled
@@ -636,6 +663,9 @@
                         (if (eq? default 'null) (set! default #f) #f)
                         (cont (sexy-object args autos rsend default)))))))
     (fill-prelude (append snarfs primitives))
+    (hts! (htr prelude 'vars) 'stdin (current-input-port))
+    (hts! (htr prelude 'vars) 'stdout (current-output-port))
+    (hts! (htr prelude 'vars) 'stderr (current-error-port))
     prelude)
 
 
@@ -644,9 +674,6 @@
     (define stdout (current-output-port))
     (define stderr (current-error-port))
     (define genv (global-env))
-    (hts! (htr genv 'vars) 'stdin stdin)
-    (hts! (htr genv 'vars) 'stdout stdout)
-    (hts! (htr genv 'vars) 'stderr stderr)
     (define (loop env)
         (display "(sexy) ")
         (sexy-apply
@@ -661,8 +688,12 @@
                             (sexy-send stdout 'print)
                             (list v)
                             (lambda (null) (loop env))))))))
+    (newline)
+    (display "Welcome to the Sexy Read-Eval-Print Loop.  Press Ctrl-D to exit.")
+    (newline)
+    (newline)
     (loop genv))
 
-; (start)
+(start)
 
 
