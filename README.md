@@ -1,11 +1,9 @@
 Sexy
 ====
 
-**(real.languages (have 'curves))**
+**((real 'languages) have.curves)**
 
-This is a compiler extension for Chicken Scheme (http://call-cc.org/).
-
-It implements a prototype of a Sexy language.
+Sexy is an object-based dialect of Lisp inspired by Scheme, Self, and Perl.
 
 ```scheme
 
@@ -18,12 +16,14 @@ It implements a prototype of a Sexy language.
         (list x y opt.snazz opt.snarf rest)
         (list x y rest)))
 
-(map stdout.print
+(def baz
     (list
         (bar 2 3)
         (bar 2 3 4 5)
         (bar 2 snazz: true 3 4 5)
         (bar 2 snazz: true snarf: "Yarr!" 3 4 5)))
+
+(baz.map show)
 
 (def fibby
 	(fn (x)
@@ -31,7 +31,7 @@ It implements a prototype of a Sexy language.
 			1
 			(+ (fibby (- x 2)) (fibby (- x 1))))))
 
-(stdout.print (map fibby '(1 2 3 4 5)))
+(show (map fibby '(1 2 3 4 5)))
 
 ```
 

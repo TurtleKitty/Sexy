@@ -13,30 +13,53 @@
 
 ; start
 
+(define usage-text #<<END
+
+Usage:
+
+sexy repl
+sexy run <filename>
+sexy check <filename>
+sexy compile <filename>
+sexy expand <filename>
+
+END
+)
+
+(define (usage)
+    (display usage-text)
+    (newline))
+
+(define (niy)
+    (newline)
+    (display "Umm... that's not done yet.")
+    (newline)
+    (newline))
+
 (define (start)
     (define args (command-line-arguments))
-    (define cmd (string->symbol (car args)))
-    (define (run)
+    (define (check-file)
         (if (pair? (cdr args))
-            (let* ((file (cadr args)) (fport (open-input-file file)))
-                (define program
-                    (let loop ((noob (sexy-read fport)) (code '()))
-                        (if (eof-object? noob)
-                            (cons 'seq (reverse code))
-                            (loop (sexy-read fport) (cons noob code)))))
-                (close-input-port fport)
-                (display program) (newline)
-                (sexy-eval
-                    program
-                    (global-env)
-                    (lambda (v) (display v) (newline))))
-            (error "Usage: sexy run <filename>")))
-    (case cmd
-        ((compile) 'niy)
-        ((expand) 'niy)
-        ((run) (run))
-        ((repl) (repl))
-        (else (printf "Unknown command: ~A~%" cmd))))
+            (let ((file (cadr args)))
+               (if (file-exists? file)
+                   (open-input-file file) 
+                   (debug "File not found!")))
+            (usage)))
+    (define (setup-run)
+        (define fport (check-file))
+        (if (port? fport)
+            (sexy-run fport)
+            (exit)))
+    (if (not (pair? args))
+        (usage)
+        (let ((cmd (string->symbol (car args))))
+            (case cmd
+                ((run) (setup-run))
+                ((repl) (sexy-repl))
+                ((check) (niy))
+                ((compile) (niy))
+                ((expand) (niy))
+                (else (printf "Unknown command: ~A~%" cmd))))))
 
 
 ; utils
@@ -59,15 +82,15 @@
                     (loop (fn key val) (cddr pairs)))))))
 
 (define (idk obj msg)
-    (error (list "Message not understood!" obj msg)))
+    (sexy-error `(send ,obj ,msg) "Message not understood!"))
 
 (define (sexy-error form . args)
-    (newline)
     (newline)
     (display "ERRORED!!!") (newline)
     (display form) (newline)
     (display args) (newline)
-    (newline))
+    (newline)
+    'null)
 
 
 ; mini-parser
@@ -145,6 +168,10 @@
                     (reverse (cons head argv)))))
         '()))
 
+(define (transbool x)
+    (if x
+        'true
+        'false))
 
 ; sexy objects
 
@@ -205,7 +232,9 @@
             (reify-env this)
             (if (hte? vars name) 
                 (htr vars name)
-                ((sexy-send parent 'lookup) name))))
+                (if parent
+                    ((sexy-send parent 'lookup) name)
+                    'null))))
     (define (extend names vals)
         (define noob (sexy-environment this))
         (define xs (zip names vals))
@@ -222,7 +251,7 @@
     (hts! this 'lookup lookup)
     (hts! this 'extend extend)
     (hts! this 'eval my-eval)
-    (hts! this 'parent (reify-env parent))
+    (hts! this 'parent (if parent (reify-env parent) 'null))
     this)
 
 
@@ -406,7 +435,17 @@
         ((null?) 'false)
         ((view) (hash-table->alist vars))
         ((to-bool) 'true)
-        ((has?) (lambda (x) (hte? vars x)))
+        ((has?)
+            (lambda (x)
+                (sexy-bool ((sexy-send obj 'lookup) x))))
+        ((local?)
+            (lambda (x)
+                (if (hte? vars x)
+                    (let ((v (htr vars x)))
+                        (if (eq? v 'null)
+                            'false
+                            'true))
+                    'false)))
         ((vars) (hash-table->alist vars))
         (else
             (if (hte? obj msg)
@@ -453,15 +492,20 @@
 ; eval/apply
 
 (define (sexy-eval code env cont)
+    (define (nodef x)
+        (sexy-error x "Symbol " x " is not defined"))
     (if (atom? code)
         (if (symbol? code)
-            (case code
-                ((true false null) (cont code))
-                ((env) (cont (reify-env env)))
-                (else
-                    (if (keyword? code)
-                        (cont code)
-                        (cont ((sexy-send env 'lookup) code)))))
+            (if (keyword? code)
+                (cont code)
+                (case code
+                    ((true false null) (cont code))
+                    ((env) (cont (reify-env env)))
+                    (else
+                        (let ((looked-up ((sexy-send env 'lookup) code)))
+                            (if (eq? 'null looked-up)
+                                (nodef code)
+                                (cont looked-up))))))
             (cont code))
         (case (car code)
             ((def) (sexy-eval-def code env cont))
@@ -470,6 +514,7 @@
             ((seq) (begin (prep-defs (cdr code) env) (sexy-eval-seq code env cont)))
             ((set!) (sexy-eval-set! code env cont))
             ((fn) (sexy-eval-fn code env cont))
+            ((wall) (sexy-eval (caddr code) env identity))
             (else
                 (sexy-eval
                     (car code)
@@ -505,8 +550,11 @@
     (define (set-null! name)
         (mutate! name 'null))
     (let ((name (cadr code)) (val (caddr code)))
-        (set-null! name)
-        (sexy-eval val env (lambda (v) (mutate! name v) (cont v)))))
+        (if (eq? 'true ((sexy-send env 'local?) name))
+            (sexy-error code name " is already defined in the local environment.")
+            (begin
+                (set-null! name)
+                (sexy-eval val env (lambda (v) (mutate! name v) (cont v)))))))
 
 (define (sexy-eval-quote code env cont)
     (cont (cadr code)))
@@ -532,7 +580,7 @@
                         env
                         (lambda (h) (subcontractor tail env cont))))
                 (sexy-eval head env cont))
-            (sexy-error "Empty sequences are forbidden!" code)))
+            (sexy-error code "Empty sequences are forbidden!")))
     (subcontractor seq env cont))
 
 (define (sexy-eval-set! code env cont)
@@ -543,8 +591,8 @@
                     val
                     env
                     (lambda (v) ((sexy-send env 'set-var!) name v) (cont 'null)))
-                (error (list "Unknown name" name)))
-            (error "set! wants a symbol!"))))
+                (sexy-error code "Unknown name" name))
+            (sexy-error code "set! wants a symbol!"))))
 
 (define (sexy-eval-fn code env cont)
     (let* ((formals (cadr code)) (bodies (cddr code)) (arity (length formals)))
@@ -588,21 +636,17 @@
 ; setup 
 
 (define (global-env)
-    (define (nodef x)
-        (error (list "Symbol not defined" x)))
-    (define toplevel
-        (sexy-object (list 'lookup nodef 'type 'env) #f #f #f))
     (define prelude
-        (sexy-environment toplevel))
+        (sexy-environment #f))
     (define (preset! k v)
-        (sexy-apply (sexy-send prelude 'set-var!) (list k v) identity))
+        (sexy-apply
+            (sexy-send prelude 'set-var!)
+            (list k v)
+            identity))
     (define (fill-prelude fs)
         (define (setem! p)
             (preset! (car p) (cdr p)))
         (map setem! fs))
-    (define snarfs
-        (map (lambda (x) (cons x (eval x)))
-            '(+ - * / cons list vector)))
     (define (bool-fixer op)
         (lambda (x y)
             (if (op x y)
@@ -610,6 +654,9 @@
                 'false)))
     (define (istrue x)
         (eq? 'true (sexy-bool x)))
+    (define snarfs
+        (map (lambda (x) (cons x (eval x)))
+            '(+ - * / cons list vector)))
     (define primitives
         (list
             (cons 'stdin (current-input-port))
@@ -644,7 +691,7 @@
             (cons 'send sexy-send)
             (cons 'test
                 (lambda (tname ok)
-                    (list tname (if (eq? ok 'true) 'ok 'FAIL))))
+                    (debug (list tname (if (eq? ok 'true) 'ok 'FAIL))) 'null))
             (cons 'show
                 (lambda (x)
                     (sexy-write x (current-output-port))
@@ -668,8 +715,20 @@
     (hts! (htr prelude 'vars) 'stderr (current-error-port))
     prelude)
 
+(define (sexy-run port)
+    (define program
+        (let loop ((noob (sexy-read port)) (code '()))
+            (if (eof-object? noob)
+                (cons 'seq (reverse code))
+                (loop (sexy-read port) (cons noob code)))))
+    (close-input-port port)
+    ;(debug program)
+    (sexy-eval
+        program
+        (global-env)
+        (lambda (v) (exit))))
 
-(define (repl)
+(define (sexy-repl)
     (define stdin (current-input-port))
     (define stdout (current-output-port))
     (define stderr (current-error-port))
