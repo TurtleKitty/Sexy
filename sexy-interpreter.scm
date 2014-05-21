@@ -224,8 +224,15 @@ END
 (define (sexy-environment parent)
     (define this (mkht))
     (define vars (mkht))
-    (define (set-var! name val)
+    (define (def! name val)
         (hts! vars name val)
+        val)
+    (define (set-var! name val)
+        (if (eq? ((sexy-send this 'has?) name) 'true)
+            (if (hte? vars name)
+                (hts! vars name val)
+                ((sexy-send parent 'set!) name val))
+            (sexy-error 'set-var! "Environment has no definition for " name))
         val)
     (define (lookup name)
         (if (eq? name 'env)
@@ -238,7 +245,7 @@ END
     (define (extend names vals)
         (define noob (sexy-environment this))
         (define xs (zip names vals))
-        (define setter! (sexy-send noob 'set-var!))
+        (define setter! (sexy-send noob 'def!))
         (define (setme! pr)
             (setter! (car pr) (cadr pr)))
         (map setme! xs)
@@ -247,7 +254,8 @@ END
         (sexy-eval code this identity))
     (hts! this 'type 'env)
     (hts! this 'vars vars)
-    (hts! this 'set-var! set-var!)
+    (hts! this 'def! def!)
+    (hts! this 'set! set-var!)
     (hts! this 'lookup lookup)
     (hts! this 'extend extend)
     (hts! this 'eval my-eval)
@@ -273,7 +281,7 @@ END
                     ((obj) (sexy-send-obj obj msg))
                     ((fn)  (sexy-send-fn obj msg))
                     ((env)  (sexy-send-env obj msg)))))
-        ((eof-object? obj) (exit))
+        ((eof-object? obj) (newline) (newline) (exit))
         (else (error (list "WTF kind of object was THAT?" obj msg)))))
 
 (define (sexy-send-symbol obj msg)
@@ -512,9 +520,9 @@ END
             ((quote) (sexy-eval-quote code env cont))
             ((if) (sexy-eval-if code env cont))
             ((seq) (begin (prep-defs (cdr code) env) (sexy-eval-seq code env cont)))
-            ((set!) (sexy-eval-set! code env cont))
+            ((set!) (sexy-eval-set! code env cont)) ; fixme
             ((fn) (sexy-eval-fn code env cont))
-            ((wall) (sexy-eval (caddr code) env identity))
+            ((wall) (cont (sexy-eval (caddr code) env identity)))
             (else
                 (sexy-eval
                     (car code)
@@ -537,7 +545,7 @@ END
 (define (prep-defs seq env)
     ; predefine all defs for mutual recursion
     (define mutate!
-        (sexy-send env 'set-var!))
+        (sexy-send env 'def!))
     (define (set-null! name)
         (mutate! name 'null))
     (define (get-defs seq)
@@ -546,7 +554,7 @@ END
 
 (define (sexy-eval-def code env cont)
     (define mutate!
-        (sexy-send env 'set-var!))
+        (sexy-send env 'def!))
     (define (set-null! name)
         (mutate! name 'null))
     (let ((name (cadr code)) (val (caddr code)))
@@ -590,7 +598,7 @@ END
                 (sexy-eval
                     val
                     env
-                    (lambda (v) ((sexy-send env 'set-var!) name v) (cont 'null)))
+                    (lambda (v) ((sexy-send env 'set!) name v) (cont 'null)))
                 (sexy-error code "Unknown name" name))
             (sexy-error code "set! wants a symbol!"))))
 
@@ -640,7 +648,7 @@ END
         (sexy-environment #f))
     (define (preset! k v)
         (sexy-apply
-            (sexy-send prelude 'set-var!)
+            (sexy-send prelude 'def!)
             (list k v)
             identity))
     (define (fill-prelude fs)
@@ -662,7 +670,7 @@ END
             (cons 'stdin (current-input-port))
             (cons 'stdout (current-output-port))
             (cons 'stderr (current-error-port))
-            (cons 'eq? (bool-fixer eq?))
+            (cons 'eq? (bool-fixer equal?))
             (cons '> (bool-fixer >))
             (cons '>= (bool-fixer >=))
             (cons '< (bool-fixer <))
