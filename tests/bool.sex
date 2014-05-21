@@ -1,0 +1,40 @@
+
+; booleans
+
+(test 'true
+    (and? (= true.type 'bool)
+          (= true.null? false)
+          (= true.to-bool true)))
+
+(test 'false
+    (and? (= false.type 'bool)
+          (= false.null? false)
+          (= false.to-bool false)))
+
+(test 'and?
+    (if (and? 1 1)
+        (if (not (and? 1 0))
+            (if (not (and? 0 1))
+                (if (not (and? 0 0))
+                    true
+                    false)
+                false)
+            false)
+        false))
+
+(test 'or?
+    (if (or? 1 1)
+        (if (or? 1 0)
+            (if (or? 0 1)
+                (if (not (or? 0 0))
+                    true
+                    false)
+                false)
+            false)
+        false))
+
+(test 'not
+    (and?
+        (= (not true) false)
+        (= (not false) true)))
+

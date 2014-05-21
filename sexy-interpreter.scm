@@ -168,6 +168,12 @@ END
                     (reverse (cons head argv)))))
         '()))
 
+(define (bool-fixer op)
+    (lambda (x y)
+        (if (op x y)
+            'true
+            'false)))
+
 (define (transbool x)
     (if x
         'true
@@ -270,7 +276,7 @@ END
         ((symbol? obj) (sexy-send-symbol obj msg))
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
-        ((null? obj) (sexy-send-pair obj msg))
+        ((null? obj) (sexy-send-null obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
         ((procedure? obj) (sexy-send-primitive obj msg))
         ((vector? obj) (sexy-send-vector obj msg))
@@ -311,7 +317,7 @@ END
         ((type) 'null)
         ((null?) 'true)
         ((to-bool) 'false)
-        (else (idk obj msg))))
+        (else 'null)))
 
 (define (sexy-send-number obj msg)
     (case msg
@@ -323,7 +329,6 @@ END
         (else
             (cond
                 ((integer? obj) (sexy-send-int obj msg))
-                ((rational? obj) (sexy-send-rat obj msg))
                 ((real? obj) (sexy-send-real obj msg))
                 (else (idk obj msg))))))
 
@@ -333,21 +338,11 @@ END
         ((times) 'niy)
         (else (idk obj msg))))
  
-(define (sexy-send-rat obj msg)
-    (case msg
-        ((type) 'rational)
-        ((numerator) (numerator obj))
-        ((denominator) (denominator obj))
-        ((floor) (floor obj))
-        ((ceiling) (ceiling obj))
-        ((round) (round obj))
-        (else (idk obj msg))))
-
 (define (sexy-send-real obj msg)
     (case msg
         ((type) 'real)
         ((floor) (floor obj))
-        ((ceiling) (ceiling obj))
+        ((ceil) (ceiling obj))
         ((round) (round obj))
         (else (idk obj msg))))
 
@@ -377,6 +372,7 @@ END
         ((filter) (lambda (funk) (filter funk obj)))
         ((fold) (lambda (init funk) (fold funk init obj)))
         ((foldr) (lambda (init funk) (fold-right funk init obj)))
+        ((sort) (lambda (funk) (sort obj funk)))
         (else
             (if (number? msg)
                 (list-ref obj msg)
@@ -386,7 +382,7 @@ END
     (case msg
         ((type) 'fn)
         ((null?) 'false)
-        ((view) obj)
+        ((view) 'compiled)
         ((to-bool) 'true)
         ((env) 'global)
         ((code) 'compiled)
@@ -410,17 +406,19 @@ END
                 ((null?) 'false)
                 ((view) (hash-table->alist fields))
                 ((to-bool) (if (eq? 0 (length (hash-table-keys fields))) 'false 'true))
-                ((has?) (lambda (x) (hte? fields x)))
+                ((apply?) (lambda (args cont) (cont (sexy-send obj msg))))
+                ((has?) (lambda (x) (transbool (hte? fields x))))
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
                 ((pairs) (hash-table->alist fields))
-                ((clone) 'niy) ; fixme
+                ((clone) 'niy)
                 ((set!) 
                     (lambda args
                         (map-pairs
                             (lambda (k v)
                                 (hts! fields k v))
-                            args)))
+                            args)
+                        'null))
                 (else (sexy-apply (htr obj 'default) (list msg) identity))))))
 
 (define (sexy-send-fn obj msg)
@@ -520,7 +518,7 @@ END
             ((quote) (sexy-eval-quote code env cont))
             ((if) (sexy-eval-if code env cont))
             ((seq) (begin (prep-defs (cdr code) env) (sexy-eval-seq code env cont)))
-            ((set!) (sexy-eval-set! code env cont)) ; fixme
+            ((set!) (sexy-eval-set! code env cont))
             ((fn) (sexy-eval-fn code env cont))
             ((wall) (cont (sexy-eval (caddr code) env identity)))
             (else
@@ -655,11 +653,6 @@ END
         (define (setem! p)
             (preset! (car p) (cdr p)))
         (map setem! fs))
-    (define (bool-fixer op)
-        (lambda (x y)
-            (if (op x y)
-                'true
-                'false)))
     (define (istrue x)
         (eq? 'true (sexy-bool x)))
     (define snarfs
@@ -670,7 +663,12 @@ END
             (cons 'stdin (current-input-port))
             (cons 'stdout (current-output-port))
             (cons 'stderr (current-error-port))
+            (cons 'div quotient)
+            (cons 'rem remainder)
+            (cons 'mod modulo)
+            (cons 'is? (bool-fixer eq?))
             (cons 'eq? (bool-fixer equal?))
+            (cons '= (bool-fixer equal?))
             (cons '> (bool-fixer >))
             (cons '>= (bool-fixer >=))
             (cons '< (bool-fixer <))

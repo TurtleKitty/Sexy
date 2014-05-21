@@ -1,0 +1,14 @@
+
+(def x 'foo)
+
+(test 'symbol-view
+    (= x.view 'foo))
+
+(test 'symbol-to-string
+    (= x.to-string "foo"))
+
+(test 'symbol-etc
+    (and?
+        (= x.type 'symbol)
+        (= x.null? false)
+        (= x.to-bool true))) 
