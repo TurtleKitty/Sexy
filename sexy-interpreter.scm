@@ -381,13 +381,9 @@ END
         ((foldr) (lambda (init funk) (fold-right funk init obj)))
         ((sort) (lambda (funk) (sort obj funk)))
         (else
-(begin
-(display (list "MESSAGE: " msg (sexy-send msg 'type)))
-(newline)
             (if (number? msg)
                 (list-ref obj msg)
                 (idk obj msg)))))
-)
 
 (define (sexy-send-primitive obj msg)
     (case msg
@@ -397,9 +393,13 @@ END
         ((to-bool) 'true)
         ((env) 'global)
         ((code) 'compiled)
+        ((arity) (let ((pinfo (procedure-information obj)))
+            (if (list? pinfo)
+                (sub1 (length pinfo))
+                '*)))
         ((apply)
-            (lambda (args cont)
-                (sexy-apply obj args cont)))))
+            (lambda (args)
+                (sexy-apply obj args identity)))))
 
 (define (sexy-send-obj obj msg)
     (define fields (htr obj 'fields))
@@ -441,8 +441,8 @@ END
         ((env) (reify-env (htr obj 'env)))
         ((code arity) (htr obj msg))
         ((apply)
-            (lambda (args cont)
-                (sexy-apply obj args cont)))
+            (lambda (args)
+                (sexy-apply obj args identity)))
         (else (idk obj msg))))
 
 (define (sexy-send-env obj msg)
