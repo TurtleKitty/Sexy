@@ -1,0 +1,6 @@
+
+(test 'port-type (= stdout.type 'port))
+(test 'port-not-null (= stdout.null? false))
+(test 'port-true (= stdout.to-bool true))
+(test 'port-view false)
+

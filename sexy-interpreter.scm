@@ -186,6 +186,11 @@ END
         'true
         'false))
 
+(define (unbool x)
+    (if (eq? (sexy-bool x) 'true)
+        #t
+        #f))
+
 ; sexy objects
 
 (define (sexy-object args autos resends initial)
@@ -234,7 +239,7 @@ END
             (tset! 'arity 'null)))
     this)
 
-(define (sexy-environment parent)
+(define (sexy-environment mama)
     (define this (mkht))
     (define vars (mkht))
     (define (def! name val)
@@ -244,7 +249,7 @@ END
         (if (eq? ((sexy-send this 'has?) name) 'true)
             (if (hte? vars name)
                 (hts! vars name val)
-                ((sexy-send parent 'set!) name val))
+                ((sexy-send mama 'set!) name val))
             (sexy-error 'set-var! "Environment has no definition for " name))
         val)
     (define (lookup name)
@@ -252,8 +257,8 @@ END
             (reify-env this)
             (if (hte? vars name) 
                 (htr vars name)
-                (if parent
-                    ((sexy-send parent 'lookup) name)
+                (if mama
+                    ((sexy-send mama 'lookup) name)
                     'null))))
     (define (extend names vals)
         (define noob (sexy-environment this))
@@ -272,7 +277,7 @@ END
     (hts! this 'lookup lookup)
     (hts! this 'extend extend)
     (hts! this 'eval my-eval)
-    (hts! this 'parent (if parent (reify-env parent) 'null))
+    (hts! this 'mama (if mama (reify-env mama) 'null))
     this)
 
 
@@ -369,17 +374,33 @@ END
     (case msg
         ((type) 'pair)
         ((null?) 'false)
-        ((view) obj)
+        ((view) (map sexy-view obj))
         ((to-bool) (if (eq? (length obj) 0) 'false 'true))
         ((head) (car obj))
         ((tail) (cdr obj))
         ((len) (length obj))
-        ((has?) (lambda (item) (member item obj)))
-        ((map) (lambda (funk) (map funk obj)))
-        ((filter) (lambda (funk) (filter funk obj)))
-        ((fold) (lambda (init funk) (fold funk init obj)))
-        ((foldr) (lambda (init funk) (fold-right funk init obj)))
-        ((sort) (lambda (funk) (sort obj funk)))
+        ((has?) (lambda (item) (transbool (member item obj))))
+        ((fold)
+            (lambda (init funk)
+                (fold (sexy-apply-wrapper funk) init obj)))
+        ((foldr)
+            (lambda (init funk)
+                (fold-right (sexy-apply-wrapper funk) init obj)))
+        ((map)
+            (lambda (funk)
+                (map (sexy-apply-wrapper funk) obj)))
+        ((filter)
+            (lambda (funk)
+                (filter
+                    (lambda (x)
+                        (unbool ((sexy-apply-wrapper funk) x)))
+                    obj)))
+        ((sort)
+            (lambda (funk)
+                (sort
+                    obj
+                    (lambda (x y)
+                        (unbool ((sexy-apply-wrapper funk) x y))))))
         (else
             (if (number? msg)
                 (list-ref obj msg)
@@ -389,10 +410,9 @@ END
     (case msg
         ((type) 'fn)
         ((null?) 'false)
-        ((view) 'compiled)
+        ((view code) 'primitive-function)
         ((to-bool) 'true)
         ((env) 'global)
-        ((code) 'compiled)
         ((arity) (let ((pinfo (procedure-information obj)))
             (if (list? pinfo)
                 (sub1 (length pinfo))
@@ -557,6 +577,10 @@ END
                 ((htr obj 'exec) args opts cont)
                 (send-or-die)))
         (else (sexy-error obj (list obj " is not applicable!")))))
+
+(define (sexy-apply-wrapper obj)
+    (lambda xs
+        (sexy-apply obj xs identity)))
 
 (define (prep-defs seq env)
     ; predefine all defs for mutual recursion
@@ -723,7 +747,7 @@ END
                     x))
             (cons 'obj
                 (sexy-proc
-                    'compiled
+                    'primitive-function
                     'global
                     (lambda (args opts cont)
                         (define autos (sexy-send opts 'auto))
