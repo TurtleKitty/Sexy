@@ -87,11 +87,13 @@ END
 (define (sexy-error form . args)
     (newline)
     (display "ERRORED!!!") (newline)
-    (display form) (newline)
+    (display (sexy-view form)) (newline)
     (display args) (newline)
     (newline)
     'null)
 
+(define (sexy-view obj)
+    (sexy-send obj 'view))
 
 ; mini-parser
 
@@ -131,13 +133,18 @@ END
         (and (symbol? x)
              (string-contains (symbol->string x) ".")))
     (define (transform x)
+        (define (sym-or-num x)
+            (define the-num (string->number x))
+            (if the-num
+                the-num
+                (string->symbol x)))
         (let* (
             (str (symbol->string x))
             (words (string-split str ".")))
-            (let loop ((this (string->symbol (car words))) (left (cdr words)))
+            (let loop ((this (sym-or-num (car words))) (left (cdr words)))
                 (if (eq? left '())
                     this
-                    (loop (list 'send this `(quote ,(string->symbol (car left)))) (cdr left))))))
+                    (loop (list 'send this `(quote ,(sym-or-num (car left)))) (cdr left))))))
     (cons match? transform))
 
 (define (get-sexy-options xs)
@@ -374,9 +381,13 @@ END
         ((foldr) (lambda (init funk) (fold-right funk init obj)))
         ((sort) (lambda (funk) (sort obj funk)))
         (else
+(begin
+(display (list "MESSAGE: " msg (sexy-send msg 'type)))
+(newline)
             (if (number? msg)
                 (list-ref obj msg)
                 (idk obj msg)))))
+)
 
 (define (sexy-send-primitive obj msg)
     (case msg
@@ -479,7 +490,7 @@ END
     (sexy-parse (read port)))
 
 (define (sexy-write obj port)
-    (write (sexy-send obj 'view)))
+    (write (sexy-view obj)))
 
 (define (sexy-send-port obj msg)
     (case msg
@@ -531,14 +542,21 @@ END
                             env
                             (lambda (args) (sexy-apply f args cont)))))))))
 
-(define (sexy-apply proc xs cont)
+(define (sexy-apply obj xs cont)
     (define opts (get-sexy-options xs))
     (define args (remove-sexy-options xs))
-    (if (procedure? proc)
-        (cont (apply proc args))
-        (if (and (hash-table? proc) (eq? 'fn (htr proc 'type)))
-            ((htr proc 'exec) args opts cont)
-            (sexy-error proc "Not a procedure!"))))
+    (define (send-or-die)
+        (if (pair? args)
+            (cont (sexy-send obj (car args)))
+            (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
+    (cond
+        ((procedure? obj) (cont (apply obj args)))
+        ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die))
+        ((hash-table? obj)
+            (if (eq? 'fn (htr obj 'type))
+                ((htr obj 'exec) args opts cont)
+                (send-or-die)))
+        (else (sexy-error obj (list obj " is not applicable!")))))
 
 (define (prep-defs seq env)
     ; predefine all defs for mutual recursion

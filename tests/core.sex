@@ -72,6 +72,31 @@
                     (* n (fact (- n 1))))))
         (= 120 (fact 5))))
 
+(test 'fn-options
+    (seq
+        (def zuul
+            (fn (x)
+                (if opt.keymaster
+                    (if opt.gatekeeper
+                        (list x opt.keymaster opt.gatekeeper)
+                        (list x opt.keymaster))
+                    x)))
+        (and?
+            (= (zuul 'gozer) 'gozer)
+            (= (zuul 'gozer keymaster: 'louis) '(gozer louis))
+            (= (zuul 'gozer keymaster: 'louis gatekeeper: 'dana) '(gozer louis dana)))))
+
+(test 'fn-rest
+    (seq
+        (def embiggen
+            (fn (xs)
+                (if xs.null?
+                    xs
+                    (cons (* 10 xs.head) (embiggen xs.tail)))))
+        (def various
+            (fn (funk)
+                (funk rest)))
+        (= (various embiggen 1 2 3) '(10 20 30))))
 
 
 ; wall ?
