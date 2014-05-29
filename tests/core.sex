@@ -98,6 +98,32 @@
                 (funk rest)))
         (= (various embiggen 1 2 3) '(10 20 30))))
 
+(test 'fn-mutual-recursion
+    (seq
+        (def F
+            (fn (n)
+                (if (= n 0)
+                    1
+                    (- n (M (F (- n 1)))))))
+        (def M
+            (fn (n)
+                (if (= n 0)
+                    0
+                    (- n (F (M (- n 1)))))))
+        (and? (= (F 19) 12) (= (M 19) 12)))) 
+
+(test 'fn-tco
+    (seq
+        (def count 200000)
+        (def upto
+            (fn (max)
+                (def helper
+                    (fn (acc)
+                        (if (= acc max)
+                            acc
+                            (helper (+ acc 1)))))
+                (helper 0)))
+        (= (upto count) count)))
 
 ; wall ?
 

@@ -8,7 +8,7 @@
 
 (test 'obj-type (= simp.type 'obj))
 (test 'obj-not-null (= simp.null? false))
-; (test 'obj-view (= '((a . 1)(b . 2)) (simp.view.sort (fn (x y) (< x.tail y.tail)))))
+(test 'obj-view (= '((a . 1)(b . 2)) (simp.view.sort (fn (x y) (< x.tail y.tail)))))
 (test 'message-send (and? (= simp.a 1) (= simp.b 2)))
 (test 'obj-apply (= 1 (simp 'a)))
 
@@ -61,6 +61,7 @@
 
 (test 'obj-has? (simp.has? 'a))
 (test 'obj-set! (seq (simp.set! 'c 3) (= simp.c 3)))
+;(test 'obj-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
 
 ; keys values pairs clone
 
