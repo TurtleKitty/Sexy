@@ -374,8 +374,12 @@ END
     (case msg
         ((type) 'pair)
         ((null?) 'false)
-        ((view) (map sexy-view obj))
+        ((view)
+            (if (list? obj)
+                (map sexy-view obj)
+                (cons (sexy-view (car obj)) (sexy-view (cdr obj)))))
         ((to-bool) (if (eq? (length obj) 0) 'false 'true))
+        ((to-vector) (list->vector obj))
         ((head) (car obj))
         ((tail) (cdr obj))
         ((len) (length obj))
@@ -435,7 +439,7 @@ END
             (case msg
                 ((type) 'obj)
                 ((null?) 'false)
-                ((view) (hash-table->alist fields))
+                ((view) (sexy-view (hash-table->alist fields)))
                 ((to-bool) (if (eq? 0 (length (hash-table-keys fields))) 'false 'true))
                 ((apply?) (lambda (args cont) (cont (sexy-send obj msg))))
                 ((has?) (lambda (x) (transbool (hte? fields x))))
@@ -470,7 +474,7 @@ END
     (case msg
         ((type) 'env)
         ((null?) 'false)
-        ((view) (hash-table->alist vars))
+        ((view) (sexy-view (hash-table->alist vars)))
         ((to-bool) 'true)
         ((has?)
             (lambda (x)
@@ -493,14 +497,41 @@ END
     (case msg
         ((type) 'vector)
         ((null?) 'false)
-        ((view) obj)
+        ((view)
+            (vector-map
+                (lambda (i x) (sexy-view x))
+                obj))
         ((to-bool) (if (eq? (vector-length obj) 0) 'false 'true))
+        ((to-list) (vector->list obj))
         ((len) (vector-length obj))
-        ((has?) (lambda (item) (member item obj)))
-        ((map) (lambda (funk) (vector-map funk obj)))
-        ((filter) (lambda (funk) (filter funk obj)))
-        ((fold) (lambda (funk init) (fold funk init obj)))
-        ((foldr) (lambda (funk init) (fold-right funk init obj)))
+        ((has?)
+            (lambda (item)
+                (transbool
+                    (vector-index
+                        (lambda (x) (eq? x item))
+                        obj))))
+        ((fold)
+            (lambda (init funk)
+                (vector-fold (sexy-apply-wrapper funk) init obj)))
+        ((foldr)
+            (lambda (init funk)
+                (vector-fold-right (sexy-apply-wrapper funk) init obj)))
+        ((map)
+            (lambda (funk)
+                (vector-map (sexy-apply-wrapper funk) obj)))
+        ((filter)
+            (lambda (funk)
+                (list->vector
+                    (filter
+                        (lambda (x)
+                            (unbool ((sexy-apply-wrapper funk) x)))
+                        (vector->list obj)))))
+        ((sort)
+            (lambda (funk)
+                (sort
+                    obj
+                    (lambda (x y)
+                        (unbool ((sexy-apply-wrapper funk) x y))))))
         (else
             (if (number? msg)
                 (vector-ref obj msg)
@@ -536,7 +567,8 @@ END
             (if (keyword? code)
                 (cont code)
                 (case code
-                    ((true false null) (cont code))
+                    ((true false) (cont code))
+                    ((null) (cont '()))
                     ((env) (cont (reify-env env)))
                     (else
                         (let ((looked-up ((sexy-send env 'lookup) code)))
