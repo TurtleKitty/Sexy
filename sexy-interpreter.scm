@@ -45,20 +45,24 @@ END
                    (open-input-file file) 
                    (debug "File not found!")))
             (usage)))
-    (define (setup-run)
+    (define (read-prog)
         (define fport (check-file))
         (if (port? fport)
-            (sexy-run fport)
+            (sexy-read-file fport)
             (exit)))
     (if (not (pair? args))
         (usage)
         (let ((cmd (string->symbol (car args))))
             (case cmd
-                ((run) (setup-run))
+                ((run) (sexy-run (sexy-expand (read-prog) (global-env))))
                 ((repl) (sexy-repl))
                 ((check) (niy))
                 ((compile) (niy))
-                ((expand) (niy))
+                ((expand)
+                    (sexy-write
+                        (sexy-expand (read-prog) (global-env))
+                        (current-output-port))
+                        (newline))
                 (else (printf "Unknown command: ~A~%" cmd))))))
 
 
@@ -71,6 +75,10 @@ END
 
 (define (debug x)
     (display x) (newline))
+
+(define (debug-obj x)
+    (define ps (hash-table->alist x))
+    (map debug ps))
 
 (define (map-pairs fn args)
     (if (not (eq? (modulo (length args) 2) 0))
@@ -191,6 +199,10 @@ END
         #t
         #f))
 
+(define (nodef x)
+    (sexy-error x "Symbol " x " is not defined"))
+
+
 ; sexy objects
 
 (define (sexy-object args autos resends initial)
@@ -236,7 +248,7 @@ END
             (tset! 'arity (length formals)))
         (begin
             (tset! 'formals 'null)
-            (tset! 'arity 'null)))
+            (tset! 'arity 0)))
     this)
 
 (define (sexy-environment mama)
@@ -298,6 +310,7 @@ END
                 (case t
                     ((obj) (sexy-send-obj obj msg))
                     ((fn)  (sexy-send-fn obj msg))
+                    ((macro)  (sexy-send-macro obj msg))
                     ((env)  (sexy-send-env obj msg)))))
         ((eof-object? obj) (newline) (newline) (exit))
         (else (error (list "WTF kind of object was THAT?" obj msg)))))
@@ -469,6 +482,19 @@ END
                 (sexy-apply obj args identity)))
         (else (idk obj msg))))
 
+(define (sexy-send-macro obj msg)
+    (case msg
+        ((type) 'macro)
+        ((null?) 'false)
+        ((view) (sexy-send obj 'code))
+        ((to-bool) 'true)
+        ((env) (reify-env (htr obj 'env)))
+        ((code arity) (htr obj msg))
+        ((apply)
+            (lambda (args)
+                (sexy-apply obj args identity)))
+        (else (idk obj msg))))
+
 (define (sexy-send-env obj msg)
     (define vars (htr obj 'vars))
     (case msg
@@ -557,11 +583,181 @@ END
 (define (sexy-bool obj)
     (sexy-send obj 'to-bool))
 
+    
+
+; macro expansion
+
+(define (macro-eval code env)
+    (if (atom? code)
+        (if (symbol? code)
+            (if (keyword? code)
+                code
+                (case code
+                    ((true false) code)
+                    ((null) '())
+                    ((env) (reify-env env))
+                    (else
+                        (let ((looked-up ((sexy-send env 'lookup) code)))
+                            (if (eq? 'null looked-up)
+                                (nodef code)
+                                looked-up)))))
+            code)
+        (case (car code)
+            ((def) (macro-eval-def code env))
+            ((quote) (cadr code))
+            ((if) (macro-eval-if code env))
+            ((seq)
+                (begin
+                    (prep-defs (cdr code) env)
+                    (macro-eval-seq code env)))
+            ((set!) (macro-eval-set! code env))
+            ((fn) (macro-eval-proc code env))
+            ((macro) (macro-eval-macro code env))
+            (else
+                (macro-apply 
+                    (macro-eval (car code) env)
+                    (macro-eval-list (cdr code) env))))))
+
+(define (macro-apply obj xs)
+    (define opts (get-sexy-options xs))
+    (define args (remove-sexy-options xs))
+    (define (send-or-die)
+        (if (pair? args)
+            (sexy-send obj (car args))
+            (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
+    (cond
+        ((procedure? obj) (apply obj args))
+        ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die))
+        ((hash-table? obj)
+            (let ((type (htr obj 'type)))
+                (if (or (eq? type 'fn) (eq? type 'macro))
+                    ((htr obj 'exec) args opts)
+                    (send-or-die))))
+        (else (sexy-error obj (list obj " is not applicable!")))))
+
+(define (macro-eval-def code env)
+    (define mutate!
+        (sexy-send env 'def!))
+    (define (set-null! name)
+        (mutate! name 'null))
+    (let ((name (cadr code)) (val (caddr code)))
+        (if (eq? 'true ((sexy-send env 'local?) name))
+            (sexy-error code name " is already defined in the local environment.")
+            (begin
+                (set-null! name)
+                (mutate! name (macro-eval val env))))))
+
+(define (macro-eval-if code env)
+    (define pred (cadr code))
+    (define then (caddr code))
+    (define alt  (cadddr code))
+    (if (eq? 'true (macro-eval pred env))
+        (macro-eval then env)
+        (macro-eval alt env)))
+
+(define (macro-eval-seq code env)
+    (define seq (cdr code))
+    (define (subcontractor xs env)
+        (if (pair? xs)
+            (let ((head (car xs)) (tail (cdr xs)))
+                (if (pair? tail)
+                    (begin
+                        (macro-eval head env)
+                        (subcontractor tail env))
+                    (macro-eval head env)))
+            (sexy-error code "Empty sequences are forbidden!")))
+    (subcontractor seq env))
+
+(define (macro-eval-set! code env)
+    (let ((name (cadr code)) (val (caddr code)))
+        (if (symbol? name)
+            (if ((sexy-send env 'has?) name)
+                ((sexy-send env 'set!)
+                    name 
+                    (macro-eval
+                        val
+                        env))
+                (sexy-error code "Unknown name" name))
+            (sexy-error code "set! wants a symbol!"))))
+
+(define (macro-proc code env)
+    (define formals (cadr code))
+    (define bodies (cddr code))
+    (define arity (length formals))
+    (sexy-proc
+        code
+        env 
+        (lambda (args opts)
+            (if (< (length args) arity)
+                (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
+                (let* ((fargs (if (pair? args) (take args arity) '()))
+                       (the-rest (if (pair? args) (drop args arity) '()))
+                       (noob
+                           ((sexy-send env 'extend)
+                                (append formals '(opt rest))
+                                (append fargs (list opts the-rest)))))
+                    (macro-eval (cons 'seq bodies) noob))))))
+
+(define (macro-eval-proc code env)
+    (macro-proc code env))
+
+(define (macro-eval-macro code env)
+    (define name (cadr code))
+    (define thing (macro-proc (cdr code) env))
+    ((sexy-send env 'def!) name thing)
+    thing)
+
+(define (macro-eval-list xs env)
+    (define (eval-env x)
+        (macro-eval x env))
+    (if (pair? xs)
+        (map eval-env xs)
+        '()))
+
+(define (sexy-expand code env)
+    (define (expand x)
+        (sexy-expand x env))
+    (define (lookup x)
+        ((sexy-send env 'lookup) x))
+    (define mutate!
+        (sexy-send env 'def!))
+    (define (sexy-macro? name)
+        (define obj (lookup name))
+        (if (and (hash-table? obj) (eq? (htr obj 'type) 'macro))
+            #t
+            #f))
+    (cond
+        ((atom? code) code)
+        ((sexy-macro? (car code))
+            (let* ((macname (car code)) (looked-up (lookup macname)))
+                (if (eq? 'null looked-up)
+                    (nodef macname)
+                    (sexy-expand
+                        (macro-apply looked-up (cdr code))
+                        env))))
+        (else 
+            (case (car code)
+                ((def)
+                    (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
+                        (macro-eval nucode env)
+                        nucode))
+                ((seq)
+                    (begin
+                        (let ((expanded (map expand code)))
+                            (prep-defs (cdr expanded) env)
+                            expanded)))
+                ((quote) code)
+                ((macro)
+                    (let ((mname (cadr code)) (mac (macro-eval-macro code env)))
+                        (hts! mac 'name mname)
+                        (hts! mac 'type 'macro)
+                        code))
+                (else (map expand code))))))
+
+
 ; eval/apply
 
 (define (sexy-eval code env cont)
-    (define (nodef x)
-        (sexy-error x "Symbol " x " is not defined"))
     (if (atom? code)
         (if (symbol? code)
             (if (keyword? code)
@@ -584,6 +780,7 @@ END
             ((set!) (sexy-eval-set! code env cont))
             ((fn) (sexy-eval-fn code env cont))
             ((wall) (cont (sexy-eval (caddr code) env identity)))
+            ((macro) (cont code))
             (else
                 (sexy-eval
                     (car code)
@@ -605,9 +802,10 @@ END
         ((procedure? obj) (cont (apply obj args)))
         ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die))
         ((hash-table? obj)
-            (if (eq? 'fn (htr obj 'type))
-                ((htr obj 'exec) args opts cont)
-                (send-or-die)))
+            (let ((type (htr obj 'type)))
+                (if (or (eq? type 'fn) (eq? type 'macro))
+                    ((htr obj 'exec) args opts cont)
+                    (send-or-die))))
         (else (sexy-error obj (list obj " is not applicable!")))))
 
 (define (sexy-apply-wrapper obj)
@@ -795,7 +993,7 @@ END
     (hts! (htr prelude 'vars) 'stderr (current-error-port))
     prelude)
 
-(define (sexy-run port)
+(define (sexy-read-file port)
     (define program
         (let loop ((noob (sexy-read port)) (code '()))
             (if (eof-object? noob)
@@ -803,6 +1001,9 @@ END
                 (loop (sexy-read port) (cons noob code)))))
     (close-input-port port)
     ;(debug program)
+    program)
+
+(define (sexy-run program)
     (sexy-eval
         program
         (global-env)
