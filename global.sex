@@ -13,37 +13,6 @@
 (fun pair? (obj)
     (isa? obj 'pair))
 
-(fun bar (x)
-    (fun baz (y) (* y y))
-    (baz x))
-
-(show (bar 5))
-
-(macro funner (name body)
-    (list 'macro name '(x y)
-        (list
-            'list
-            '(quote show)
-            (list
-                'list
-                '(quote quote)
-                (list 'list 'x 'y body)))))
-
-; (list 'show (list 'list x y 'z))
-
-(funner boo 'z)
-(funner blorg 'meow)
-
-(boo 1 2)
-(blorg 4 5)
-
-(macro bob (x)
-    (macro fred (y)
-        (list 'list x y))
-    (fred 2))
-
-(show (bob 1))
-
 ;(macro let (name-or-vars vars-or-body)
 ;    (if (pair? name-or-vars)
 ;        (seq

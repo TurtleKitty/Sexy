@@ -1,0 +1,37 @@
+
+; global environment
+
+(test 'simple-macro
+    (seq
+        (macro foo (x y) (list 'list x y))
+        (= (foo 1 2) '(1 2))))
+
+(test 'macro-object
+    (seq
+        (macro brat (x)
+            (def foo (obj 'a x))
+            foo.a)
+        (= (brat 1) 1)))
+
+(test 'internal-macro
+    (seq
+        (macro bob (x)
+            (macro fred (y)
+                (list 'list x y))
+            (fred 2))
+        (= (bob 1) '(1 2))))
+
+(test 'macro-writing-macro
+    (seq
+        (macro mac-on-mac (name body)
+            (list 'macro name '(x y)
+                (list
+                    'list
+                    '(quote quote)
+                    (list 'list 'x 'y body))))
+        (mac-on-mac boo 3)
+        (mac-on-mac blorg 'meow)
+        (and?
+            (= (boo 1 2) '(1 2 3))
+            (= (blorg 4 5) '(4 5 meow)))))
+

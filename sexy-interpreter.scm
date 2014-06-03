@@ -73,6 +73,8 @@ END
 (define hte? hash-table-exists?)
 (define hts! hash-table-set!)
 
+(define (nop v) 'null)
+
 (define (debug x)
     (display x) (newline))
 
@@ -102,6 +104,43 @@ END
 
 (define (sexy-view obj)
     (sexy-send obj 'view))
+
+(define (bool-fixer op)
+    (lambda args
+        (if (apply op args)
+            'true
+            'false)))
+
+(define (eq-fixer op)
+    (lambda args
+        (if (all? null-or-empty? args)
+            'true
+            (apply op args))))
+
+(define (transbool x)
+    (if x
+        'true
+        'false))
+
+(define (unbool x)
+    (if (eq? (sexy-bool x) 'true)
+        #t
+        #f))
+
+(define (nodef x)
+    (sexy-error x "Symbol " x " is not defined"))
+
+(define (null-or-empty? x)
+    (or (eq? x 'null) (eq? x '())))
+
+(define (all? funk xs)
+    (let loop ((y (car xs)) (ys (cdr xs)))
+        (if (funk y)
+            (if (pair? ys)
+                (loop (car ys) (cdr ys))
+                #t)
+            #f)))
+
 
 ; mini-parser
 
@@ -182,25 +221,6 @@ END
                     (loop (car tail) (cdr tail) (cons head argv))
                     (reverse (cons head argv)))))
         '()))
-
-(define (bool-fixer op)
-    (lambda (x y)
-        (if (op x y)
-            'true
-            'false)))
-
-(define (transbool x)
-    (if x
-        'true
-        'false))
-
-(define (unbool x)
-    (if (eq? (sexy-bool x) 'true)
-        #t
-        #f))
-
-(define (nodef x)
-    (sexy-error x "Symbol " x " is not defined"))
 
 
 ; sexy objects
@@ -584,8 +604,20 @@ END
     (sexy-send obj 'to-bool))
 
     
-
 ; macro expansion
+
+(define macro-obj
+    (sexy-proc
+        'primitive-function
+        'global
+        (lambda (args opts)
+            (define autos (sexy-send opts 'auto))
+            (define rsend (sexy-send opts 'resend))
+            (define default (sexy-send opts 'default))
+            (if (eq? autos 'null) (set! autos #f) #f)
+            (if (eq? rsend 'null) (set! rsend #f) #f)
+            (if (eq? default 'null) (set! default #f) #f)
+            (sexy-object args autos rsend default))))
 
 (define (macro-eval code env)
     (if (atom? code)
@@ -596,6 +628,7 @@ END
                     ((true false) code)
                     ((null) '())
                     ((env) (reify-env env))
+                    ((obj) macro-obj)
                     (else
                         (let ((looked-up ((sexy-send env 'lookup) code)))
                             (if (eq? 'null looked-up)
@@ -658,15 +691,15 @@ END
 (define (macro-eval-seq code env)
     (define seq (cdr code))
     (define (subcontractor xs env)
-        (if (pair? xs)
-            (let ((head (car xs)) (tail (cdr xs)))
-                (if (pair? tail)
-                    (begin
-                        (macro-eval head env)
-                        (subcontractor tail env))
-                    (macro-eval head env)))
-            (sexy-error code "Empty sequences are forbidden!")))
-    (subcontractor seq env))
+        (let ((head (car xs)) (tail (cdr xs)))
+            (if (pair? tail)
+                (begin
+                    (macro-eval head env)
+                    (subcontractor tail env))
+                (macro-eval head env))))
+    (if (pair? seq)
+        (subcontractor seq env)
+        (sexy-error code "Empty sequences are forbidden!")))
 
 (define (macro-eval-set! code env)
     (let ((name (cadr code)) (val (caddr code)))
@@ -850,16 +883,16 @@ END
 (define (sexy-eval-seq code env cont)
     (define seq (cdr code))
     (define (subcontractor xs env cont)
-        (if (pair? xs)
-            (let ((head (car xs)) (tail (cdr xs)))
-                (if (pair? tail)
-                    (sexy-eval
-                        head
-                        env
-                        (lambda (h) (subcontractor tail env cont))))
-                (sexy-eval head env cont))
-            (sexy-error code "Empty sequences are forbidden!")))
-    (subcontractor seq env cont))
+        (let ((head (car xs)) (tail (cdr xs)))
+            (if (pair? tail)
+                (sexy-eval
+                    head
+                    env
+                    (lambda (h) (subcontractor tail env cont)))
+                (sexy-eval head env cont))))
+    (if (pair? seq)
+        (subcontractor seq env cont)
+        (sexy-error code "Empty sequences are forbidden!")))
 
 (define (sexy-eval-set! code env cont)
     (let ((name (cadr code)) (val (caddr code)))
@@ -938,9 +971,8 @@ END
             (cons 'div quotient)
             (cons 'rem remainder)
             (cons 'mod modulo)
-            (cons 'is? (bool-fixer eq?))
-            (cons 'eq? (bool-fixer equal?))
-            (cons '= (bool-fixer equal?))
+            (cons 'is? (eq-fixer (bool-fixer eq?)))
+            (cons '= (eq-fixer (bool-fixer equal?)))
             (cons '> (bool-fixer >))
             (cons '>= (bool-fixer >=))
             (cons '< (bool-fixer <))
@@ -991,7 +1023,13 @@ END
     (hts! (htr prelude 'vars) 'stdin (current-input-port))
     (hts! (htr prelude 'vars) 'stdout (current-output-port))
     (hts! (htr prelude 'vars) 'stderr (current-error-port))
-    prelude)
+    (sexy-eval
+        (sexy-expand
+            (sexy-read-file (open-input-file "global.sex"))
+            (sexy-environment prelude))
+        prelude
+        nop)
+    (sexy-environment prelude))
 
 (define (sexy-read-file port)
     (define program
@@ -1021,7 +1059,7 @@ END
             '()
             (lambda (expr)
                 (sexy-eval
-                    expr
+                    (sexy-expand expr (sexy-environment env))
                     env
                     (lambda (v)
                         (sexy-apply
