@@ -1,0 +1,18 @@
+
+; global prelude macros and fns
+
+(fun mahfun (x y)
+    (* x y 10))
+
+(test 'fun
+    (= 120 (mahfun 3 4)))
+
+(test 'isa?
+    (= true (isa? mahfun 'fn)))
+
+(test 'pair?
+    (= true (pair? '(1 2))))
+
+(test 'let false)
+(test 'cond false)
+

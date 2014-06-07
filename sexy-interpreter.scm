@@ -2,6 +2,7 @@
 ; CHICKEN!
 
 (use srfi-1)
+(use srfi-13)
 (use srfi-69)
 
 (use numbers)
@@ -9,6 +10,9 @@
 (use utils)
 (use uuid)
 (use vector-lib)
+
+(use openssl)
+(use http-client)
 
 
 ; start
@@ -48,7 +52,8 @@ END
     (define (read-prog)
         (define fport (check-file))
         (if (port? fport)
-            (sexy-read-file fport)
+            (cons 'seq
+                (list '(use "~/dev/sexy/global.sex") (sexy-read-file fport)))
             (exit)))
     (if (not (pair? args))
         (usage)
@@ -142,6 +147,21 @@ END
                 (loop (car ys) (cdr ys))
                 #t)
             #f)))
+
+(define (get-uri uri)
+    (define (reader port)
+        (read-string #f port))
+    (call-with-input-request
+        uri
+        #f
+        reader))
+
+(define (get-file fname)
+    (define (reader port)
+        (read-string #f port))
+    (call-with-input-file
+        fname
+        reader))
 
 
 ; mini-parser
@@ -302,6 +322,8 @@ END
             (setter! (car pr) (cadr pr)))
         (map setme! xs)
         noob)
+    (define (merge! other-env)
+        (hash-table-merge! vars (sexy-send other-env 'vars)))
     (define (my-eval code)
         (sexy-eval code this identity))
     (hts! this 'type 'env)
@@ -310,6 +332,7 @@ END
     (hts! this 'set! set-var!)
     (hts! this 'lookup lookup)
     (hts! this 'extend extend)
+    (hts! this 'merge! merge!)
     (hts! this 'eval my-eval)
     (hts! this 'mama (if mama (reify-env mama) 'null))
     this)
@@ -631,6 +654,7 @@ END
                         env))))
         (else 
             (case (car code)
+                ((use) (sexy-expand (sexy-expand-use code env) env))
                 ((def)
                     (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
                         (sexy-eval nucode env identity)
@@ -646,6 +670,37 @@ END
                         code))
                 (else (map expand code))))))
 
+(define (sexy-expand-use code env)
+    (define opts (get-sexy-options (cdr code)))
+    (define args (remove-sexy-options (cdr code)))
+    (define uri (car args))
+    (define as
+        (let ((it (sexy-send opts 'as)))
+            (if (unbool it)
+                it
+                #f)))
+    (define (uri? str)
+        (string-contains str ":"))
+    (define code-str
+        ; should check the cache somewhere here
+        (cond
+            ((symbol? uri) (niy))
+            ((string? uri)
+                (if (uri? uri)
+                    (get-uri uri)
+                    (get-file uri)))
+            (else (sexy-error code "use: Identifier must be a symbol or a string."))))
+    (define code-port
+        (open-input-string code-str))
+    (define prog
+        (sexy-read-file code-port))
+    ; write expanded to .sexy/cache
+    (if as
+        `(def ,as
+            (obj default:
+                ((fn () ,prog
+                    (fn (msg) ((send env 'lookup) msg))))))
+        prog))
 
 ; eval/apply
 
@@ -807,8 +862,6 @@ END
                     (lambda (t) (cont (cons v t))))))
         (cont '())))
 
-(define (sexy-eval-use code env cont)
-    env)
 
 ; reflection
 
@@ -874,9 +927,6 @@ END
                         'false
                         'true))) 
             (cons 'send sexy-send)
-            (cons 'test
-                (lambda (tname ok)
-                    (debug (list tname (if (eq? ok 'true) 'ok 'FAIL))) 'null))
             (cons 'show
                 (lambda (x)
                     (sexy-write x (current-output-port))
@@ -893,7 +943,10 @@ END
                         (if (eq? autos 'null) (set! autos #f) #f)
                         (if (eq? rsend 'null) (set! rsend #f) #f)
                         (if (eq? default 'null) (set! default #f) #f)
-                        (cont (sexy-object args autos rsend default)))))))
+                        (cont (sexy-object args autos rsend default)))))
+            (cons 'test
+                (lambda (tname ok)
+                    (debug (list tname (if (eq? ok 'true) 'ok 'FAIL))) 'null))))
     (fill-prelude (append snarfs primitives))
     (hts! (htr prelude 'vars) 'stdin (current-input-port))
     (hts! (htr prelude 'vars) 'stdout (current-output-port))

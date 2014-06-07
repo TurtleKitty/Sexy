@@ -7,11 +7,11 @@
             'fn
             (cons vars (cons body rest)))))
 
-(fun isa? (obj type)
-    (eq? obj.type type))
+(fun isa? (thing type)
+    (= thing.type type))
 
-(fun pair? (obj)
-    (isa? obj 'pair))
+(fun pair? (thing)
+    (isa? thing 'pair))
 
 ;(macro let (name-or-vars vars-or-body)
 ;    (if (pair? name-or-vars)

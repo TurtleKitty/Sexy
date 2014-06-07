@@ -1,0 +1,5 @@
+
+(def foreign-fn
+    (fn (x y)
+        (list 'foreigner x y)))
+

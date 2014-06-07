@@ -129,6 +129,29 @@
 ; wall ? gate ? capture ?
 
 
+; use
+
+
+(test 'use-file
+    (seq
+        (use "~/dev/sexy/tests/module.sex")
+        (= (foreign-fn 1 2) '(foreigner 1 2))))
+
+(test 'use-http
+    (seq 
+        (use "http://anwu.org/sexylib/fun.sex/1.0")
+        (= (fun-fn 3 4 5) '(fun-object 3 7 20))))
+
+(test 'use-https false)
+    ;(use "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/global.sex")
+
+
+(test 'use-as
+    (seq
+        (use "~/dev/sexy/tests/module.sex" as: meow)
+        (= (meow.foreign-fn 3 4) '(foreigner 3 4))))
+
+
 ; misc
 
 (test 'unicode

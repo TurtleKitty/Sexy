@@ -1,5 +1,5 @@
 
-; global environment
+; macro expansion
 
 (test 'simple-macro
     (seq
