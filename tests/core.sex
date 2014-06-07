@@ -114,7 +114,7 @@
 
 (test 'fn-tco
     (seq
-        (def count 200000)
+        (def count 120000)
         (def upto
             (fn (max)
                 (def helper

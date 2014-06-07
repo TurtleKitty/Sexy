@@ -54,7 +54,9 @@ END
         (usage)
         (let ((cmd (string->symbol (car args))))
             (case cmd
-                ((run) (sexy-run (sexy-expand (read-prog) (global-env))))
+                ((run)
+                    (sexy-run
+                        (sexy-expand (read-prog) (global-env))))
                 ((repl) (sexy-repl))
                 ((check) (niy))
                 ((compile) (niy))
@@ -606,147 +608,6 @@ END
     
 ; macro expansion
 
-(define macro-obj
-    (sexy-proc
-        'primitive-function
-        'global
-        (lambda (args opts)
-            (define autos (sexy-send opts 'auto))
-            (define rsend (sexy-send opts 'resend))
-            (define default (sexy-send opts 'default))
-            (if (eq? autos 'null) (set! autos #f) #f)
-            (if (eq? rsend 'null) (set! rsend #f) #f)
-            (if (eq? default 'null) (set! default #f) #f)
-            (sexy-object args autos rsend default))))
-
-(define (macro-eval code env)
-    (if (atom? code)
-        (if (symbol? code)
-            (if (keyword? code)
-                code
-                (case code
-                    ((true false) code)
-                    ((null) '())
-                    ((env) (reify-env env))
-                    ((obj) macro-obj)
-                    (else
-                        (let ((looked-up ((sexy-send env 'lookup) code)))
-                            (if (eq? 'null looked-up)
-                                (nodef code)
-                                looked-up)))))
-            code)
-        (case (car code)
-            ((def) (macro-eval-def code env))
-            ((quote) (cadr code))
-            ((if) (macro-eval-if code env))
-            ((seq)
-                (begin
-                    (prep-defs (cdr code) env)
-                    (macro-eval-seq code env)))
-            ((set!) (macro-eval-set! code env))
-            ((fn) (macro-eval-proc code env))
-            ((macro) (macro-eval-macro code env))
-            (else
-                (macro-apply 
-                    (macro-eval (car code) env)
-                    (macro-eval-list (cdr code) env))))))
-
-(define (macro-apply obj xs)
-    (define opts (get-sexy-options xs))
-    (define args (remove-sexy-options xs))
-    (define (send-or-die)
-        (if (pair? args)
-            (sexy-send obj (car args))
-            (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
-    (cond
-        ((procedure? obj) (apply obj args))
-        ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die))
-        ((hash-table? obj)
-            (let ((type (htr obj 'type)))
-                (if (or (eq? type 'fn) (eq? type 'macro))
-                    ((htr obj 'exec) args opts)
-                    (send-or-die))))
-        (else (sexy-error obj (list obj " is not applicable!")))))
-
-(define (macro-eval-def code env)
-    (define mutate!
-        (sexy-send env 'def!))
-    (define (set-null! name)
-        (mutate! name 'null))
-    (let ((name (cadr code)) (val (caddr code)))
-        (if (eq? 'true ((sexy-send env 'local?) name))
-            (sexy-error code name " is already defined in the local environment.")
-            (begin
-                (set-null! name)
-                (mutate! name (macro-eval val env))))))
-
-(define (macro-eval-if code env)
-    (define pred (cadr code))
-    (define then (caddr code))
-    (define alt  (cadddr code))
-    (if (eq? 'true (macro-eval pred env))
-        (macro-eval then env)
-        (macro-eval alt env)))
-
-(define (macro-eval-seq code env)
-    (define seq (cdr code))
-    (define (subcontractor xs env)
-        (let ((head (car xs)) (tail (cdr xs)))
-            (if (pair? tail)
-                (begin
-                    (macro-eval head env)
-                    (subcontractor tail env))
-                (macro-eval head env))))
-    (if (pair? seq)
-        (subcontractor seq env)
-        (sexy-error code "Empty sequences are forbidden!")))
-
-(define (macro-eval-set! code env)
-    (let ((name (cadr code)) (val (caddr code)))
-        (if (symbol? name)
-            (if ((sexy-send env 'has?) name)
-                ((sexy-send env 'set!)
-                    name 
-                    (macro-eval
-                        val
-                        env))
-                (sexy-error code "Unknown name" name))
-            (sexy-error code "set! wants a symbol!"))))
-
-(define (macro-proc code env)
-    (define formals (cadr code))
-    (define bodies (cddr code))
-    (define arity (length formals))
-    (sexy-proc
-        code
-        env 
-        (lambda (args opts)
-            (if (< (length args) arity)
-                (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
-                (let* ((fargs (if (pair? args) (take args arity) '()))
-                       (the-rest (if (pair? args) (drop args arity) '()))
-                       (noob
-                           ((sexy-send env 'extend)
-                                (append formals '(opt rest))
-                                (append fargs (list opts the-rest)))))
-                    (macro-eval (cons 'seq bodies) noob))))))
-
-(define (macro-eval-proc code env)
-    (macro-proc code env))
-
-(define (macro-eval-macro code env)
-    (define name (cadr code))
-    (define thing (macro-proc (cdr code) env))
-    ((sexy-send env 'def!) name thing)
-    thing)
-
-(define (macro-eval-list xs env)
-    (define (eval-env x)
-        (macro-eval x env))
-    (if (pair? xs)
-        (map eval-env xs)
-        '()))
-
 (define (sexy-expand code env)
     (define (expand x)
         (sexy-expand x env))
@@ -766,13 +627,13 @@ END
                 (if (eq? 'null looked-up)
                     (nodef macname)
                     (sexy-expand
-                        (macro-apply looked-up (cdr code))
+                        (sexy-apply looked-up (cdr code) identity)
                         env))))
         (else 
             (case (car code)
                 ((def)
                     (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
-                        (macro-eval nucode env)
+                        (sexy-eval nucode env identity)
                         nucode))
                 ((seq)
                     (begin
@@ -781,9 +642,7 @@ END
                             expanded)))
                 ((quote) code)
                 ((macro)
-                    (let ((mname (cadr code)) (mac (macro-eval-macro code env)))
-                        (hts! mac 'name mname)
-                        (hts! mac 'type 'macro)
+                    (let ((mname (cadr code)) (mac (sexy-eval-macro code env identity)))
                         code))
                 (else (map expand code))))))
 
@@ -813,7 +672,7 @@ END
             ((set!) (sexy-eval-set! code env cont))
             ((fn) (sexy-eval-fn code env cont))
             ((wall) (cont (sexy-eval (caddr code) env identity)))
-            ((macro) (cont code))
+            ((macro) (sexy-eval-macro code env cont))
             (else
                 (sexy-eval
                     (car code)
@@ -905,22 +764,36 @@ END
                 (sexy-error code "Unknown name" name))
             (sexy-error code "set! wants a symbol!"))))
 
+(define (make-sexy-proc code env formals bodies)
+    (define arity (length formals))
+    (sexy-proc
+        code
+        env 
+        (lambda (args opts kont)
+            (if (< (length args) arity)
+                (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
+                (let* ((fargs (if (pair? args) (take args arity) '()))
+                       (the-rest (if (pair? args) (drop args arity) '()))
+                       (noob
+                           ((sexy-send env 'extend)
+                                (append formals '(opt rest))
+                                (append fargs (list opts the-rest)))))
+                    (sexy-eval (cons 'seq bodies) noob kont))))))
+
 (define (sexy-eval-fn code env cont)
-    (let* ((formals (cadr code)) (bodies (cddr code)) (arity (length formals)))
+    (let* ((formals (cadr code)) (bodies (cddr code)))
         (cont
-            (sexy-proc
-                code
-                env 
-                (lambda (args opts kont)
-                    (if (< (length args) arity)
-                        (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
-                        (let* ((fargs (if (pair? args) (take args arity) '()))
-                               (the-rest (if (pair? args) (drop args arity) '()))
-                               (noob
-                                   ((sexy-send env 'extend)
-                                        (append formals '(opt rest))
-                                        (append fargs (list opts the-rest)))))
-                            (sexy-eval (cons 'seq bodies) noob kont))))))))
+            (make-sexy-proc code env formals bodies))))
+
+(define (sexy-eval-macro code env cont)
+    (define name (cadr code))
+    (define formals (caddr code))
+    (define bodies (cdddr code))
+    (define thing (make-sexy-proc (cdr code) env formals bodies))
+    (hts! thing 'name name)
+    (hts! thing 'type 'macro)
+    ((sexy-send env 'def!) name thing)
+    (cont thing))
 
 (define (sexy-eval-list xs env cont)
     (if (pair? xs)
@@ -934,6 +807,8 @@ END
                     (lambda (t) (cont (cons v t))))))
         (cont '())))
 
+(define (sexy-eval-use code env cont)
+    env)
 
 ; reflection
 
@@ -1023,12 +898,6 @@ END
     (hts! (htr prelude 'vars) 'stdin (current-input-port))
     (hts! (htr prelude 'vars) 'stdout (current-output-port))
     (hts! (htr prelude 'vars) 'stderr (current-error-port))
-    (sexy-eval
-        (sexy-expand
-            (sexy-read-file (open-input-file "global.sex"))
-            (sexy-environment prelude))
-        prelude
-        nop)
     (sexy-environment prelude))
 
 (define (sexy-read-file port)
