@@ -52,8 +52,7 @@ END
     (define (read-prog)
         (define fport (check-file))
         (if (port? fport)
-            (cons 'seq
-                (list '(use "~/dev/sexy/global.sex") (sexy-read-file fport)))
+                (cons '(use "~/dev/sexy/global.sex") (sexy-read-file fport))
             (exit)))
     (if (not (pair? args))
         (usage)
@@ -654,7 +653,7 @@ END
                         env))))
         (else 
             (case (car code)
-                ((use) (sexy-expand (sexy-expand-use code env) env))
+                ((use) (cons 'seq (sexy-expand (sexy-expand-use code env) env)))
                 ((def)
                     (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
                         (sexy-eval nucode env identity)
@@ -702,6 +701,7 @@ END
                     (fn (msg) ((send env 'lookup) msg))))))
         prog))
 
+
 ; eval/apply
 
 (define (sexy-eval code env cont)
@@ -726,7 +726,7 @@ END
             ((seq) (begin (prep-defs (cdr code) env) (sexy-eval-seq code env cont)))
             ((set!) (sexy-eval-set! code env cont))
             ((fn) (sexy-eval-fn code env cont))
-            ((wall) (cont (sexy-eval (caddr code) env identity)))
+            ((wall) (cont (sexy-eval (cadr code) env identity)))
             ((macro) (sexy-eval-macro code env cont))
             (else
                 (sexy-eval
@@ -794,18 +794,19 @@ END
                     (sexy-eval iftrue env cont)
                     (sexy-eval iffalse env cont))))))
 
+(define (sexy-seq-subcontractor xs env cont)
+    (let ((head (car xs)) (tail (cdr xs)))
+        (if (pair? tail)
+            (sexy-eval
+                head
+                env
+                (lambda (h) (sexy-seq-subcontractor tail env cont)))
+            (sexy-eval head env cont))))
+
 (define (sexy-eval-seq code env cont)
     (define seq (cdr code))
-    (define (subcontractor xs env cont)
-        (let ((head (car xs)) (tail (cdr xs)))
-            (if (pair? tail)
-                (sexy-eval
-                    head
-                    env
-                    (lambda (h) (subcontractor tail env cont)))
-                (sexy-eval head env cont))))
     (if (pair? seq)
-        (subcontractor seq env cont)
+        (sexy-seq-subcontractor seq env cont)
         (sexy-error code "Empty sequences are forbidden!")))
 
 (define (sexy-eval-set! code env cont)
@@ -833,7 +834,7 @@ END
                            ((sexy-send env 'extend)
                                 (append formals '(opt rest))
                                 (append fargs (list opts the-rest)))))
-                    (sexy-eval (cons 'seq bodies) noob kont))))))
+                    (sexy-seq-subcontractor bodies noob kont))))))
 
 (define (sexy-eval-fn code env cont)
     (let* ((formals (cadr code)) (bodies (cddr code)))
@@ -957,17 +958,19 @@ END
     (define program
         (let loop ((noob (sexy-read port)) (code '()))
             (if (eof-object? noob)
-                (cons 'seq (reverse code))
+                (reverse code)
                 (loop (sexy-read port) (cons noob code)))))
     (close-input-port port)
     ;(debug program)
     program)
 
 (define (sexy-run program)
-    (sexy-eval
-        program
-        (global-env)
-        (lambda (v) (exit))))
+    (if (pair? program)
+        (sexy-seq-subcontractor
+            program
+            (global-env)
+            (lambda (v) (exit)))
+        (exit)))
 
 (define (sexy-repl)
     (define stdin (current-input-port))
