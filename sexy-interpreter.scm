@@ -52,7 +52,7 @@ END
     (define (read-prog)
         (define fport (check-file))
         (if (port? fport)
-                (cons '(use "~/dev/sexy/global.sex") (sexy-read-file fport))
+            (sexy-read-file fport)
             (exit)))
     (if (not (pair? args))
         (usage)
@@ -655,7 +655,7 @@ END
                         env))))
         (else 
             (case (car code)
-                ((use) (cons 'seq (sexy-expand (sexy-expand-use code env) env)))
+                ((use) (sexy-expand (sexy-expand-use code env) env))
                 ((def)
                     (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
                         (sexy-eval nucode env identity)
@@ -694,7 +694,7 @@ END
     (define code-port
         (open-input-string code-str))
     (define prog
-        (sexy-read-file code-port))
+        (cons 'seq (sexy-read-file code-port)))
     ; write expanded to .sexy/cache
     (if as
         `(def ,as
@@ -954,7 +954,11 @@ END
     (hts! (htr prelude 'vars) 'stdin (current-input-port))
     (hts! (htr prelude 'vars) 'stdout (current-output-port))
     (hts! (htr prelude 'vars) 'stderr (current-error-port))
-    (sexy-environment prelude))
+    (sexy-environment
+        (sexy-seq-subcontractor
+            (sexy-expand prelude-struct (sexy-environment prelude))
+            prelude
+            (lambda (v) prelude))))
 
 (define (sexy-read-file port)
     (define program
@@ -965,6 +969,11 @@ END
     (close-input-port port)
     ;(debug program)
     program)
+
+(define prelude-uri "~/dev/sexy/global.sex")
+
+(define prelude-struct
+    (sexy-read-file (open-input-file prelude-uri)))
 
 (define (sexy-run program)
     (if (pair? program)
