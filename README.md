@@ -26,24 +26,29 @@ Sexy is an object-based dialect of Lisp inspired by Scheme, Self, and Perl.
 (baz.map show)
 
 (def fibby
-	(fn (x)
-		(if (< x 3)
-			1
-			(+ (fibby (- x 2)) (fibby (- x 1))))))
+    (fn (x)
+        (if (< x 3)
+            1
+            (+ (fibby (- x 2)) (fibby (- x 1))))))
 
-(show (map fibby '(1 2 3 4 5)))
+(def things '(1 2 3 4 5 6 7))
+
+(show (things.map fibby))
+
 
 ```
 
 Output:
 
 ```scheme
+
 12
-(2 3 ())
+(2 3 null)
 (2 3 (4 5))
-(2 3 #t #f (4 5))
-(2 3 #t Yarr! (4 5))
-(1 1 2 3 5)
+(2 3 true null (4 5))
+(2 3 true "Yarr!" (4 5))
+(1 1 2 3 5 8 13)
+
 ```
 
 
