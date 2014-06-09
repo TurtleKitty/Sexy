@@ -496,7 +496,9 @@ END
             (case msg
                 ((type) 'obj)
                 ((null?) 'false)
-                ((view) (sexy-view (hash-table->alist fields)))
+                ((view)
+                    (sexy-view
+                        (map (lambda (p) (list (car p) ': (cdr p))) (hash-table->alist fields))))
                 ((to-bool) (if (eq? 0 (length (hash-table-keys fields))) 'false 'true))
                 ((apply?) (lambda (args cont) (cont (sexy-send obj msg))))
                 ((has?) (lambda (x) (transbool (hte? fields x))))
