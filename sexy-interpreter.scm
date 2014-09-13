@@ -694,7 +694,7 @@ END
     (define code-port
         (open-input-string code-str))
     (define prog
-        (cons 'seq (sexy-read-file code-port)))
+        (list 'wall (cons 'seq (sexy-read-file code-port))))
     ; write expanded to .sexy/cache
     (if as
         `(def ,as
