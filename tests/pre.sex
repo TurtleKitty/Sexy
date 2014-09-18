@@ -13,6 +13,14 @@
 (test 'pair?
     (= true (pair? '(1 2))))
 
-(test 'let false)
-(test 'cond false)
+;(test 'let
+;    (seq
+;        (def foo
+;            (let loop (n 0)
+;                (if (= n 10)
+;                    n
+;                    (loop (+ n 1)))))
+;        (= foo 10)))
+
+;(test 'cond false)
 
