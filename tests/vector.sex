@@ -11,7 +11,7 @@
 (test 'vector-false       (= empty.to-bool false))
 (test 'vector-true        (= vick.to-bool true))
 (test 'vector-to-list     (= vick.to-list '(8 6 7 5 3 0 9)))
-(test 'vector-len         (= vick.len 7))
+(test 'vector-size        (= vick.size 7))
 (test 'vector-has?        (= (vick.has? 7) true))
 (test 'vector-has?-not    (= (vick.has? 4) false))
 

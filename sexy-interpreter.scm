@@ -14,6 +14,14 @@
 (use openssl)
 (use http-client)
 
+(declare
+    (block)
+    (inline)
+    (local)
+;    (unsafe)
+    (block-global usage-text usage niy top-cont top-err start mkht htr hte?  hts!  nop debug debug-obj map-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs frag add-cont resume sexception blessed holy?  sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file prelude-uri prelude-struct local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl)
+    (bound-to-procedure usage niy start mkht htr hte? hts! nop debug debug-obj map-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs add-cont resume sexception holy? sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl))
+
 
 ; start
 
@@ -41,7 +49,7 @@ END
     (newline))
 
 (define top-cont (list (cons 'top identity)))
-(define top-err  (list (cons 'top (lambda (continue . args) (sexy-error args)))))
+(define top-err  (list (cons 'top (lambda (ex continue) (sexy-error "Uncaught error: " ex)))))
 
 (define (start)
     (define args (command-line-arguments))
@@ -113,7 +121,7 @@ END
     (display (sexy-view form)) (newline)
     (display args) (newline)
     (newline)
-    'null)
+    identity)
 
 (define (sexy-view obj)
     (sexy-send obj 'view))
@@ -305,11 +313,13 @@ END
         (hts! vars name val)
         val)
     (define (set-var! name val)
-        (if (eq? ((sexy-send this 'has?) name) 'true)
-            (if (hte? vars name)
-                (hts! vars name val)
-                ((sexy-send mama 'set!) name val))
+        (define (oops)
             (sexy-error 'set-var! "Environment has no definition for " name))
+        (if (hte? vars name)
+            (hts! vars name val)
+            (if mama
+                ((sexy-send mama 'set!) name val)
+                (oops)))
         val)
     (define (lookup name)
         (if (eq? name 'env)
@@ -350,7 +360,7 @@ END
         ((symbol? obj) (sexy-send-symbol obj msg))
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
-        ((null? obj) (sexy-send-null obj msg))
+        ((null? obj) (sexy-send-empty obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
         ((procedure? obj) (sexy-send-primitive obj msg))
         ((vector? obj) (sexy-send-vector obj msg))
@@ -393,6 +403,16 @@ END
         ((null?) 'true)
         ((to-bool) 'false)
         (else 'null)))
+
+(define (sexy-send-empty obj msg)
+    (case msg
+        ((type) 'pair)
+        ((null?) 'false)
+        ((empty?) 'true)
+        ((to-bool) 'false)
+        ((head tail) 'null)
+        ((size) 0)
+        (else (sexy-send-pair obj msg))))
 
 (define (sexy-send-number obj msg)
     (case msg
@@ -437,15 +457,16 @@ END
     (case msg
         ((type) 'pair)
         ((null?) 'false)
+        ((empty?) 'false)
         ((view)
             (if (list? obj)
                 (map sexy-view obj)
                 (cons (sexy-view (car obj)) (sexy-view (cdr obj)))))
-        ((to-bool) (if (eq? (length obj) 0) 'false 'true))
+        ((to-bool) 'true)
         ((to-vector) (list->vector obj))
         ((head) (car obj))
         ((tail) (cdr obj))
-        ((len) (length obj))
+        ((size) (length obj))
         ((has?) (lambda (item) (transbool (member item obj))))
         ((fold)
             (lambda (init funk)
@@ -556,7 +577,7 @@ END
         ((to-bool) 'true)
         ((has?)
             (lambda (x)
-                (sexy-bool ((sexy-send obj 'lookup) x))))
+                (not (eqv? 'null ((sexy-send obj 'lookup) x)))))
         ((local?)
             (lambda (x)
                 (if (hte? vars x)
@@ -581,7 +602,7 @@ END
                 obj))
         ((to-bool) (if (eq? (vector-length obj) 0) 'false 'true))
         ((to-list) (vector->list obj))
-        ((len) (vector-length obj))
+        ((size) (vector-length obj))
         ((has?)
             (lambda (item)
                 (transbool
@@ -642,11 +663,14 @@ END
     (define (expand x)
         (sexy-expand x env))
     (define (lookup x)
-        ((sexy-send env 'lookup) x))
+        (if (sexy-global? x)
+            (glookup x)
+            ((sexy-send env 'lookup) x)))
     (define mutate!
         (sexy-send env 'def!))
     (define (sexy-macro? name)
-        (define obj (lookup name))
+        (define gmac (glookup name))
+        (define obj (if (eq? 'null gmac) (lookup name) gmac))
         (if (and (hash-table? obj) (eq? (htr obj 'type) 'macro))
             #t
             #f))
@@ -664,7 +688,7 @@ END
                 ((use) (sexy-expand (sexy-expand-use code env) env))
                 ((def)
                     (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
-                        ((sexy-compile nucode) env top-cont top-err)
+                        ((sexy-compile nucode) (sexy-environment env) top-cont top-err)
                         nucode))
                 ((seq)
                     (begin
@@ -717,21 +741,22 @@ END
         (sexy-compile (sexy-expand code env)))
     (prog env top-cont top-err))
 
+(define (send-or-die obj msg cont err)
+    (if msg
+        (resume cont (sexy-send obj msg))
+        (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
+
 (define (sexy-apply obj xs cont err)
     (define opts (get-sexy-options xs))
     (define args (remove-sexy-options xs))
-    (define (send-or-die)
-        (if (pair? args)
-            (resume cont (sexy-send obj (car args)))
-            (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
     (cond
         ((procedure? obj) (resume cont (apply obj args)))
-        ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die))
+        ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die obj (car args) cont err))
         ((hash-table? obj)
             (let ((type (htr obj 'type)))
                 (if (or (eq? type 'fn) (eq? type 'macro))
                     ((htr obj 'exec) args opts cont err)
-                    (send-or-die))))
+                    (send-or-die obj (car args) cont err))))
         (else (sexy-error obj (list obj " is not applicable!")))))
 
 (define (sexy-apply-wrapper obj)
@@ -763,9 +788,11 @@ END
     (let* ((c (car cont)) (funk (cdr c)))
         (funk val)))
 
-(define (sexception err cont . args) 
-    (let ((handler (car err)))
-        (sexy-apply handler (list cont args) cont err))) ; FIXME
+(define (sexception ex err cont)
+    (define handler (cdr (car err)))
+    (define (continue v)
+        (resume cont v))
+    (sexy-apply handler (list ex continue) cont (cdr err))) ; FIXME
 
 (define blessed
     '(def quote if seq set! fn gate capture ensure guard error macro))
@@ -808,7 +835,7 @@ END
                         (frag
                             (let ((looked-up ((sexy-send env 'lookup) code)))
                                 (if (eq? 'null looked-up)
-                                    (sexception err cont 'undefined_symbol code)
+                                    (sexception (cons 'undefined_symbol code) err cont)
                                     (resume cont looked-up))))))))
         pass))
 
@@ -1062,9 +1089,10 @@ END
             noob)))
 
 (define (add-global-prelude)
+    (define prelude-env (sexy-environment genv))
     (define prelude-c
         (sexy-seq-subcontractor
-            (sexy-expand prelude-struct (local-env))))
+            (sexy-expand prelude-struct prelude-env)))
     (define full
         (prelude-c
                 genv
