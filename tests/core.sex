@@ -118,19 +118,6 @@
                     (- n (F (M (- n 1)))))))
         (and? (= (F 19) 12) (= (M 19) 12)))) 
 
-(test 'fn-tco
-    (seq
-        (def count 120000)
-        (def upto
-            (fn (max)
-                (def helper
-                    (fn (acc)
-                        (if (= acc max)
-                            acc
-                            (helper (+ acc 1)))))
-                (helper 0)))
-        (= (upto count) count)))
-
 (test 'fn-lexical-closure
     (seq
         (def counter
@@ -153,6 +140,28 @@
             
 
 ; continuations - gate and capture
+
+(test 'gate-no-capture
+    (= 3
+        (gate 'foo (+ 1 2))))
+
+(test 'gate-abort
+    (= 2
+        (gate 'foo
+            (+ 1
+                (capture 'foo (fn (c) 2))))))
+
+(test 'capture-call-1
+    (= 3
+        (gate 'foo
+            (+ 1
+                (capture 'foo (fn (c) (+ 1 (c 1))))))))
+
+(test 'capture-call-n
+    (= 5
+        (gate 'foo
+            (+ 1
+                (capture 'foo (fn (c) (+ 1 (c (c (c 1))))))))))
 
 ; errors - ensure, guard, and error
 
@@ -188,4 +197,17 @@
             (fn (x) (* 10 x)))
         (= (λא象 10) 100)))
 
+
+(test 'tco
+    (seq
+        (def count 120000)
+        (def upto
+            (fn (max)
+                (def helper
+                    (fn (acc)
+                        (if (= acc max)
+                            acc
+                            (helper (+ acc 1)))))
+                (helper 0)))
+        (= (upto count) count)))
 

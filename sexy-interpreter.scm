@@ -534,10 +534,10 @@ END
         ((clone) 'niy)
         (else
             (begin
-                (define p (assoc msg al))
-                (if p
-                    (cdr p)
-                    'null)))))
+                (let ((p (assoc msg al)))
+                    (if p
+                        (cdr p)
+                        'null))))))
 
 (define (sexy-send-obj obj msg)
     (define fields (htr obj 'fields))
@@ -820,7 +820,19 @@ END
 (define (add-cont conts tag noob)
     (cons
         (cons tag noob)
-        conts)) 
+        conts))
+
+(define (capture-cont conts tag)
+    (define (bail)
+        (sexy-error "Hit the wall!" "Gate " tag " not found!"))
+    (if (null? conts)
+        (bail)
+        (let loop ((this (car conts)) (rest (cdr conts)) (sofar '()))
+            (if (eq? tag (car this))
+                (cons (reverse sofar) rest)
+                (if (null? rest)
+                    (bail)
+                    (loop (car rest) (cdr rest) (cons this sofar)))))))
 
 (define (resume cont val)
     (let* ((c (car cont)) (funk (cdr c)))
@@ -849,11 +861,11 @@ END
             ((seq) (sexy-compile-seq code))
             ((set!) (sexy-compile-set! code))
             ((fn) (sexy-compile-fn code))
-            ((gate) code)
-            ((capture) code)
-            ((ensure) code)
-            ((guard) code)
-            ((error) code)
+            ((gate) (sexy-compile-gate code))
+            ((capture) (sexy-compile-capture code))
+            ((ensure) (sexy-compile-ensure code))
+            ((guard) (sexy-compile-guard code))
+            ((error) (sexy-compile-error code))
             ((macro) (sexy-compile-macro code))
             (else (sexy-compile-application code)))))
 
@@ -977,14 +989,69 @@ END
     (define formals (caddr code))
     (define bodies (cdddr code))
     (define bodies-c (sexy-seq-subcontractor bodies))
-        (if (holy? name)
-            (sexy-error code name " is blessed and holy.  It cannot be redefined.")
-            (frag
-                (define thing (make-sexy-proc (cdr code) env formals bodies-c))
-                (hts! thing 'name name)
-                (hts! thing 'type 'macro)
-                ((sexy-send env 'def!) name thing)
-                (resume cont thing))))
+    (if (holy? name)
+        (sexy-error code name " is blessed and holy.  It cannot be redefined.")
+        (frag
+            (define thing (make-sexy-proc (cdr code) env formals bodies-c))
+            (hts! thing 'name name)
+            (hts! thing 'type 'macro)
+            ((sexy-send env 'def!) name thing)
+            (resume cont thing))))
+
+(define (sexy-compile-gate code)
+    (define tag (cadr code))
+    (define expr (caddr code))
+    (define tag-c (sexy-compile tag))
+    (define expr-c (sexy-compile expr))
+    (frag
+        (tag-c
+            env
+            (add-cont cont 'null
+                (lambda (tg)
+                    (expr-c
+                        env
+                        (add-cont cont tg (lambda (v) (resume cont v)))
+                        err)))
+            err)))
+
+(define (sexy-compile-capture code)
+    (define tag (cadr code))
+    (define lamb (caddr code))
+    (define tag-c (sexy-compile tag))
+    (define lamb-c (sexy-compile lamb))
+    (frag
+        (tag-c
+            env
+            (list (cons 'null
+                (lambda (tg)
+                    (define capped (capture-cont cont tg))
+                    (define kont (car capped))
+                    (define meta (cdr capped))
+(debug (list 'kont kont))
+(debug (list 'meta meta))
+                    (lamb-c
+                        env
+                        (list (cons 'null
+                            (lambda (funk)
+                                (sexy-apply
+                                    funk
+                                    (list
+                                        (sexy-proc
+                                            'continuation
+                                            env 
+                                            (lambda (args opts qont err)
+(debug (list 'kont kont))
+(debug (list 'meta meta))
+(debug (list 'qont qont))
+                                                (resume qont (resume kont (car args))))))
+                                    meta
+                                    err))))
+                        err))))
+            env)))
+
+(define (sexy-compile-guard code) 'null)
+(define (sexy-compile-ensure code) 'null)
+(define (sexy-compile-error code) 'null)
 
 (define (sexy-compile-list xs)
     (if (pair? xs)
