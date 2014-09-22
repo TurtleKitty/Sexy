@@ -19,8 +19,8 @@
     (inline)
     (local)
 ;    (unsafe)
-    (block-global usage-text usage niy top-cont top-err start mkht htr hte?  hts!  nop debug debug-obj map-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs frag add-cont resume sexception blessed holy?  sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file prelude-uri prelude-struct local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl)
-    (bound-to-procedure usage niy start mkht htr hte? hts! nop debug debug-obj map-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs add-cont resume sexception holy? sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl))
+    (block-global usage-text usage niy top-cont top-err start mkht htr hte?  hts!  nop debug debug-obj for-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs frag add-cont resume sexception blessed holy?  sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file prelude-uri prelude-struct local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl)
+    (bound-to-procedure usage niy start mkht htr hte? hts! nop debug debug-obj for-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs add-cont resume sexception holy? sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl))
 
 
 ; start
@@ -103,9 +103,9 @@ END
     (define ps (hash-table->alist x))
     (map debug ps))
 
-(define (map-pairs fn args)
+(define (for-pairs fn args)
     (if (not (eq? (modulo (length args) 2) 0))
-        (error (list "map-pairs requires an even number of arguments!" args))
+        (error (list "for-pairs requires an even number of arguments!" args))
         (let loop ((newlist '()) (pairs args))
             (if (atom? pairs)
                 newlist
@@ -258,8 +258,20 @@ END
                     (reverse (cons head argv)))))
         '()))
 
+(define (prettify-alist al)
+    (define (transmute p)
+        (vector (car p) ': (cdr p)))
+    (map transmute al))
 
 ; sexy objects
+
+(define (sexy-record args)
+    (if (null? args)
+        (vector 'rec '())
+        (let loop ((k (car args)) (v (list-ref args 1)) (this '()) (rest (cddr args)))
+            (if (null? rest)
+                (vector 'rec (cons (cons k v) this))
+                (loop (list-ref args 2) (list-ref args 3) (cons (cons k v) this) (cddr rest))))))
 
 (define (sexy-object args autos resends initial)
     (define this (mkht))
@@ -277,7 +289,7 @@ END
     (define (set-resend! rlist)
         (let ((delegate (car rlist)) (msgs (cdr rlist)))
             (map (lambda (msg) (rset! msg (lambda () (sexy-send delegate msg)))) msgs)))
-    (map-pairs fset! args)
+    (for-pairs fset! args)
     (if resends
         (map set-resend! resends)
         #f)
@@ -355,12 +367,16 @@ END
 
 ; message passing
 
+(define (sexy-record? x)
+    (and (vector? x) (eq? 'rec (vector-ref x 0))))
+
 (define (sexy-send obj msg)
     (cond
         ((symbol? obj) (sexy-send-symbol obj msg))
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
         ((null? obj) (sexy-send-empty obj msg))
+        ((sexy-record? obj) (sexy-send-record obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
         ((procedure? obj) (sexy-send-primitive obj msg))
         ((vector? obj) (sexy-send-vector obj msg))
@@ -509,6 +525,34 @@ END
             (lambda (args)
                 (apply (sexy-apply-wrapper obj) args)))))
 
+(define (sexy-send-record obj msg)
+    (define al (vector-ref obj 1))
+    (case msg
+        ((type) 'rec)
+        ((null?) 'false)
+        ((view)
+            (if al
+                (prettify-alist al)
+                (vector)))
+        ((to-bool)
+            (transbool (pair? al)))
+        ((apply)
+            (lambda (args cont err)
+                (resume cont (sexy-send obj (car args)))))
+        ((has?)
+            (lambda (x)
+                (transbool (assoc x al))))
+        ((keys) (map car al))
+        ((values) (map cdr al))
+        ((pairs) al)
+        ((clone) 'niy)
+        (else
+            (begin
+                (define p (assoc msg al))
+                (if p
+                    (cdr p)
+                    'null)))))
+
 (define (sexy-send-obj obj msg)
     (define fields (htr obj 'fields))
     (define resends (htr obj 'resends))
@@ -525,9 +569,9 @@ END
                 ((null?) 'false)
                 ((view)
                     (sexy-view
-                        (map (lambda (p) (list (car p) ': (cdr p))) (hash-table->alist fields))))
+                        (prettify-alist (hash-table->alist fields))))
                 ((to-bool) (if (eq? 0 (length (hash-table-keys fields))) 'false 'true))
-                ((apply) (lambda (args cont err) (resume cont (sexy-send obj msg))))
+                ((apply) (lambda (args cont err) (resume cont (sexy-send obj (car args)))))
                 ((has?) (lambda (x) (transbool (hte? fields x))))
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
@@ -535,7 +579,7 @@ END
                 ((clone) 'niy)
                 ((set!) 
                     (lambda args
-                        (map-pairs
+                        (for-pairs
                             (lambda (k v)
                                 (hts! fields k v))
                             args)
@@ -1071,6 +1115,12 @@ END
                         (sexy-write x (current-output-port))
                         (newline)
                         x))
+                (cons 'rec
+                    (sexy-proc
+                        'primitive-function
+                        'global
+                        (lambda (args opts cont err)
+                            (resume cont (sexy-record args)))))
                 (cons 'obj
                     (sexy-proc
                         'primitive-function
