@@ -6,8 +6,7 @@
 (test 'pair-apply (= (ys 5) 0))
 
 (test 'pair-type        (= ys.type 'pair))
-(test 'pair-null        (= empty.null? true))
-(test 'pair-not-null    (= ys.null? false))
+(test 'pair-not-null    (= empty.null? false))
 (test 'pair-view        (= ys.view '(8 6 7 5 3 0 9)))
 (test 'pair-false       (= empty.to-bool false))
 (test 'pair-true        (= ys.to-bool true))

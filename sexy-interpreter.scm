@@ -8,19 +8,17 @@
 (use numbers)
 (use posix)
 (use utils)
-(use uuid)
+;(use uuid)
 (use vector-lib)
 
-(use openssl)
+;(use openssl)
 (use http-client)
 
 (declare
     (block)
     (inline)
     (local)
-;    (unsafe)
-    (block-global usage-text usage niy top-cont top-err start mkht htr hte?  hts!  nop debug debug-obj for-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs frag add-cont resume sexception blessed holy?  sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file prelude-uri prelude-struct local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl)
-    (bound-to-procedure usage niy start mkht htr hte? hts! nop debug debug-obj for-pairs idk sexy-error sexy-view bool-fixer eq-fixer transbool unbool nodef null-or-empty?  all?  get-uri get-file sexy-parse warp descend doterator get-sexy-options remove-sexy-options sexy-object sexy-proc sexy-environment sexy-send sexy-send-symbol sexy-send-bool sexy-send-null sexy-send-empty sexy-send-number sexy-send-int sexy-send-real sexy-send-string sexy-send-pair sexy-send-primitive sexy-send-obj sexy-send-fn sexy-send-macro sexy-send-env sexy-send-vector sexy-read sexy-write sexy-send-port sexy-bool sexy-expand sexy-expand-use sexy-eval send-or-die sexy-apply sexy-apply-wrapper prep-defs add-cont resume sexception holy? sexy-compile sexy-compile-atom sexy-compile-def sexy-compile-quote sexy-compile-if sexy-compile-seq sexy-seq-subcontractor sexy-compile-set!  make-sexy-proc sexy-compile-fn sexy-compile-macro sexy-compile-list sexy-compile-application reify-env sexy-read-file local-env global-env add-global-prelude sexy-global glookup sexy-run sexy-repl))
+    (unsafe))
 
 
 ; start
@@ -230,47 +228,35 @@ END
                     (loop (list 'send this `(quote ,(sym-or-num (car left)))) (cdr left))))))
     (cons match? transform))
 
-(define (get-sexy-options xs)
+(define (prepare-sexy-args xs)
+    (define (rval args opts)
+        (cons (reverse args) (cons 'rec opts)))
     ; fixme - keyword corner case
-    (define rval (sexy-object '() #f #f #f))
     (if (pair? xs)
-        (let loop ((head (car xs)) (tail (cdr xs)) (options rval))
+        (let loop ((head (car xs)) (tail (cdr xs)) (args '()) (options '()))
             (if (keyword? head)
-                (begin
-                    (hts! (htr options 'fields) (string->symbol (keyword->string head)) (car tail))
+                (let ((k (string->symbol (keyword->string head))) (v (car tail)))
                     (if (pair? (cdr tail))
-                        (loop (cadr tail) (cddr tail) options)
-                        options))
+                        (loop (cadr tail) (cddr tail) args (cons (cons k v) options))
+                        (rval args (cons (cons k v) options))))
                 (if (pair? tail)
-                    (loop (car tail) (cdr tail) options)
-                    options)))
-        rval))
-
-(define (remove-sexy-options xs)
-    (if (pair? xs)
-        (let loop ((head (car xs)) (tail (cdr xs)) (argv '()))
-            (if (keyword? head)
-                (if (pair? (cdr tail))
-                    (loop (car (cdr tail)) (cddr tail) argv)
-                    (reverse argv))
-                (if (pair? tail)
-                    (loop (car tail) (cdr tail) (cons head argv))
-                    (reverse (cons head argv)))))
-        '()))
+                    (loop (car tail) (cdr tail) (cons head args) options)
+                    (rval (cons head args) options))))
+        (rval '() '())))
 
 (define (prettify-alist al)
     (define (transmute p)
-        (vector (car p) ': (cdr p)))
+        (list (car p) ': (cdr p)))
     (map transmute al))
 
 ; sexy objects
 
 (define (sexy-record args)
     (if (null? args)
-        (vector 'rec '())
+        (cons 'rec '())
         (let loop ((k (car args)) (v (list-ref args 1)) (this '()) (rest (cddr args)))
             (if (null? rest)
-                (vector 'rec (cons (cons k v) this))
+                (cons 'rec (cons (cons k v) this))
                 (loop (list-ref args 2) (list-ref args 3) (cons (cons k v) this) (cddr rest))))))
 
 (define (sexy-object args autos resends initial)
@@ -368,7 +354,7 @@ END
 ; message passing
 
 (define (sexy-record? x)
-    (and (vector? x) (eq? 'rec (vector-ref x 0))))
+    (and (pair? x) (eq? 'rec (car x))))
 
 (define (sexy-send obj msg)
     (cond
@@ -526,14 +512,14 @@ END
                 (apply (sexy-apply-wrapper obj) args)))))
 
 (define (sexy-send-record obj msg)
-    (define al (vector-ref obj 1))
+    (define al (cdr obj))
     (case msg
         ((type) 'rec)
         ((null?) 'false)
         ((view)
             (if al
                 (prettify-alist al)
-                (vector)))
+                '()))
         ((to-bool)
             (transbool (pair? al)))
         ((apply)
@@ -752,8 +738,9 @@ END
                 (else (map expand code))))))
 
 (define (sexy-expand-use code env)
-    (define opts (get-sexy-options (cdr code)))
-    (define args (remove-sexy-options (cdr code)))
+    (define arg-pair (prepare-sexy-args (cdr code)))
+    (define args (car arg-pair))
+    (define opts (cdr arg-pair))
     (define uri (car args))
     (define as
         (let ((it (sexy-send opts 'as)))
@@ -797,8 +784,9 @@ END
         (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
 
 (define (sexy-apply obj xs cont err)
-    (define opts (get-sexy-options xs))
-    (define args (remove-sexy-options xs))
+    (define arg-pair (prepare-sexy-args xs))
+    (define args (car arg-pair))
+    (define opts (cdr arg-pair))
     (cond
         ((procedure? obj) (resume cont (apply obj args)))
         ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die obj (car args) cont err))
