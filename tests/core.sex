@@ -163,7 +163,45 @@
             (+ 1
                 (capture (fn (c) (+ 1 (c (c (c 1))))))))))
 
+
 ; errors - ensure, guard, and error
+
+(fun fun-handler (err kontinue)
+    (if (= err 'resume)
+        (kontinue 42)
+        (if (= err 'default)
+            69
+            (error 'we-are-fucked))))
+
+(test 'guard-no-error
+    (= 6
+        (+ 1
+            (guard
+                fun-handler
+                (+ 2 3)))))
+
+(test 'guard-default
+    (= 70
+        (+ 1
+            (guard
+                fun-handler
+                (+ 2 (error 'default))))))
+
+(test 'guard-continue
+    (= 45
+        (+ 1
+            (guard
+                fun-handler
+                (+ 2 (error 'resume))))))
+
+(test 'guard-abort
+    (= 0
+        (guard
+            (fn (e k) 0)
+            (+ 1
+                (guard
+                    fun-handler
+                    (+ 2 (error 'crap)))))))
 
 
 ; use

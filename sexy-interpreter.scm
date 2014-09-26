@@ -831,10 +831,7 @@ END
                     (loop (car rest) (cdr rest) (cons this sofar)))))))
 
 (define (sexception ex err cont)
-    (define handler (cdr (car err)))
-    (define (continue v)
-        (cont v))
-    (sexy-apply handler (list ex continue) cont (cdr err))) ; FIXME
+    (sexy-apply err (list ex cont) cont err)) ; FIXME
 
 (define blessed
     '(def quote if seq set! fn gate capture ensure guard error macro))
@@ -1011,9 +1008,31 @@ END
                     err))
             err)))
 
-(define (sexy-compile-guard code) 'null)
+(define (sexy-compile-guard code)
+    (define handler (cadr code))
+    (define expr (caddr code))
+    (define handler-c (sexy-compile handler))
+    (define expr-c (sexy-compile expr))
+    (frag
+        (handler-c
+            env
+            (lambda (handler-fn)
+                (define (new-err-cont e k)
+                    (sexy-apply handler-fn (list e k) cont err))
+                (expr-c env cont new-err-cont))
+            err)))
+
+(define (sexy-compile-error code)
+    (define errobj (cadr code))
+    (define erob-c (sexy-compile errobj))
+    (frag
+        (erob-c
+            env
+            (lambda (e)
+                (err e cont))
+            err)))
+
 (define (sexy-compile-ensure code) 'null)
-(define (sexy-compile-error code) 'null)
 
 (define (sexy-compile-list xs)
     (if (pair? xs)
