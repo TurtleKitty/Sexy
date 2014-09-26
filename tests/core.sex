@@ -143,25 +143,25 @@
 
 (test 'gate-no-capture
     (= 3
-        (gate 'foo (+ 1 2))))
+        (gate (+ 1 2))))
 
 (test 'gate-abort
     (= 2
-        (gate 'foo
+        (gate
             (+ 1
-                (capture 'foo (fn (c) 2))))))
+                (capture (fn (c) 2))))))
 
 (test 'capture-call-1
     (= 3
-        (gate 'foo
+        (gate
             (+ 1
-                (capture 'foo (fn (c) (+ 1 (c 1))))))))
+                (capture (fn (c) (+ 1 (c 1))))))))
 
 (test 'capture-call-n
     (= 5
-        (gate 'foo
+        (gate
             (+ 1
-                (capture 'foo (fn (c) (+ 1 (c (c (c 1))))))))))
+                (capture (fn (c) (+ 1 (c (c (c 1))))))))))
 
 ; errors - ensure, guard, and error
 

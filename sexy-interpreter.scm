@@ -18,7 +18,8 @@
     (block)
     (inline)
     (local)
-    (unsafe))
+;    (unsafe)
+)
 
 
 ; start
@@ -46,8 +47,8 @@ END
     (newline)
     (newline))
 
-(define top-cont (list (cons 'top identity)))
-(define top-err  (list (cons 'top (lambda (ex continue) (sexy-error "Uncaught error: " ex)))))
+(define top-cont identity)
+(define top-err  (lambda (ex continue) (sexy-error "Uncaught error: " ex)))
 
 (define (start)
     (define args (command-line-arguments))
@@ -524,7 +525,7 @@ END
             (transbool (pair? al)))
         ((apply)
             (lambda (args cont err)
-                (resume cont (sexy-send obj (car args)))))
+                (cont (sexy-send obj (car args)))))
         ((has?)
             (lambda (x)
                 (transbool (assoc x al))))
@@ -557,7 +558,7 @@ END
                     (sexy-view
                         (prettify-alist (hash-table->alist fields))))
                 ((to-bool) (if (eq? 0 (length (hash-table-keys fields))) 'false 'true))
-                ((apply) (lambda (args cont err) (resume cont (sexy-send obj (car args)))))
+                ((apply) (lambda (args cont err) (cont (sexy-send obj (car args)))))
                 ((has?) (lambda (x) (transbool (hte? fields x))))
                 ((keys) (hash-table-keys fields))
                 ((values) (hash-table-values fields))
@@ -780,7 +781,7 @@ END
 
 (define (send-or-die obj msg cont err)
     (if msg
-        (resume cont (sexy-send obj msg))
+        (cont (sexy-send obj msg))
         (sexy-error `((,obj) => (send ,obj)) "send requires a message.")))
 
 (define (sexy-apply obj xs cont err)
@@ -788,7 +789,7 @@ END
     (define args (car arg-pair))
     (define opts (cdr arg-pair))
     (cond
-        ((procedure? obj) (resume cont (apply obj args)))
+        ((procedure? obj) (cont (apply obj args)))
         ((or (pair? obj) (vector? obj) (string? obj)) (send-or-die obj (car args) cont err))
         ((hash-table? obj)
             (let ((type (htr obj 'type)))
@@ -817,11 +818,6 @@ END
             (let ((body (cdr expr)))
                 `(lambda (,(inject 'env) ,(inject 'cont) ,(inject 'err)) ,@body)))))
 
-(define (add-cont conts tag noob)
-    (cons
-        (cons tag noob)
-        conts))
-
 (define (capture-cont conts tag)
     (define (bail)
         (sexy-error "Hit the wall!" "Gate " tag " not found!"))
@@ -834,14 +830,10 @@ END
                     (bail)
                     (loop (car rest) (cdr rest) (cons this sofar)))))))
 
-(define (resume cont val)
-    (let* ((c (car cont)) (funk (cdr c)))
-        (funk val)))
-
 (define (sexception ex err cont)
     (define handler (cdr (car err)))
     (define (continue v)
-        (resume cont v))
+        (cont v))
     (sexy-apply handler (list ex continue) cont (cdr err))) ; FIXME
 
 (define blessed
@@ -870,23 +862,23 @@ END
             (else (sexy-compile-application code)))))
 
 (define (sexy-compile-atom code)
-    (define pass (frag (resume cont code)))
+    (define pass (frag (cont code)))
     (if (symbol? code)
         (if (keyword? code)
             pass
             (case code
                 ((true false null) pass)
-                ((env) (frag (resume cont env)))
+                ((env) (frag (cont env)))
                 (else
                     (if (sexy-global? code)
                         (let ((gvalue (glookup code)))
                             (lambda (env cont err)
-                                (resume cont gvalue)))
+                                (cont gvalue)))
                         (frag
                             (let ((looked-up ((sexy-send env 'lookup) code)))
                                 (if (eq? 'null looked-up)
                                     (sexception (cons 'undefined_symbol code) err cont)
-                                    (resume cont looked-up))))))))
+                                    (cont looked-up))))))))
         pass))
 
 (define (sexy-compile-def code)
@@ -903,11 +895,14 @@ END
                         (sexy-error code name " is already defined in the local environment.")
                         (begin
                             (mutate! name 'null)
-                            (val-c env (add-cont cont 'null (lambda (v) (mutate! name v) (resume cont v))) err))))))))
+                            (val-c
+                                env
+                                (lambda (v) (mutate! name v) (cont v))
+                                err))))))))
 
 (define (sexy-compile-quote code)
     (frag
-        (resume cont (cadr code))))
+        (cont (cadr code))))
 
 (define (sexy-compile-if code)
     (define pred (sexy-compile (cadr code)))
@@ -916,13 +911,10 @@ END
     (frag
         (pred
             env
-            (add-cont
-                cont
-                'null
-                (lambda (b)
-                    (if (eq? (sexy-bool b) 'true)
-                        (iftrue env cont err)
-                        (iffalse env cont err))))
+            (lambda (b)
+                (if (eq? (sexy-bool b) 'true)
+                    (iftrue env cont err)
+                    (iffalse env cont err)))
             err)))
 
 (define (sexy-compile-seq code)
@@ -941,7 +933,7 @@ END
                 (prep-defs xs env)
                 (head-c
                     env
-                    (add-cont cont 'null (lambda (h) (tail-c env cont err)))
+                    (lambda (h) (tail-c env cont err))
                     err)))
         (sexy-compile head)))
 
@@ -956,7 +948,7 @@ END
                 (if ((sexy-send env 'has?) name)
                     (val-c
                         env
-                        (add-cont cont 'null (lambda (v) ((sexy-send env 'set!) name v) (resume cont v)))
+                        (lambda (v) ((sexy-send env 'set!) name v) (cont v))
                         err)
                     (sexy-error code "Symbol not defined: " name))))
         (sexy-error code "set! wants a symbol as its first argument!")))
@@ -982,7 +974,7 @@ END
     (define bodies (cddr code))
     (define bodies-c (sexy-seq-subcontractor bodies))
     (frag
-        (resume cont (make-sexy-proc code env formals bodies-c))))
+        (cont (make-sexy-proc code env formals bodies-c))))
 
 (define (sexy-compile-macro code)
     (define name (cadr code))
@@ -996,58 +988,28 @@ END
             (hts! thing 'name name)
             (hts! thing 'type 'macro)
             ((sexy-send env 'def!) name thing)
-            (resume cont thing))))
+            (cont thing))))
 
 (define (sexy-compile-gate code)
-    (define tag (cadr code))
-    (define expr (caddr code))
-    (define tag-c (sexy-compile tag))
+    (define expr (cadr code))
     (define expr-c (sexy-compile expr))
     (frag
-        (tag-c
-            env
-            (add-cont cont 'null
-                (lambda (tg)
-                    (expr-c
-                        env
-                        (add-cont cont tg (lambda (v) (resume cont v)))
-                        err)))
-            err)))
+        (cont
+            (expr-c env identity err))))
 
 (define (sexy-compile-capture code)
-    (define tag (cadr code))
-    (define lamb (caddr code))
-    (define tag-c (sexy-compile tag))
+    (define lamb (cadr code))
     (define lamb-c (sexy-compile lamb))
     (frag
-        (tag-c
+        (lamb-c
             env
-            (list (cons 'null
-                (lambda (tg)
-                    (define capped (capture-cont cont tg))
-                    (define kont (car capped))
-                    (define meta (cdr capped))
-(debug (list 'kont kont))
-(debug (list 'meta meta))
-                    (lamb-c
-                        env
-                        (list (cons 'null
-                            (lambda (funk)
-                                (sexy-apply
-                                    funk
-                                    (list
-                                        (sexy-proc
-                                            'continuation
-                                            env 
-                                            (lambda (args opts qont err)
-(debug (list 'kont kont))
-(debug (list 'meta meta))
-(debug (list 'qont qont))
-                                                (resume qont (resume kont (car args))))))
-                                    meta
-                                    err))))
-                        err))))
-            env)))
+            (lambda (funk)
+                (sexy-apply
+                    funk
+                    (list (lambda (k-val) (cont k-val)))
+                    top-cont
+                    err))
+            err)))
 
 (define (sexy-compile-guard code) 'null)
 (define (sexy-compile-ensure code) 'null)
@@ -1059,15 +1021,13 @@ END
             (frag
                 (head
                     env
-                    (add-cont cont 'null
-                        (lambda (h)
-                            (tail
-                                env
-                                (add-cont cont 'null
-                                    (lambda (t) (resume cont (cons h t))))
-                                err)))
+                    (lambda (h)
+                        (tail
+                            env
+                            (lambda (t) (cont (cons h t)))
+                            err))
                     err)))
-        (frag (resume cont '()))))
+        (frag (cont '()))))
 
 (define (sexy-compile-application code)
     (define fn-c (sexy-compile (car code)))
@@ -1075,16 +1035,11 @@ END
     (frag
         (fn-c
             env
-            (add-cont
-                cont
-                'null
-                (lambda (f) 
-                    (args-c
-                        env
-                        (add-cont cont
-                            'null
-                            (lambda (args) (sexy-apply f args cont err)))
-                        err)))
+            (lambda (f) 
+                (args-c
+                    env
+                    (lambda (args) (sexy-apply f args cont err))
+                    err))
             err)))
 
 (define reify-env identity)
@@ -1175,7 +1130,7 @@ END
                         'primitive-function
                         'global
                         (lambda (args opts cont err)
-                            (resume cont (sexy-record args)))))
+                            (cont (sexy-record args)))))
                 (cons 'obj
                     (sexy-proc
                         'primitive-function
@@ -1187,7 +1142,7 @@ END
                             (if (eq? autos 'null) (set! autos #f) #f)
                             (if (eq? rsend 'null) (set! rsend #f) #f)
                             (if (eq? default 'null) (set! default #f) #f)
-                            (resume cont (sexy-object args autos rsend default)))))
+                            (cont (sexy-object args autos rsend default)))))
                 (cons 'test
                     (lambda (tname ok)
                         (debug (list tname (if (eq? ok 'true) 'ok 'FAIL))) 'null))))
@@ -1223,8 +1178,7 @@ END
     (if (pair? program)
         ((sexy-seq-subcontractor program)
             (local-env)
-            (list
-                (cons 'top (lambda (v) (exit))))
+            (lambda (v) (exit))
             top-err)
         (exit)))
 
@@ -1237,22 +1191,19 @@ END
         (sexy-apply
             (sexy-send stdin 'read)
             '()
-            (add-cont top-cont 'null
-                (lambda (expr)
-                    (define compiled
-                        (sexy-compile
-                            (sexy-expand expr (sexy-environment env))))
-                    (compiled
-                        env
-                        (add-cont top-cont 'null
-                            (lambda (v)
-                                (sexy-apply
-                                    (sexy-send stdout 'print)
-                                    (list v)
-                                    (add-cont top-cont 'null
-                                        (lambda (null) (loop (sexy-environment env))))
-                                    top-err)))
-                        top-err)))
+            (lambda (expr)
+                (define compiled
+                    (sexy-compile
+                        (sexy-expand expr (sexy-environment env))))
+                (compiled
+                    env
+                    (lambda (v)
+                        (sexy-apply
+                            (sexy-send stdout 'print)
+                            (list v)
+                            (lambda (null) (loop (sexy-environment env)))
+                            top-err))
+                    top-err))
             top-err))
     (newline)
     (display "Welcome to the Sexy Read-Eval-Print Loop.  Press Ctrl-D to exit.")
