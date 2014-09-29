@@ -139,7 +139,22 @@
                       (= (c1) 8)))))))
             
 
-; continuations - gate and capture
+; continuations - return, gate, and capture
+
+(test 'return
+    (= 10
+        ((fn ()
+            (return 10)
+            20
+            30))))
+
+(test 'return-nested
+    (= 5
+        ((fn ()
+            (def x ((fn () (return 10) 20)))
+            (if (= x 10)
+                (return 5)
+                6)))))
 
 (test 'gate-no-capture
     (= 3
@@ -202,6 +217,43 @@
                 (guard
                     fun-handler
                     (+ 2 (error 'crap)))))))
+
+(test 'ensure-no-jump
+    ((fn ()
+        (def x 1)
+        (def y
+            (ensure
+                (fn () (set! x 3))
+                (seq (set! x 2) (+ x 3))))
+        (and? (= x 3) (= y 5)))))
+
+(test 'ensure-no-capture-across
+    ((fn ()
+        (def x 1)
+        (def y
+            (gate
+                (* 10
+                    (ensure
+                        (fn () (set! x 3))
+                        (seq
+                            (set! x 5)
+                            (+ 2
+                                (capture (fn (k) (k (k x))))))))))
+        (and? (= x 3) (= y 90)))))
+
+(test 'ensure-error
+    ((fn ()
+        (def x 1)
+        (def y
+            (guard
+                (fn (e k) 12)
+                (ensure
+                    (fn () (set! x 3))
+                    (seq
+                        (set! x 5)
+                        (+ 2 (error 'oh-noes))))))
+        (and? (= x 3) (= y 12)))))
+                
 
 
 ; use

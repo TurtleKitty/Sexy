@@ -830,7 +830,7 @@ END
     (sexy-apply err (list ex cont) cont err)) ; FIXME
 
 (define blessed
-    '(def quote if seq set! fn gate capture ensure guard error macro))
+    '(def quote if seq set! fn gate capture ensure guard error macro env return))
 
 (define (holy? x)
     (or (member x blessed)
@@ -956,10 +956,11 @@ END
                 (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
                 (let* ((fargs (if (pair? args) (take args arity) '()))
                        (the-rest (if (pair? args) (drop args arity) '()))
+                       (returner (lambda (v) (cont v)))
                        (noob
-                           ((sexy-send env 'extend)
-                                (append formals '(opt rest))
-                                (append fargs (list opts the-rest)))))
+                           ((sexy-send-env env 'extend)
+                                (append formals '(opt rest return))
+                                (append fargs (list opts the-rest returner)))))
                     (bodies-c noob cont err))))))
 
 (define (sexy-compile-fn code)
@@ -1028,7 +1029,21 @@ END
                 (err e cont))
             err)))
 
-(define (sexy-compile-ensure code) 'null)
+(define (sexy-compile-ensure code)
+    (define protector-c (sexy-compile (cadr code)))
+    (define expr-c (sexy-compile (caddr code)))
+    (frag
+        (protector-c
+            env
+            (lambda (protector-thunk)
+                (define (p-cont v)
+                    (sexy-apply protector-thunk '() identity err)
+                    (cont v))
+                (define (p-err e k)
+                    (sexy-apply protector-thunk '() identity err)
+                    (err e k))
+                (p-cont (expr-c env identity p-err)))
+            err)))
 
 (define (sexy-compile-list xs)
     (if (pair? xs)
@@ -1068,7 +1083,6 @@ END
                 (reverse code)
                 (loop (sexy-read port) (cons noob code)))))
     (close-input-port port)
-    ;(debug program)
     program)
 
 (define prelude-uri "~/dev/sexy/global.sex")
@@ -1160,7 +1174,8 @@ END
                             (cont (sexy-object args autos rsend default)))))
                 (cons 'test
                     (lambda (tname ok)
-                        (debug (list tname (if (eq? ok 'true) 'ok 'FAIL))) 'null))))
+                        (debug tname (if (eq? ok 'true) 'ok 'FAIL))
+                        'null))))
         (fill-prelude primitives)
         prelude)
     (if genv
