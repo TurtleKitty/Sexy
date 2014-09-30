@@ -13,14 +13,6 @@
             foo.a)
         (= (brat 1) 1)))
 
-(test 'internal-macro
-    (seq
-        (macro bob (x)
-            (macro fred (y)
-                (list 'list x y))
-            (fred 2))
-        (= (bob 1) '(1 2))))
-
 (test 'macro-writing-macro
     (seq
         (macro mac-on-mac (name body)
@@ -34,4 +26,28 @@
         (and?
             (= (boo 1 2) '(1 2 3))
             (= (blorg 4 5) '(4 5 meow)))))
+
+(test 'macro-with-internal-function
+    ((fn ()
+        (macro qux (foon ball)
+            (fun bar (x y)
+                (list (- x y) (* x y)))
+            (list 'list (cons 'list (bar foon ball)) (cons 'list (bar ball foon))))
+        (= (qux 2 3) '((-1 6) (1 6))))))
+
+(test 'macro-with-external-function
+    ((fn ()
+        (def bar (fn (x y)
+            (list (- x y) (* x y))))
+        (macro quux (foon ball)
+            (list 'list (cons 'list (bar foon ball)) (cons 'list (bar ball foon))))
+        (= (quux 2 3) '((-1 6) (1 6))))))
+
+;(test 'macro-with-internal-macro
+;    ((fn ()
+;        (macro bob (x y)
+;            (macro fred (x)
+;                (list 'list x (* x x)))
+;            (cons 'list x (fred y))
+;        (= (bob 1 2) '(1 2 4))))))
 

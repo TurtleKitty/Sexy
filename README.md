@@ -1,7 +1,7 @@
 Sexy
 ====
 
-**((real 'languages) have.curves)**
+**((real 'programs) have.curves)**
 
 Sexy is an object-based dialect of Lisp inspired by Scheme, Self, and Perl.
 

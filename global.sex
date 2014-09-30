@@ -13,15 +13,15 @@
 (fun pair? (thing)
     (isa? thing 'pair))
 
-;(macro let (name vars)
-;    (fun sep (x y xs names vals)
-;        (if xs.empty?
-;            (cons (cons x names) (cons y vals))
-;            (sep (car xs) (cdr xs) (cddr xs) (cons x names) (cons y vals))))
-;    (def p
-;        (if vars.empty?
-;            (cons '() '())
-;            (sep (car vars) (cadr vars) (cddr vars) '() '())))
-;    (def dname (list 'def name (list 'fn (car p) rest)))
-;    (list 'seq dname (cons name (cdr p)))) 
+(macro let (name vars)
+    (fun sep (x y xs names vals)
+        (if xs.empty?
+            (cons ((cons x names) 'reverse) ((cons y vals) 'reverse))
+            (sep xs.head xs.1 xs.tail.tail (cons x names) (cons y vals))))
+    (def p
+        (if vars.empty?
+            (cons '() '())
+            (sep vars.head vars.1 vars.tail.tail '() '())))
+    (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
+    (list (list 'fn '() dname (cons name p.tail))))
 

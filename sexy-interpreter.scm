@@ -232,7 +232,6 @@ END
 (define (prepare-sexy-args xs)
     (define (rval args opts)
         (cons (reverse args) (cons 'rec opts)))
-    ; fixme - keyword corner case
     (if (pair? xs)
         (let loop ((head (car xs)) (tail (cdr xs)) (args '()) (options '()))
             (if (keyword? head)
@@ -434,7 +433,9 @@ END
         ((head) (car obj))
         ((tail) (cdr obj))
         ((size) (length obj))
+        ((reverse) (reverse obj))
         ((has?) (lambda (item) (transbool (member item obj))))
+        ((append) (lambda (other) (append obj other)))
         ((fold)
             (lambda (init funk)
                 (fold (sexy-apply-wrapper funk) init obj)))
@@ -692,12 +693,15 @@ END
     (define (lookup x)
         (if (sexy-global? x)
             (glookup x)
-            ((sexy-send env 'lookup) x)))
+            ((sexy-send-env env 'lookup) x)))
     (define mutate!
-        (sexy-send env 'def!))
+        (sexy-send-env env 'def!))
     (define (sexy-macro? name)
         (define gmac (glookup name))
-        (define obj (if (eq? 'null gmac) (lookup name) gmac))
+        (define obj
+            (if (eq? 'null gmac)
+                (lookup name)
+                gmac))
         (if (and (hash-table? obj) (eq? (htr obj 'type) 'macro))
             #t
             #f))
@@ -714,24 +718,26 @@ END
             (case (car code)
                 ((use) (sexy-expand (sexy-expand-use code env) env))
                 ((def)
-                    (let* ((expanded (map expand (cdr code))) (nucode (cons 'def expanded)))
-                        ((sexy-compile nucode) env top-cont top-err)
-                        nucode))
+                    (let ((dval (caddr code)))
+                        (if (and (pair? dval) (eq? (car dval) 'fn)) 
+                            (let* ((expanded (map expand (cdr code)))
+                                   (nucode (cons 'def expanded)))
+                                ((sexy-compile nucode) env top-cont top-err)
+                                nucode)
+                            (cons 'def (map expand (cdr code))))))
                 ((seq)
                     (begin
                         (let ((expanded (map expand code)))
                             (prep-defs (cdr expanded) env)
                             expanded)))
                 ((quote) code)
-                ((fn)
+                ((macro)
                     (let* ((noob (sexy-environment env))
                            (noob-expand (lambda (x) (sexy-expand x noob)))
                            (expanded (noob-expand (cdr code)))
-                           (nucode (cons 'fn expanded)))
+                           (nucode (cons 'macro expanded)))
+                        ((sexy-compile-macro nucode) env top-cont top-err)
                         nucode))
-                ((macro)
-                    (let ((mname (cadr code)) (mac ((sexy-compile-macro code) env top-cont top-err)))
-                        code))
                 (else (map expand code))))))
 
 (define (sexy-expand-use code env)
@@ -827,7 +833,7 @@ END
                     (loop (car rest) (cdr rest) (cons this sofar)))))))
 
 (define (sexception ex err cont)
-    (sexy-apply err (list ex cont) cont err)) ; FIXME
+    (sexy-apply err (list ex cont) top-cont top-err)) ; FIXME
 
 (define blessed
     '(def quote if seq set! fn gate capture ensure guard error macro env return))
@@ -981,7 +987,7 @@ END
             (define thing (make-sexy-proc (cdr code) env formals bodies-c))
             (hts! thing 'name name)
             (hts! thing 'type 'macro)
-            ((sexy-send env 'def!) name thing)
+            ((sexy-send-env env 'def!) name thing)
             (cont thing))))
 
 (define (sexy-compile-gate code)
