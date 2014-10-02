@@ -305,20 +305,19 @@ END
     this)
 
 (define (sexy-environment mama)
-    (define this (mkht))
     (define vars (mkht))
-    (hts! this 'type 'env)
-    (hts! this 'vars vars)
-    (if mama
-        (hts! this 'mama mama)
-        #f)
-    this)
+    (define mom (if mama mama 'null))
+    (list 'env vars mom))
 
 
 ; message passing
 
-(define (sexy-record? x)
-    (and (pair? x) (eq? 'rec (car x))))
+(define (sexy-x? type)
+    (lambda (x) 
+        (and (pair? x) (eq? type (car x)))))
+
+(define sexy-env? (sexy-x? 'env))
+(define sexy-record? (sexy-x? 'rec))
 
 (define (sexy-send obj msg)
     (cond
@@ -326,6 +325,7 @@ END
         ((number? obj) (sexy-send-number obj msg))
         ((string? obj) (sexy-send-string obj msg))
         ((null? obj) (sexy-send-empty obj msg))
+        ((sexy-env? obj) (sexy-send-env obj msg))
         ((sexy-record? obj) (sexy-send-record obj msg))
         ((pair? obj) (sexy-send-pair obj msg))
         ((procedure? obj) (sexy-send-primitive obj msg))
@@ -337,7 +337,7 @@ END
                     ((obj) (sexy-send-obj obj msg))
                     ((fn)  (sexy-send-fn obj msg))
                     ((macro)  (sexy-send-macro obj msg))
-                    ((env)  (sexy-send-env obj msg)))))
+                    (else (error (list "WTF kind of object was THAT?" obj msg))))))
         ((eof-object? obj) (newline) (newline) (exit))
         (else (error (list "WTF kind of object was THAT?" obj msg)))))
 
@@ -565,15 +565,18 @@ END
         (else (idk obj msg))))
 
 (define (sexy-send-env obj msg)
-    (define vars (htr obj 'vars))
+    (define vars (cadr obj))
     (case msg
         ((lookup)
             (lambda (name)
                 (cond
                     ((eq? name 'env) obj)
                     ((hte? vars name) (htr vars name))
-                    ((hte? obj 'mama) ((sexy-send-env (htr obj 'mama) 'lookup) name))
-                    (else 'null))))
+                    (else
+                        (let ((mom (caddr obj)))
+                            (if (sexy-env? mom)
+                                ((sexy-send-env mom 'lookup) name)
+                                'null))))))
         ((def!)
             (lambda (name val)
                 (hts! vars name val)
@@ -591,10 +594,12 @@ END
             (lambda (name val)
                 (define (oops)
                     (sexy-error 'set-var! "Environment has no definition for " name))
-                (cond
-                    ((hte? vars name) (hts! vars name val))
-                    ((hte? obj 'mama) ((sexy-send-env (htr obj 'mama) 'set!) name val))
-                    (else (oops)))
+                (if (hte? vars name)
+                    (hts! vars name val)
+                    (let ((mom (caddr obj)))
+                        (if (sexy-env? mom)
+                            ((sexy-send-env mom 'set!) name val)
+                            (oops))))
                 val))
         ((type) 'env)
         ((null?) 'false)
@@ -602,7 +607,7 @@ END
         ((to-bool) 'true)
         ((has?)
             (lambda (x)
-                (not (eqv? 'null ((sexy-send-env obj 'lookup) x)))))
+                (not (eq? 'null ((sexy-send-env obj 'lookup) x)))))
         ((local?)
             (lambda (x)
                 (if (hte? vars x)
@@ -615,10 +620,7 @@ END
             (lambda (code)
                 (sexy-eval code obj)))
         ((vars) (hash-table->alist vars))
-        (else
-            (if (hte? obj msg)
-                (htr obj msg)
-                (idk obj msg)))))
+        (else (idk obj msg))))
 
 (define (sexy-send-vector obj msg)
     (case msg
