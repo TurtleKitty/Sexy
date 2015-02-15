@@ -6,8 +6,6 @@
 (def simp (rec 'x 2 'y 3))
 
 (test 'rec-type (= simp.type 'rec))
-(test 'rec-not-null (= simp.null? false))
-
 (test 'rec-true (= true simp.to-bool))
 (test 'rec-false (= false barerec.to-bool))
 
@@ -20,6 +18,6 @@
 (test 'rec-has? (simp.has? 'x))
 ;(test 'rec-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
 
-; keys values pairs clone
+; keys values pairs 
 
 

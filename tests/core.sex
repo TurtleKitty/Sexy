@@ -98,7 +98,7 @@
             (fn (xs)
                 (if xs.empty?
                     xs
-                    (cons (* 10 xs.head) (embiggen xs.tail)))))
+                    (pair (* 10 xs.head) (embiggen xs.tail)))))
         (def various
             (fn (funk)
                 (funk rest)))

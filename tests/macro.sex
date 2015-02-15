@@ -32,7 +32,7 @@
         (macro qux (foon ball)
             (fun bar (x y)
                 (list (- x y) (* x y)))
-            (list 'list (cons 'list (bar foon ball)) (cons 'list (bar ball foon))))
+            (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
         (= (qux 2 3) '((-1 6) (1 6))))))
 
 (test 'macro-with-external-function
@@ -40,7 +40,7 @@
         (def bar (fn (x y)
             (list (- x y) (* x y))))
         (macro quux (foon ball)
-            (list 'list (cons 'list (bar foon ball)) (cons 'list (bar ball foon))))
+            (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
         (= (quux 2 3) '((-1 6) (1 6))))))
 
 ;(test 'macro-with-internal-macro

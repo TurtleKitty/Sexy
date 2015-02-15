@@ -1,13 +1,12 @@
 
 ; primitives
 
-(test 'primitive-type (= cons.type 'fn))
-(test 'primitive-not-null (= cons.null? false))
-(test 'primitive-view (= cons.view 'primitive-function))
-(test 'primitive-code (= cons.code 'primitive-function))
-(test 'primitive-true (= cons.to-bool true))
-(test 'primitive-env (= cons.env 'global))
-(test 'primitive-arity (= cons.arity 2))
+(test 'primitive-type (= pair.type 'fn))
+(test 'primitive-view (= pair.view 'primitive-function))
+(test 'primitive-code (= pair.code 'primitive-function))
+(test 'primitive-true (= pair.to-bool true))
+(test 'primitive-env (= pair.env 'global))
+(test 'primitive-arity (= pair.arity 2))
 (test 'primitive-variadic (= +.arity '*))
 (test 'primitive-apply (= (+.apply '(1 2 3)) 6))
 
@@ -19,7 +18,6 @@
         (+ x y)))
 
 (test 'sexy-fn-type (= foo.type 'fn))
-(test 'sexy-fn-not-null (= foo.null? false))
 (test 'sexy-fn-view (= foo.view '(fn (x y) (+ x y))))
 (test 'sexy-fn-code (= foo.code '(fn (x y) (+ x y))))
 (test 'sexy-fn-true (= foo.to-bool true))

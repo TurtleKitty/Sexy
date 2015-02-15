@@ -3,25 +3,28 @@
 
 (macro fun (name vars body)
     (list 'def name
-        (cons
+        (pair
             'fn
-            (cons vars (cons body rest)))))
+            (pair vars (pair body rest)))))
 
 (fun isa? (thing type)
     (= thing.type type))
 
-(fun pair? (thing)
-    (isa? thing 'pair))
+(fun bool? (thing)
+    (isa? thing 'bool))
+
+(fun null? (thing)
+    (= thing null))
 
 (macro let (name vars)
     (fun sep (x y xs names vals)
         (if xs.empty?
-            (cons ((cons x names) 'reverse) ((cons y vals) 'reverse))
-            (sep xs.head xs.1 xs.tail.tail (cons x names) (cons y vals))))
+            (pair ((pair x names) 'reverse) ((pair y vals) 'reverse))
+            (sep xs.head xs.1 xs.tail.tail (pair x names) (pair y vals))))
     (def p
         (if vars.empty?
-            (cons '() '())
+            (pair '() '())
             (sep vars.head vars.1 vars.tail.tail '() '())))
     (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
-    (list (list 'fn '() dname (cons name p.tail))))
+    (list (list 'fn '() dname (pair name p.tail))))
 

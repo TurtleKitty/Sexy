@@ -12,9 +12,9 @@
 
 (test 'null?
     (not (or?
-        zero.null?
-        one.null?
-        pi.null?)))
+        (null? zero)
+        (null? one)
+        (null? pi))))
 
 (test 'int-type
     (and?

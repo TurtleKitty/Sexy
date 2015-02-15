@@ -3,6 +3,6 @@
 
 (test 'null
     (and? (= null.type 'null)
-          (= null.null? true)
+          (= (null? null) true)
           (= null.to-bool false)))
 

@@ -131,12 +131,6 @@ END
             'true
             'false)))
 
-(define (eq-fixer op)
-    (lambda args
-        (if (all? null-or-empty? args)
-            'true
-            (apply op args))))
-
 (define (transbool x)
     (if x
         'true
@@ -149,9 +143,6 @@ END
 
 (define (nodef x)
     (sexy-error x "Symbol " x " is not defined"))
-
-(define (null-or-empty? x)
-    (or (eq? x 'null) (eq? x '())))
 
 (define (all? funk xs)
     (let loop ((y (car xs)) (ys (cdr xs)))
@@ -352,38 +343,23 @@ END
                 (else
                     (case msg
                         ((type) 'symbol)
-                        ((null?) 'false)
                         ((to-bool) 'true)
                         (else (idk obj msg))))))))
 
 (define (sexy-send-bool obj msg)
     (case msg
         ((type) 'bool)
-        ((null?) 'false)
         ((to-bool) obj)
         (else (idk obj msg))))
 
 (define (sexy-send-null obj msg)
     (case msg
-        ((type) 'null)
-        ((null?) 'true)
         ((to-bool) 'false)
         (else 'null)))
-
-(define (sexy-send-empty obj msg)
-    (case msg
-        ((type) 'pair)
-        ((null?) 'false)
-        ((empty?) 'true)
-        ((to-bool) 'false)
-        ((head tail) 'null)
-        ((size) 0)
-        (else (sexy-send-pair obj msg))))
 
 (define (sexy-send-number obj msg)
     (case msg
         ((zero?) (if (eq? obj 0) 'true 'false))
-        ((null?) 'false)
         ((to-bool) (if (eq? obj 0) 'false 'true))
         ((to-string) (number->string obj))
         ((view) obj)
@@ -410,26 +386,35 @@ END
 (define (sexy-send-string obj msg)
     (case msg
         ((type) 'string)
-        ((null?) 'false)
         ((view) obj)
         ((to-bool) (if (eq? (string-length obj) 0) 'false 'true))
         ((to-symbol) (string->symbol obj))
         ((to-number) (string->number obj))
+        ((size) (string-length obj))
         ((join) 'niy)
         ((split) 'niy)
         (else (idk obj msg))))
 
+(define (sexy-send-empty obj msg)
+    (case msg
+        ((type) 'pair)
+        ((empty?) 'true)
+        ((view) '())
+        ((to-bool) 'false)
+        ((head tail) 'null)
+        ((size) 0)
+        (else (sexy-send-pair obj msg))))
+
 (define (sexy-send-pair obj msg)
     (case msg
         ((type) 'pair)
-        ((null?) 'false)
         ((empty?) 'false)
         ((view)
             (if (list? obj)
                 (map sexy-view obj)
                 (cons (sexy-view (car obj)) (sexy-view (cdr obj)))))
         ((to-bool) 'true)
-        ((to-vector) (list->vector obj))
+        ((to-vec) (list->vector obj))
         ((head) (car obj))
         ((tail) (cdr obj))
         ((size) (length obj))
@@ -459,13 +444,14 @@ END
                         (unbool ((sexy-apply-wrapper funk) x y))))))
         (else
             (if (number? msg)
-                (list-ref obj msg)
+                (if (> (length obj) msg)
+                    (list-ref obj msg)
+                    (sexy-error "Number " msg " out of bounds for " obj))
                 (idk obj msg)))))
 
 (define (sexy-send-primitive obj msg)
     (case msg
         ((type) 'fn)
-        ((null?) 'false)
         ((view code) 'primitive-function)
         ((to-bool) 'true)
         ((env) 'global)
@@ -481,7 +467,6 @@ END
     (define al (cdr obj))
     (case msg
         ((type) 'rec)
-        ((null?) 'false)
         ((view)
             (if al
                 (prettify-alist al)
@@ -518,7 +503,6 @@ END
             ((sexy-apply-wrapper (htr resends msg))) ; exec the thunk
             (case msg
                 ((type) 'obj)
-                ((null?) 'false)
                 ((view)
                     (sexy-view
                         (prettify-alist (hash-table->alist fields))))
@@ -541,7 +525,6 @@ END
 (define (sexy-send-fn obj msg)
     (case msg
         ((type) 'fn)
-        ((null?) 'false)
         ((view) (sexy-send obj 'code))
         ((to-bool) 'true)
         ((env) (reify-env (htr obj 'env)))
@@ -554,7 +537,6 @@ END
 (define (sexy-send-macro obj msg)
     (case msg
         ((type) 'macro)
-        ((null?) 'false)
         ((view) (sexy-send obj 'code))
         ((to-bool) 'true)
         ((env) (reify-env (htr obj 'env)))
@@ -576,7 +558,7 @@ END
                         (let ((mom (caddr obj)))
                             (if (sexy-env? mom)
                                 ((sexy-send-env mom 'lookup) name)
-                                'null))))))
+                                'this-sexy-name-was-not-found))))))
         ((def!)
             (lambda (name val)
                 (hts! vars name val)
@@ -602,19 +584,15 @@ END
                             (oops))))
                 val))
         ((type) 'env)
-        ((null?) 'false)
         ((view) (sexy-view (hash-table->alist vars)))
         ((to-bool) 'true)
         ((has?)
             (lambda (x)
-                (not (eq? 'null ((sexy-send-env obj 'lookup) x)))))
+                (not (eq? 'this-sexy-name-was-not-found ((sexy-send-env obj 'lookup) x)))))
         ((local?)
             (lambda (x)
-                (if (hte? vars x)
-                    (let ((v (htr vars x)))
-                        (if (eq? v 'null)
-                            'false
-                            'true))
+                (if (and (hte? vars x) (not (eq? (htr vars x) 'this-sexy-def-is-about-to-be-defined)))
+                    'true
                     'false)))
         ((eval)
             (lambda (code)
@@ -624,8 +602,7 @@ END
 
 (define (sexy-send-vector obj msg)
     (case msg
-        ((type) 'vector)
-        ((null?) 'false)
+        ((type) 'vec)
         ((view)
             (vector-map
                 (lambda (i x) (sexy-view x))
@@ -663,7 +640,9 @@ END
                         (unbool ((sexy-apply-wrapper funk) x y))))))
         (else
             (if (number? msg)
-                (vector-ref obj msg)
+                (if (> (vector-length obj) msg)
+                    (vector-ref obj msg)
+                    (sexy-error "Number " msg " out of bounds for " obj))
                 (idk obj msg)))))
 
 (define (sexy-read port)
@@ -675,7 +654,6 @@ END
 (define (sexy-send-port obj msg)
     (case msg
         ((type) 'port)
-        ((null?) 'false)
         ((to-bool) 'true)
         ((view) obj)
         ((read) (lambda () (sexy-read obj)))
@@ -701,7 +679,7 @@ END
     (define (sexy-macro? name)
         (define gmac (glookup name))
         (define obj
-            (if (eq? 'null gmac)
+            (if (eq? 'this-sexy-name-was-not-found gmac)
                 (lookup name)
                 gmac))
         (if (and (hash-table? obj) (eq? (htr obj 'type) 'macro))
@@ -711,7 +689,7 @@ END
         ((atom? code) code)
         ((sexy-macro? (car code))
             (let* ((macname (car code)) (looked-up (lookup macname)))
-                (if (eq? 'null looked-up)
+                (if (eq? 'this-sexy-name-was-not-found looked-up)
                     (nodef macname)
                     (sexy-expand
                         (apply (sexy-apply-wrapper looked-up) (cdr code))
@@ -810,11 +788,11 @@ END
     ; predefine all defs for mutual recursion
     (define mutate!
         (sexy-send env 'def!))
-    (define (set-null! name)
-        (mutate! name 'null))
+    (define (set-ready! name)
+        (mutate! name 'this-sexy-def-is-about-to-be-defined))
     (define (get-defs seq)
         (filter (lambda (x) (and (pair? x) (eq? (car x) 'def))) seq))
-    (map set-null! (map cadr (get-defs seq))))
+    (map set-ready! (map cadr (get-defs seq))))
 
 (define-syntax frag
     (ir-macro-transformer
@@ -838,11 +816,11 @@ END
     (sexy-apply err (list ex cont) top-cont top-err)) ; FIXME
 
 (define blessed
-    '(def quote if seq set! fn gate capture ensure guard error macro env return))
+    '(def quote if seq set! fn gate capture ensure guard error macro env opt rest return))
 
 (define (holy? x)
     (or (member x blessed)
-        (not (eq? 'null (glookup x)))))
+        (not (eq? 'this-sexy-name-was-not-found (glookup x)))))
  
 (define (sexy-compile code)
     (if (atom? code)
@@ -877,7 +855,7 @@ END
                                 (cont gvalue)))
                         (frag
                             (let ((looked-up ((sexy-send env 'lookup) code)))
-                                (if (eq? 'null looked-up)
+                                (if (eq? 'this-sexy-name-was-not-found looked-up)
                                     (sexception (cons 'undefined_symbol code) err cont)
                                     (cont looked-up))))))))
         pass))
@@ -1119,7 +1097,7 @@ END
                 (cons 'stdin (current-input-port))
                 (cons 'stdout (current-output-port))
                 (cons 'stderr (current-error-port))
-                (cons 'is? (eq-fixer (bool-fixer eq?)))
+                (cons 'is? (bool-fixer eq?))
                 (cons '+ +)
                 (cons '- -)
                 (cons '* *)
@@ -1127,14 +1105,20 @@ END
                 (cons 'div quotient)
                 (cons 'rem remainder)
                 (cons 'mod modulo)
-                (cons 'cons cons)
+                (cons 'pair cons)
+                (cons 'pair? (bool-fixer pair?))
                 (cons 'list list)
-                (cons 'vector vector)
-                (cons '= (eq-fixer (bool-fixer equal?)))
+                (cons 'list? (bool-fixer list?))
+                (cons 'vec vector)
+                (cons 'vec? (bool-fixer vector?))
+                (cons '= (bool-fixer equal?))
                 (cons '> (bool-fixer >))
                 (cons '>= (bool-fixer >=))
                 (cons '< (bool-fixer <))
                 (cons '<= (bool-fixer <=))
+                (cons 'num? (bool-fixer number?))
+                (cons 'int? (bool-fixer integer?))
+                (cons 'real? (bool-fixer real?))
                 (cons 'and?
                     (lambda args
                         (let loop ((a (car args)) (xs (cdr args)))
@@ -1168,6 +1152,7 @@ END
                         'global
                         (lambda (args opts cont err)
                             (cont (sexy-record args)))))
+                (cons 'rec? sexy-record)
                 (cons 'obj
                     (sexy-proc
                         'primitive-function
@@ -1205,7 +1190,7 @@ END
     'null)
 
 (define (sexy-global? x)
-    (if (not (eq? (glookup x) 'null))
+    (if (not (eq? (glookup x) 'this-sexy-name-was-not-found))
         #t
         #f))
 

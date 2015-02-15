@@ -3,12 +3,12 @@
 
 (test 'true
     (and? (= true.type 'bool)
-          (= true.null? false)
+          (= (null? true) false)
           (= true.to-bool true)))
 
 (test 'false
     (and? (= false.type 'bool)
-          (= false.null? false)
+          (= (null? false) false)
           (= false.to-bool false)))
 
 (test 'and?

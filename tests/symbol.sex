@@ -10,5 +10,4 @@
 (test 'symbol-etc
     (and?
         (= x.type 'symbol)
-        (= x.null? false)
         (= x.to-bool true))) 

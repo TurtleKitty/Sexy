@@ -1,5 +1,5 @@
 
-; tiny metacircular interpreter for a subset of Scheme
+; tiny metacircular interpreter for a Schemelike
 
 [use srfi-1]
 [use srfi-69]
@@ -23,7 +23,7 @@
                 [[eq? head '-] [apply - [square-eval-list tail env]]]
                 [[eq? head '*] [apply * [square-eval-list tail env]]]
                 [[eq? head '/] [apply / [square-eval-list tail env]]]
-                [[eq? head 'eq?] [apply eq? [square-eval-list tail env]]]
+                [[eq? head '=] [apply equal? [square-eval-list tail env]]]
                 [else [square-apply [square-eval head env] [square-eval-list tail env]]]]]]]
 
 [define [square-eval-list xs env]
@@ -45,12 +45,6 @@
 
 [define [make-env parent]
     [define table [make-hash-table]]
-    [define self
-        [lambda [msg]
-            [cond
-                [[eq? msg 'find] lookup]
-                [[eq? msg 'add] extend]
-                [[eq? msg 'set!] mutate!]]]]
     [define [lookup name]
         [if [hash-table-exists? table name]
             [hash-table-ref table name]
@@ -63,6 +57,12 @@
         noob]
     [define [mutate! name value]
         [hash-table-set! table name value]]
+    [define self
+        [lambda [msg]
+            [cond
+                [[eq? msg 'find] lookup]
+                [[eq? msg 'add] extend]
+                [[eq? msg 'set!] mutate!]]]]
     self]
 
 [define [make-closure args body env]
@@ -80,4 +80,15 @@
     [newline]
     [repl]]
 
-[repl]
+[define [speed-test]
+    [display
+        [square-eval
+            '[seq
+                [set! fact [fn [n acc] [if [= n 1] acc [fact [- n 1] [* n acc]]]]]
+                [fact 1000 1]]
+            world]]
+    [newline]]
+
+[speed-test]
+
+;[repl]

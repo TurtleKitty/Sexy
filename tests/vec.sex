@@ -1,12 +1,11 @@
 
-(def empty (vector))
-(def vick (vector 8 6 7 5 3 0 9))
+(def empty (vec))
+(def vick (vec 8 6 7 5 3 0 9))
 
 (test 'vector-access (and? (= vick.0 8) (= vick.3 5) (= vick.6 9)))
 (test 'vector-apply (= (vick 5) 0)) 
 
-(test 'vector-type        (= vick.type 'vector))
-(test 'vector-not-null    (= empty.null? false))
+(test 'vector-type        (= vick.type 'vec))
 (test 'vector-view        (= vick.view '#(8 6 7 5 3 0 9)))
 (test 'vector-false       (= empty.to-bool false))
 (test 'vector-true        (= vick.to-bool true))

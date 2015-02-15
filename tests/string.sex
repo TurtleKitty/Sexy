@@ -5,7 +5,6 @@
 (def pi "3.14")
 
 (test 'string-type (= str.type 'string))
-(test 'string-not-null (= str.null? false))
 (test 'string-true (= str.to-bool true))
 (test 'string-false (= empty.to-bool false))
 (test 'string-to-symbol (= str.to-symbol 'sexy))
