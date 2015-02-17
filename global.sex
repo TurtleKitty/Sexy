@@ -13,6 +13,9 @@
 (fun bool? (thing)
     (isa? thing 'bool))
 
+(fun fn? (thing)
+    (isa? thing 'fn))
+
 (fun null? (thing)
     (= thing null))
 
