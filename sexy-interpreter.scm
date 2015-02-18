@@ -88,7 +88,7 @@ END
                     (sexy-expand
                         (sexy-read-file
                             (open-input-file fpath))
-                        (local-env)))
+                        (cli-env)))
                    (fport (open-output-file cpath)))
                 (write expanded fport)
                 (close-output-port fport)
@@ -420,7 +420,7 @@ END
         ((view) obj)
         ((to-bool) (if (eq? (string-length obj) 0) 'false 'true))
         ((to-symbol) (string->symbol obj))
-        ((to-number) (string->number obj))
+        ((to-num) (string->number obj))
         ((size) (string-length obj))
         ((join) 'niy)
         ((split) 'niy)
@@ -1112,6 +1112,29 @@ END
 (define (local-env)
     (sexy-environment #f))
 
+(define (sexy-cli-args xs)
+    (define (rval args opts)
+        (cons (cddr (reverse args)) (cons 'rec opts)))
+    (if (pair? xs)
+        (let loop ((head (car xs)) (tail (cdr xs)) (args '()) (options '()))
+            (if (eq? (string-ref head 0) #\-)
+                (let ((k (string->symbol (irregex-replace/all "^-+" head ""))) (v (car tail)))
+                    (if (pair? (cdr tail))
+                        (loop (cadr tail) (cddr tail) args (cons (cons k v) options))
+                        (rval args (cons (cons k v) options))))
+                (if (pair? tail)
+                    (loop (car tail) (cdr tail) (cons head args) options)
+                    (rval (cons head args) options))))
+        (rval '() '())))
+
+(define global-arg-pair (sexy-cli-args (command-line-arguments)))
+
+(define (cli-env)
+    (define lenv (local-env))
+    ((sexy-send-env lenv 'extend)
+        '(opt rest)
+        (list (cdr global-arg-pair) (car global-arg-pair))))
+
 (define (global-env)
     (define (make-new)
         (define prelude (local-env))
@@ -1183,7 +1206,7 @@ END
                         'global
                         (lambda (args opts cont err)
                             (cont (sexy-record args)))))
-                (cons 'rec? sexy-record)
+                (cons 'rec? sexy-record?)
                 (cons 'obj
                     (sexy-proc
                         'primitive-function
@@ -1231,7 +1254,7 @@ END
 (define (sexy-run program)
     (if (pair? program)
         ((sexy-seq-subcontractor program)
-            (local-env)
+            (cli-env)
             (lambda (v) (exit))
             top-err)
         (exit)))
