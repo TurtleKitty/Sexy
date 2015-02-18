@@ -17,9 +17,7 @@
 (declare
     (block)
     (inline)
-    (local)
-;    (unsafe)
-)
+    (local))
 
 
 ; start
@@ -39,7 +37,8 @@ END
 
 (define (usage)
     (display usage-text)
-    (newline))
+    (newline)
+    (exit))
 
 (define (niy)
     (newline)
@@ -50,37 +49,69 @@ END
 (define top-cont identity)
 (define top-err  (lambda (ex continue) (sexy-error "Uncaught error: " ex)))
 
+(define sexy-cache-dir "~/.sexy/compiled")
+
+
+(define (check-file f)
+    (if (file-exists? f)
+        (if (equal? (string-ref f 0) #\/)
+            f   ; absolute filename
+            (string-append (current-directory) "/" f))
+        (begin
+            (debug "File not found!" f)
+            (exit))))
+
+(define (get-sexy-cached-path f)
+    (string-append
+        sexy-cache-dir
+        "/"
+        (irregex-replace/all "[^a-zA-Z0-9_]" f "_")))
+
+(define (file-newer? f1 f2)
+    (> (file-modification-time f1) (file-modification-time f2)))
+
+
 (define (start)
     (define args (command-line-arguments))
-    (define (check-file)
-        (if (pair? (cdr args))
-            (let ((file (cadr args)))
-               (if (file-exists? file)
-                   (open-input-file file) 
-                   (debug "File not found!")))
-            (usage)))
-    (define (read-prog)
-        (define fport (check-file))
-        (if (port? fport)
-            (sexy-read-file fport)
-            (exit)))
+    (define (read-expand-cache-prog)
+        (define fname
+            (if (pair? (cdr args))
+                (cadr args)
+                (usage)))
+        (define fpath (check-file fname))
+        (define cpath (get-sexy-cached-path fpath))
+        (define is-cached (and (file-exists? cpath) (file-newer? cpath fpath)))
+        (if is-cached
+            (read
+                (open-input-file cpath))
+            (let ((expanded
+                    (sexy-expand
+                        (sexy-read-file
+                            (open-input-file fpath))
+                        (local-env)))
+                   (fport (open-output-file cpath)))
+                (write expanded fport)
+                (close-output-port fport)
+                expanded)))
+    (if (not (directory? sexy-cache-dir))
+        (create-directory sexy-cache-dir #t)
+        #f)
     (global-env)
     (add-global-prelude)
     (if (not (pair? args))
         (usage)
         (let ((cmd (string->symbol (car args))))
             (case cmd
-                ((run)
-                    (sexy-run
-                        (sexy-expand (read-prog) (local-env))))
+                ((run) (sexy-run (read-expand-cache-prog)))
                 ((repl) (sexy-repl))
                 ((check) (niy))
                 ((compile)
-                    (sexy-compile
-                        (sexy-expand (read-prog) (local-env))))
+                    (begin
+                        (read-expand-cache-prog)
+                        (debug "Wrote compiled file to " (get-sexy-cached-path (check-file (cadr args))))))
                 ((expand)
                     (sexy-write
-                        (sexy-expand (read-prog) (local-env))
+                        (read-expand-cache-prog)
                         (current-output-port))
                         (newline))
                 (else (printf "Unknown command: ~A~%" cmd))))))
