@@ -8,7 +8,7 @@
 (use numbers)
 (use posix)
 (use utils)
-;(use uuid)
+(use uuid)
 (use vector-lib)
 
 ;(use openssl)
@@ -559,7 +559,7 @@ END
         ((view) (sexy-send obj 'code))
         ((to-bool) 'true)
         ((env) (reify-env (htr obj 'env)))
-        ((code arity) (htr obj msg))
+        ((code formals arity) (htr obj msg))
         ((apply)
             (lambda (args)
                 (apply (sexy-apply-wrapper obj) args)))
@@ -1114,17 +1114,21 @@ END
 
 (define (sexy-cli-args xs)
     (define (rval args opts)
-        (cons (cddr (reverse args)) (cons 'rec opts)))
+        (cons
+            (if (and (pair? args) (> (length args) 1))
+                (cddr args)
+                '())
+            (cons 'rec opts)))
     (if (pair? xs)
         (let loop ((head (car xs)) (tail (cdr xs)) (args '()) (options '()))
             (if (eq? (string-ref head 0) #\-)
                 (let ((k (string->symbol (irregex-replace/all "^-+" head ""))) (v (car tail)))
                     (if (pair? (cdr tail))
                         (loop (cadr tail) (cddr tail) args (cons (cons k v) options))
-                        (rval args (cons (cons k v) options))))
+                        (rval (reverse args) (cons (cons k v) options))))
                 (if (pair? tail)
                     (loop (car tail) (cdr tail) (cons head args) options)
-                    (rval (cons head args) options))))
+                    (rval (reverse (cons head args)) options))))
         (rval '() '())))
 
 (define global-arg-pair (sexy-cli-args (command-line-arguments)))
@@ -1219,6 +1223,9 @@ END
                             (if (eq? rsend 'null) (set! rsend #f) #f)
                             (if (eq? default 'null) (set! default #f) #f)
                             (cont (sexy-object args autos rsend default)))))
+                (cons 'gensym
+                    (lambda ()
+                        (string->symbol (string-append "symbol-" (uuid-v4)))))
                 (cons 'test
                     (lambda (tname ok)
                         (debug tname (if (eq? ok 'true) 'ok 'FAIL))

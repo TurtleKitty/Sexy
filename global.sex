@@ -31,3 +31,22 @@
     (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
     (list (list 'fn '() dname (pair name p.tail))))
 
+; awaiting quasiquote...
+;(macro spec (name pred exec)
+;    (def obj (env.lookup name))
+;    (def is-local (env.local? name))
+;    (if (not (fn? obj))
+;        (error "spec is used to specialize functions.")
+;        (seq
+;            (def fs obj.formals)
+;            (def foo (gensym))
+;            (def noob
+;                `(fn ,fs
+;                    (if ((fn ,fs ,pred) ,@fs)
+;                        ((fn ,fs ,exec) ,@fs)
+;                        (,foo (list ,@fs)))))
+;            (if is-local
+;                `(seq (def ,foo ,name) (set! ,name ,noob))
+;                `(seq (def ,foo ,name) (def ,name ,noob))))))
+
+
