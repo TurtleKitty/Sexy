@@ -381,6 +381,7 @@ END
     (case msg
         ((type) 'bool)
         ((to-bool) obj)
+        ((not) (if (eq? 'true obj) 'false 'true))
         (else (idk obj msg))))
 
 (define (sexy-send-null obj msg)
