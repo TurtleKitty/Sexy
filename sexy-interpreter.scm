@@ -575,7 +575,7 @@ END
         ((code arity) (htr obj msg))
         ((apply)
             (lambda (args)
-                ((sexy-apply-wrapper obj) args)))
+                ((sexy-apply-wrapper obj) args))) ; FIXME - op.apply works, but not on a list ?!
         (else (idk obj msg))))
 
 (define (sexy-send-env obj msg)
@@ -683,14 +683,20 @@ END
 (define (sexy-write obj port)
     (write (sexy-view obj)))
 
+(define (sexy-print obj port)
+    (display (sexy-view obj)))
+
 (define (sexy-send-port obj msg)
     (case msg
         ((type) 'port)
         ((to-bool) 'true)
         ((view) obj)
         ((read) (lambda () (sexy-read obj)))
+        ((read-line) (lambda () (read-line obj)))
+        ((to-list) (lambda () (read-lines obj)))
+        ((t0-string) (lambda () (read-string obj)))
         ((write) (lambda (x) (sexy-write x obj) 'null))
-        ((print) (lambda (x) (sexy-write x obj) (newline) 'null))
+        ((print) (lambda (x) (sexy-print x obj) 'null))
         (else (idk msg obj))))
 
 (define (sexy-bool obj)
@@ -831,18 +837,6 @@ END
         (lambda (expr inject compare)
             (let ((body (cdr expr)))
                 `(lambda (,(inject 'env) ,(inject 'cont) ,(inject 'err)) ,@body)))))
-
-(define (capture-cont conts tag)
-    (define (bail)
-        (sexy-error "Hit the wall!" "Gate " tag " not found!"))
-    (if (null? conts)
-        (bail)
-        (let loop ((this (car conts)) (rest (cdr conts)) (sofar '()))
-            (if (eq? tag (car this))
-                (cons (reverse sofar) rest)
-                (if (null? rest)
-                    (bail)
-                    (loop (car rest) (cdr rest) (cons this sofar)))))))
 
 (define (sexception ex err cont)
     (sexy-apply err (list ex cont) top-cont top-err)) ; FIXME
@@ -1137,8 +1131,13 @@ END
 (define (cli-env)
     (define lenv (local-env))
     ((sexy-send-env lenv 'extend)
-        '(opt rest)
-        (list (cdr global-arg-pair) (car global-arg-pair))))
+        '(opt rest stdin stdout stderr)
+        (list
+            (cdr global-arg-pair)
+            (car global-arg-pair)
+            (current-input-port)
+            (current-output-port)
+            (current-error-port))))
 
 (define (global-env)
     (define (make-new)
@@ -1153,9 +1152,6 @@ END
             (eq? 'true (sexy-bool x)))
         (define primitives
             (list
-                (cons 'stdin (current-input-port))
-                (cons 'stdout (current-output-port))
-                (cons 'stderr (current-error-port))
                 (cons 'is? (bool-fixer eq?))
                 (cons '+ +)
                 (cons '- -)
