@@ -454,14 +454,30 @@ END
         ((has?) (lambda (item) (transbool (member item obj))))
         ((append) (lambda (other) (append obj other)))
         ((fold)
-            (lambda (init funk)
-                (fold (sexy-apply-wrapper funk) init obj)))
+            (begin
+                (define formals '(acc funk))
+                (define bodies
+                    (sexy-parse `(
+                        (def xs (quote ,obj))
+                        (if xs.empty?
+                            acc
+                            (xs.tail.fold (funk acc xs.head) funk)))))
+                (define code `(fn ,formals ,@bodies))
+                (make-sexy-proc code (local-env) formals bodies)))
         ((foldr)
-            (lambda (init funk)
-                (fold-right (sexy-apply-wrapper funk) init obj)))
+            ((sexy-compile-fn 
+                (sexy-parse
+                    `(fn (acc funk)
+                        (def xs (quote ,obj))
+                        (if xs.empty?
+                            acc
+                            (funk xs.head (xs.tail.foldr acc funk)))))) (local-env) identity identity))
         ((map)
-            (lambda (funk)
-                (map (sexy-apply-wrapper funk) obj)))
+            ((sexy-compile-fn
+                (sexy-parse
+                    `(fn (funk)
+                        (def xs (quote ,obj))
+                        (xs.foldr '() (fn (x y) (pair (funk x) y)))))) (local-env) identity identity))
         ((filter)
             (lambda (funk)
                 (filter
@@ -692,9 +708,10 @@ END
         ((to-bool) 'true)
         ((view) obj)
         ((read) (lambda () (sexy-read obj)))
+        ((list) (lambda () (map sexy-read (read-file obj))))
         ((read-line) (lambda () (read-line obj)))
         ((to-list) (lambda () (read-lines obj)))
-        ((t0-string) (lambda () (read-string obj)))
+        ((to-string) (lambda () (read-string obj)))
         ((write) (lambda (x) (sexy-write x obj) 'null))
         ((print) (lambda (x) (sexy-print x obj) 'null))
         (else (idk msg obj))))
@@ -958,8 +975,9 @@ END
                     (sexy-error code "Symbol not defined: " name))))
         (sexy-error code "set! wants a symbol as its first argument!")))
 
-(define (make-sexy-proc code env formals bodies-c)
+(define (make-sexy-proc code env formals bodies)
     (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor bodies))
     (sexy-proc
         code
         env 
@@ -978,19 +996,17 @@ END
 (define (sexy-compile-fn code)
     (define formals (cadr code))
     (define bodies (cddr code))
-    (define bodies-c (sexy-seq-subcontractor bodies))
     (frag
-        (cont (make-sexy-proc code env formals bodies-c))))
+        (cont (make-sexy-proc code env formals bodies))))
 
 (define (sexy-compile-macro code)
     (define name (cadr code))
     (define formals (caddr code))
     (define bodies (cdddr code))
-    (define bodies-c (sexy-seq-subcontractor bodies))
     (if (holy? name)
         (sexy-error code name " is blessed and holy.  It cannot be redefined.")
         (frag
-            (define thing (make-sexy-proc (cdr code) env formals bodies-c))
+            (define thing (make-sexy-proc (cdr code) env formals bodies))
             (hts! thing 'name name)
             (hts! thing 'type 'macro)
             ((sexy-send-env env 'def!) name thing)
@@ -1282,7 +1298,7 @@ END
                         (sexy-apply
                             (sexy-send stdout 'print)
                             (list v)
-                            (lambda (null) (loop (sexy-environment env)))
+                            (lambda (null) (newline) (loop (sexy-environment env)))
                             top-err))
                     top-err))
             top-err))
