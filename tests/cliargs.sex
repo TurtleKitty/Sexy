@@ -1,0 +1,5 @@
+#!/usr/local/bin/sexy run
+
+(show opt)
+(show rest)
+

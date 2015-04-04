@@ -1,0 +1,22 @@
+
+; Sexy records
+
+(def barerec (record))
+(def simp (record 'x 2 'y 3))
+
+(test 'rec-type (= simp.type 'record))
+(test 'rec-true (= true simp.to-bool))
+(test 'rec-false (= false barerec.to-bool))
+
+(test 'message-send (and? (= simp.x 2) (= simp.y 3)))
+(test 'rec-apply (= 2 (simp 'x)))
+;(test 'rec-view (= '((a : 1)(b : 2)) (simp.view.sort (fn (x y) (< (x 2) (y 2))))))
+
+; primitive messages
+
+(test 'rec-has? (simp.has? 'x))
+;(test 'rec-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
+
+; keys values pairs 
+
+

@@ -8,8 +8,8 @@
 (test 'string-true (= str.to-bool true))
 (test 'string-false (= empty.to-bool false))
 (test 'string-to-symbol (= str.to-symbol 'sexy))
-(test 'string-to-int (= one.to-num 1))
-(test 'string-to-real (= pi.to-num 3.14))
+(test 'string-to-int (= one.to-number 1))
+(test 'string-to-real (= pi.to-number 3.14))
 
 ; join, split, match ?
 

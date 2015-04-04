@@ -9,7 +9,7 @@
 (test 'macro-object
     (seq
         (macro brat (x)
-            (def foo (obj 'a x))
+            (def foo (object 'a x))
             foo.a)
         (= (brat 1) 1)))
 

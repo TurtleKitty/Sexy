@@ -273,10 +273,10 @@
     ;(use "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/pre.sex")
 
 
-(test 'use-as
-    (seq
-        (use "~/dev/sexy/tests/module.sex" as: meow)
-        (= (meow.foreign-fn 3 4) '(foreigner 3 4))))
+;(test 'use-as
+;    (seq
+;        (use "~/dev/sexy/tests/module.sex" as: meow)
+;        (= (meow.foreign-fn 3 4) '(foreigner 3 4))))
 
 
 ; misc

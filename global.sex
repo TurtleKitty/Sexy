@@ -19,6 +19,22 @@
 (fun null? (thing)
     (= thing null))
 
+(fun and (x)
+    (if x
+        (if rest
+            (and.apply rest)
+            true)
+        false))
+
+(fun fooooo () fooooo)
+
+(fun square (x)
+    (if (> x 1000)
+        true
+            (seq
+                (show x)
+                (square (* x x)))))
+
 (macro let (name vars)
     (fun sep (x y xs names vals)
         (if xs.empty?

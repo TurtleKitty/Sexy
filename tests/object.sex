@@ -1,0 +1,59 @@
+
+; Sexy objects
+
+; simple object
+
+(def bareobj (object))
+(def simp (object 'a 1 'b 2))
+
+(test 'obj-type (= simp.type 'object))
+(test 'obj-view (= simp.view 'object))
+(test 'message-send (and? (= simp.a 1) (= simp.b 2)))
+(test 'obj-apply (= 1 (simp 'a)))
+
+(test 'obj-true (= true simp.to-bool))
+(test 'obj-false (= false bareobj.to-bool))
+
+; autoexec
+
+(def otto
+    ((fn ()
+        (def c 3)
+        (object
+            'var (fn () c)
+            'thunky (fn () (set! c (+ c 1)))
+            'thunkle (fn () (* otto.var 10))
+            auto: '(var thunky thunkle)))))
+
+(test 'auto-basic (= otto.var 3))
+(test 'auto-set! (seq otto.thunky (= otto.var 4)))
+(test 'auto-info (= otto.thunkle (* 10 otto.var)))
+
+
+; resend
+
+(def resender
+    (object
+        'd 4
+        resend: (list
+            (list simp 'a 'b)
+            (list otto 'c 'thunkle))))
+
+(test 'resend-basic (= resender.d 4))
+(test 'resend-simple (= resender.a 1))
+(test 'resend-auto (= resender.thunkle (* 10 otto.var)))
+
+
+; default
+
+(def defaulter
+    (object
+        'e 5
+        default: (fn (msg) (send resender msg))))
+
+(test 'default-basic (= defaulter.e 5))
+(test 'default-parent (= defaulter.d 4))
+(test 'default-ancestor (= defaulter.a 1))
+(test 'default-resend (= defaulter.thunkle (* 10 otto.var)))
+
+
