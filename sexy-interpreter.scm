@@ -551,7 +551,7 @@ END
                     (cons ': (map (lambda (k) (list k (sexy-view (htr vars k)))) keys))))
             ((size) (hash-table-size vars))
             ((to-bool)
-                (transbool (> 0 ((hash-table-size vars)))))
+                (transbool (> (hash-table-size vars) 0)))
             ((get)
                 (lambda (k)
                     (if (hte? vars k)
@@ -574,8 +574,11 @@ END
                 (lambda (x)
                     (transbool (hte? vars x))))
             ((apply)
-                (lambda (args)
-                    (sexy-send-record obj (car args) cont err)))
+                (sexy-proc
+                    'primitive-function
+                    'record
+                    (lambda (args opts cont err)
+                        (sexy-send-record obj (car args) cont err))))
             ((keys) (htks vars))
             ((values) (htvs vars))
             ((pairs) (hash-table->alist vars))
@@ -655,8 +658,11 @@ END
                                     (lambda (x) (eq? x item))
                                     obj))))
                     ((apply)
-                        (lambda (args)
-                            (sexy-send-vector obj (car args) cont err))))))
+                        (sexy-proc
+                            'primitive-function
+                            'pair
+                            (lambda (args opts cont err)
+                                (sexy-send-vector obj (car args) cont err)))))))
         ((fold)
             (lambda (init funk)
                 (vector-fold (sexy-apply-wrapper funk) init obj)))
