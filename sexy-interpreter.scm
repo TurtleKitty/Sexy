@@ -162,7 +162,7 @@ END
     identity)
 
 (define (sexy-view obj)
-    (sexy-send obj 'view top-cont top-err))
+    (sexy-send-atomic obj 'view))
 
 (define (bool-fixer op)
     (lambda args
@@ -264,7 +264,7 @@ END
         (cons (reverse args) opts))
     (if (pair? xs)
         (let* ((options (sexy-record))
-               (setopt! (sexy-send-record options 'set! top-cont top-err)))
+               (setopt! (sexy-send-atomic options 'set!)))
             (let loop ((head (car xs)) (tail (cdr xs)) (args '()))
                 (if (keyword? head)
                     (let ((k (string->symbol (keyword->string head))) (v (car tail)))
@@ -378,6 +378,9 @@ END
         ((eof-object? obj) (newline) (newline) (exit))
         (else (wtf))))
 
+(define (sexy-send-atomic obj msg)
+    (sexy-send obj msg top-cont top-err))
+
 (define (sexy-send-symbol obj msg cont err)
     (case msg
         ((to-string) (cont (symbol->string obj)))
@@ -464,6 +467,13 @@ END
                     ((size) 0))))
         (else (sexy-send-pair obj msg cont err))))
 
+(define (sexy-ho code obj cont err)
+    (sexy-apply
+        (sexy-compile-method code)
+        (list obj)
+        cont
+        err))
+
 (define (sexy-send-pair obj msg cont err)
     (case msg
         ((type empty? view to-bool to-vector head key car tail val cdr size reverse has? append apply)
@@ -490,29 +500,41 @@ END
                             (lambda (args opts cont err)
                                 (sexy-send-pair obj (car args) cont err)))))))
         ((fold)
-            (sexy-compile-method
-                `(fn (acc funk)
-                    (def xs (quote ,obj))
-                    (if xs.empty?
-                        acc
-                        (xs.tail.fold (funk acc xs.head) funk)))))
+            (sexy-ho
+                '(fn (xs)
+                    (fn (acc funk)
+                        (if xs.empty?
+                            acc
+                            (xs.tail.fold (funk acc xs.head) funk))))
+                obj
+                cont
+                err))
         ((reduce)
-            (sexy-compile-method
-                `(fn (acc funk)
-                    (def xs (quote ,obj))
-                    (if xs.empty?
-                        acc
-                        (funk xs.head (xs.tail.reduce acc funk))))))
+            (sexy-ho
+                '(fn (xs)
+                    (fn (acc funk)
+                        (if xs.empty?
+                            acc
+                            (funk xs.head (xs.tail.reduce acc funk)))))
+                obj
+                cont
+                err))
         ((map)
-            (sexy-compile-method
-                `(fn (funk)
-                    (def xs (quote ,obj))
-                    (xs.reduce '() (fn (x y) (pair (funk x) y))))))
+            (sexy-ho
+                '(fn (xs)
+                    (fn (funk)
+                        (xs.reduce '() (fn (x y) (pair (funk x) y)))))
+                obj
+                cont
+                err))
         ((filter)
-            (sexy-compile-method
-                `(fn (funk)
-                    (def xs (quote ,obj))
-                    (xs.reduce '() (fn (x y) (if (funk x) (cons x y) y))))))
+            (sexy-ho
+                '(fn (xs)
+                    (fn (funk)
+                        (xs.reduce '() (fn (x y) (if (funk x) (pair x y) y)))))
+                obj
+                cont
+                err))
         ((sort)
             (lambda (funk)
                 (sort
@@ -561,7 +583,7 @@ END
                 (lambda args
                     (define noob (sexy-record))
                     (hts! noob 'vars (hash-table-copy vars))
-                    (apply (sexy-send-record noob 'set! top-cont top-err) args)
+                    (apply (sexy-send-atomic noob 'set!) args)
                     noob))
             ((set!)
                 (lambda args
@@ -721,7 +743,7 @@ END
         (else (idk msg obj cont err))))
 
 (define (sexy-bool obj)
-    (sexy-send obj 'to-bool top-cont top-err))
+    (sexy-send-atomic obj 'to-bool))
 
     
 ; macro expansion
@@ -783,7 +805,7 @@ END
     (define opts (cdr arg-pair))
     (define uri (car args))
     (define as
-        (let ((it (sexy-send opts 'as top-cont top-err)))
+        (let ((it (sexy-send-atomic opts 'as)))
             (if (unbool it)
                 it
                 #f)))
@@ -827,7 +849,7 @@ END
     (cond
         ((procedure? obj)
             (handle-exceptions exn
-                (err exn top-cont)
+                (err exn (lambda (ys) (cont (apply obj ys))))
                 (cont (apply obj xs))))
         ((hash-table? obj)
             (let ((type (htr obj 'type)))
@@ -923,16 +945,21 @@ END
         (if (holy? name)
             (blasphemy code name)
             (frag
-                (if (and
-                        (eq? 'true ((sexy-send-env env 'has? top-cont top-err) name))
-                        (not (eq? will-exist ((sexy-send-env env 'get top-cont top-err) name))))
-                    (sexy-error code name " is already defined in the local environment.")
-                    (begin
-                        (let ((val-c (sexy-compile val)))
-                            (val-c
-                                env
-                                (lambda (v) (mutate! env name v) (cont v))
-                                err))))))))
+                (sexy-send-env env 'has?
+                    (lambda (haz?)
+                        (sexy-send-env env 'get
+                            (lambda (getter)
+                                (if (and
+                                        (eq? 'true (haz? name))
+                                        (not (eq? will-exist (getter name))))
+                                    (sexy-error code name " is already defined in the local environment.")
+                                    (let ((val-c (sexy-compile val)))
+                                        (val-c
+                                            env
+                                            (lambda (v) (mutate! env name v) (cont v))
+                                            err))))
+                            err))
+                    err)))))
 
 (define (sexy-compile-set! code)
     (define name (cadr code))
@@ -943,14 +970,17 @@ END
             (blasphemy code name)
             (frag
                 (let loop ((this-env env))
-                    (if (eq? 'true ((sexy-send-env this-env 'has? top-cont top-err) name))
-                        (val-c
-                            env
-                            (lambda (v) (mutate! this-env name v) (cont v))
-                            err)
-                        (if (hte? this-env 'mama)
-                            (loop (htr this-env 'mama))
-                            (sexy-error code "Symbol not defined: " name))))))
+                    (sexy-send-env this-env 'has?
+                        (lambda (haz?)
+                            (if (eq? 'true (haz? name))
+                                (val-c
+                                    env
+                                    (lambda (v) (mutate! this-env name v) (cont v))
+                                    err)
+                                (if (hte? this-env 'mama)
+                                    (loop (htr this-env 'mama))
+                                    (err (list 'symbol-not-defined name) cont))))
+                        err))))
         (sexy-error code "set! wants a symbol as its first argument!")))
 
 (define (sexy-compile-quote code)
@@ -1024,8 +1054,11 @@ END
             (define thing (make-sexy-proc (cdr code) env formals bodies))
             (hts! thing 'name name)
             (hts! thing 'type 'macro)
-            ((sexy-send-env env 'set! top-cont top-err) name thing)
-            (cont thing))))
+            (sexy-send-env env 'set!
+                (lambda (setter!)
+                    (setter! name thing)
+                    (cont thing))
+                err))))
 
 (define (sexy-compile-wall code)
     (define args (cadr code))
@@ -1034,13 +1067,17 @@ END
     ; create new env and copy args
     (frag
         (define noob (sexy-environment #f))
-        (define setter! (sexy-send noob 'set! top-cont top-err))
-        (define looker (sexy-send env 'lookup top-cont top-err))
-        (map
-            (lambda (x)
-                (setter! x (looker x)))
-            args)
-            (expr-c noob cont err)))
+        (sexy-send noob 'set!
+            (lambda (setter!)
+                (sexy-send env 'lookup
+                    (lambda (looker)
+                        (map
+                            (lambda (x)
+                                (setter! x (looker x)))
+                            args)
+                        (expr-c noob cont err))
+                    err))
+            err)))
 
 (define (sexy-compile-gate code)
     (define expr (cadr code))
@@ -1156,7 +1193,7 @@ END
             opts))
     (if (pair? xs)
         (let* ((options (sexy-record))
-               (setopt! (sexy-send-record options 'set! top-cont top-err)))
+               (setopt! (sexy-send-atomic options 'set!)))
             (let loop ((head (car xs)) (tail (cdr xs)) (args '()))
                 (if (eq? (string-ref head 0) #\-)
                     (let ((k (string->symbol (irregex-replace/all "^-+" head ""))) (v (car tail)))
@@ -1185,7 +1222,7 @@ END
 (define (global-env)
     (define (make-new)
         (define prelude (local-env))
-        (define preset!(sexy-send-env prelude 'set! top-cont top-err))
+        (define preset! (sexy-send-atomic prelude 'set!))
         (define (fill-prelude fs)
             (define (setem! p)
                 (preset! (car p) (cdr p)))
@@ -1227,9 +1264,9 @@ END
                         'primitive-function
                         'global
                         (lambda (args opts cont err)
-                            (define autos (sexy-send opts 'auto top-cont top-err))
-                            (define rsend (sexy-send opts 'resend top-cont top-err))
-                            (define default (sexy-send opts 'default top-cont top-err))
+                            (define autos (sexy-send-atomic opts 'auto))
+                            (define rsend (sexy-send-atomic opts 'resend))
+                            (define default (sexy-send-atomic opts 'default))
                             (if (eq? autos 'null) (set! autos #f) #f)
                             (if (eq? rsend 'null) (set! rsend #f) #f)
                             (if (eq? default 'null) (set! default #f) #f)
@@ -1299,16 +1336,16 @@ END
     'null)
 
 (define (sexy-global? x)
-    (define got-it ((sexy-send-env genv 'has? top-cont top-err) x))
+    (define got-it ((sexy-send-atomic genv 'has?) x))
     (if (eq? 'true got-it)
         (not (eq? will-exist (glookup x)))
         #f))
 
 (define (lookup env x)
-    (define got-it ((sexy-send-env env 'has? top-cont top-err) x))
+    (define got-it ((sexy-send-atomic env 'has?) x))
     (if (eq? got-it 'true)
-        ((sexy-send-env env 'get top-cont top-err) x)
-        (let ((mom (sexy-send-env env 'mama top-cont top-err)))
+        ((sexy-send-atomic env 'get) x)
+        (let ((mom (sexy-send-atomic env 'mama)))
             (if (and mom (not (eq? mom 'null)))
                 (lookup mom x)
                 not-found))))
@@ -1321,7 +1358,7 @@ END
     noob)
 
 (define (mutate! env . args)
-    (apply (sexy-send-env env 'set! top-cont top-err) args))
+    (apply (sexy-send-atomic env 'set!) args))
 
 (define (glookup x)
     (lookup genv x))
