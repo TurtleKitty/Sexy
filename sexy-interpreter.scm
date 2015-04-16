@@ -129,7 +129,7 @@ END
 (define htd! hash-table-delete!)
 
 (define (nop v) 'null)
-
+(define (empty? xs) (eq? xs '()))
 (define not-found 'this-sexy-name-was-not-found)
 (define will-exist 'this-sexy-name-is-about-to-be-defined)
 
@@ -654,10 +654,43 @@ END
 
 (define (sexy-send-env obj msg cont err)
     (case msg
-        ((get put has? set! del! view to-bool pairs)
+        ((get has? del! view to-bool pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
-        ((lookup) (cont (lambda (k) (lookup obj k))))
-        ((extend) (cont (lambda (names vals) (extend obj names vals))))
+        ((def!)
+            (sexy-send-record (htr obj 'vars) 'set! cont err))
+        ((set!)
+            (cont
+                (sexy-proc
+                    'primitive-function
+                    'env
+                    (lambda (args opts cont err)
+                        (if (not (eq? (length args) 2))
+                            (err (list "set! requires 2 arguments!" args) cont)
+                            (let ((name (car args)) (val (cadr args)))
+                                (update!
+                                    obj
+                                    name
+                                    val
+                                    (lambda (v) (cont v))
+                                    err)))))))
+        ((put (niy)))
+        ((lookup)
+            (cont
+                (sexy-proc
+                    'primitive-function
+                    'env
+                    (lambda (args opts cont err)
+                        (lookup obj (car args) cont err)))))
+        ((extend)
+            (cont
+                (sexy-proc
+                    'primitive-function
+                    'env
+                    (lambda (args opts cont err)
+                        (let loop ((names '()) (vals '()) (left args))
+                            (if (empty? left)
+                                (extend obj names vals cont err)
+                                (loop (cons (car left) names) (cons (cadr left) vals) (cddr args))))))))
         ((mama) (cont (htr obj 'mama)))
         ((eval)
             (cont
@@ -759,7 +792,7 @@ END
     (define (look-it-up x)
         (if (sexy-global? x)
             (glookup x)
-            (lookup env x)))
+            (lookup env x top-cont top-err)))
     (define (sexy-macro? name)
         (define gmac (glookup name))
         (define obj
@@ -792,7 +825,7 @@ END
                 ((seq)
                     (begin
                         (let ((expanded (map expand code)))
-                            (prep-defs (cdr expanded) env)
+                            (prep-defs (cdr expanded) env top-cont top-err)
                             expanded)))
                 ((quote) code)
                 ((macro)
@@ -868,20 +901,22 @@ END
     (lambda xs
         (sexy-apply obj xs top-cont top-err)))
 
-(define (prep-defs seq env)
+(define (prep-defs seq env cont err)
     ; predefine all defs for mutual recursion
-    (define (set-ready! name)
-        (mutate! env name will-exist))
-    (define (get-defs seq)
-        (filter
-            (lambda (x)
-                (and (pair? x)
-                     (or
-                        (eq? (car x) 'macro)
-                        (eq? (car x) 'fun)
-                        (eq? (car x) 'def))))
-            seq))
-    (map set-ready! (map cadr (get-defs seq))))
+    (define (get-names seq)
+        (map
+            cadr
+            (filter
+                (lambda (x)
+                    (and (pair? x)
+                         (or
+                            (eq? (car x) 'macro)
+                            (eq? (car x) 'fun)
+                            (eq? (car x) 'def))))
+                seq)))
+    (define names (get-names seq))
+    (define margs (flatten (zip names (make-list (length names) will-exist))))
+    (apply mutate! (cons env (cons cont (cons err margs)))))
 
 (define-syntax frag
     (ir-macro-transformer
@@ -936,10 +971,14 @@ END
                         (frag
                             (cont (glookup code)))
                         (frag
-                            (let ((looked-up (lookup env code)))
-                                (if (eq? not-found looked-up)
-                                    (err (cons 'undefined_symbol code) cont)
-                                    (cont looked-up))))))))
+                            (lookup
+                                env
+                                code
+                                (lambda (v)
+                                    (if (eq? not-found v)
+                                        (err (cons 'undefined_symbol code) cont)
+                                        (cont v)))
+                                err))))))
         pass))
 
 (define (sexy-compile-def code)
@@ -961,7 +1000,14 @@ END
                                     (let ((val-c (sexy-compile val)))
                                         (val-c
                                             env
-                                            (lambda (v) (mutate! env name v) (cont v))
+                                            (lambda (v)
+                                                (mutate!
+                                                    env
+                                                    (lambda (null)
+                                                        (cont v))
+                                                    err
+                                                    name
+                                                    v))
                                             err))))
                             err))
                     err)))))
@@ -974,18 +1020,24 @@ END
         (if (holy? name)
             (blasphemy code name)
             (frag
-                (let loop ((this-env env))
-                    (sexy-send-env this-env 'has?
-                        (lambda (haz?)
-                            (if (eq? 'true (haz? name))
-                                (val-c
-                                    env
-                                    (lambda (v) (mutate! this-env name v) (cont v))
-                                    err)
-                                (if (hte? this-env 'mama)
-                                    (loop (htr this-env 'mama))
-                                    (err (list 'symbol-not-defined name) cont))))
-                        err))))
+                (lookup
+                    env
+                    name
+                    (lambda (v)
+                        (if (eq? v not-found)
+                            (err (list 'symbol-not-defined name) cont)
+                            (val-c
+                                env
+                                (lambda (v)
+                                    (update!
+                                        env
+                                        name
+                                        v
+                                        (lambda (null)
+                                            (cont v))
+                                        err))
+                                err)))
+                    err)))
         (sexy-error code "set! wants a symbol as its first argument!")))
 
 (define (sexy-compile-quote code)
@@ -1008,26 +1060,36 @@ END
 (define (sexy-compile-seq code)
     (define seq (cdr code))
     (if (pair? seq)
-        (sexy-seq-subcontractor seq)
+        (sexy-seq-subcontractor seq #t)
         (sexy-error code "Empty sequences are forbidden!")))
 
-(define (sexy-seq-subcontractor xs)
+(define (sexy-seq-subcontractor xs prep?)
     (define head (car xs))
     (define tail (cdr xs))
     (let ((head-c (sexy-compile head)))
         (if (pair? tail)
-            (let ((tail-c (sexy-seq-subcontractor tail)))
-                (frag
-                    (prep-defs xs env)
-                    (head-c
-                        env
-                        (lambda (h) (tail-c env cont err))
-                        err)))
+            (let ((tail-c (sexy-seq-subcontractor tail #f)))
+                (if prep?
+                    (frag
+                        (prep-defs
+                            xs
+                            env
+                            (lambda (null)
+                                (head-c
+                                    env
+                                    (lambda (h) (tail-c env cont err))
+                                    err))
+                            err))
+                    (frag
+                        (head-c
+                            env
+                            (lambda (h) (tail-c env cont err))
+                            err))))
             head-c)))
 
 (define (make-sexy-proc code env formals bodies)
     (define arity (length formals))
-    (define bodies-c (sexy-seq-subcontractor bodies))
+    (define bodies-c (sexy-seq-subcontractor bodies #t))
     (sexy-proc
         code
         env 
@@ -1036,12 +1098,14 @@ END
                 (sexy-error code (sprintf "Procedure requires ~A arguments!" arity))
                 (let* ((fargs (if (pair? args) (take args arity) '()))
                        (the-rest (if (pair? args) (drop args arity) '()))
-                       (returner (lambda (v) (cont v)))
-                       (noob
-                           (extend env 
-                                (append formals '(opt rest return))
-                                (append fargs (list opts the-rest returner)))))
-                    (bodies-c noob cont err))))))
+                       (returner (lambda (v) (cont v))))
+                       (extend
+                            env 
+                            (append formals '(opt rest return))
+                            (append fargs (list opts the-rest returner))
+                            (lambda (noob)
+                                (bodies-c noob cont err))
+                            err))))))
 
 (define (sexy-compile-fn code)
     (define formals (cadr code))
@@ -1059,26 +1123,26 @@ END
             (define thing (make-sexy-proc (cdr code) env formals bodies))
             (hts! thing 'name name)
             (hts! thing 'type 'macro)
-            (sexy-send-env env 'set!
-                (lambda (setter!)
-                    (setter! name thing)
+            (sexy-send-env env 'def!
+                (lambda (def!)
+                    (def! name thing)
                     (cont thing))
                 err))))
 
 (define (sexy-compile-wall code)
     (define args (cadr code))
     (define exprs (cddr code))
-    (define expr-c (sexy-seq-subcontractor exprs))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
     ; create new env and copy args
     (frag
         (define noob (sexy-environment #f))
-        (sexy-send noob 'set!
-            (lambda (setter!)
+        (sexy-send noob 'def!
+            (lambda (def!)
                 (sexy-send env 'lookup
                     (lambda (looker)
                         (map
                             (lambda (x)
-                                (setter! x (looker x)))
+                                (def! x (looker x)))
                             args)
                         (expr-c noob cont err))
                     err))
@@ -1185,6 +1249,8 @@ END
     program)
 
 (define genv #f)
+(define g-has? #f)
+(define g-get  #f)
 
 (define (local-env)
     (sexy-environment #f))
@@ -1222,12 +1288,14 @@ END
             (car global-arg-pair)
             (current-input-port)
             (current-output-port)
-            (current-error-port))))
+            (current-error-port))
+        top-cont
+        top-err))
 
 (define (global-env)
     (define (make-new)
         (define prelude (local-env))
-        (define preset! (sexy-send-atomic prelude 'set!))
+        (define preset! (sexy-send-atomic prelude 'def!))
         (define (fill-prelude fs)
             (define (setem! p)
                 (preset! (car p) (cdr p)))
@@ -1326,13 +1394,15 @@ END
         genv
         (let ((noob (make-new)))
             (set! genv noob)
+            (set! g-has? (sexy-send-env noob 'has? top-cont top-err))
+            (set! g-get (sexy-send-env noob 'get top-cont top-err))
             noob)))
 
 (define prelude-file "./global.sex")
 
 (define (add-global-prelude)
     (define expanded-code (read-expand-cache-prog prelude-file))
-    (define prelude-c (sexy-seq-subcontractor expanded-code))
+    (define prelude-c (sexy-seq-subcontractor expanded-code #t))
     (define full
         (prelude-c
                 genv
@@ -1341,36 +1411,85 @@ END
     'null)
 
 (define (sexy-global? x)
-    (define got-it ((sexy-send-atomic genv 'has?) x))
-    (if (eq? 'true got-it)
-        (not (eq? will-exist (glookup x)))
-        #f))
+    (not (eq? not-found (glookup x))))
 
-(define (lookup env x)
-    (define got-it ((sexy-send-atomic env 'has?) x))
-    (if (eq? got-it 'true)
-        ((sexy-send-atomic env 'get) x)
-        (let ((mom (sexy-send-atomic env 'mama)))
-            (if (and mom (not (eq? mom 'null)))
-                (lookup mom x)
-                not-found))))
+(define (lookup env x cont err)
+    (sexy-send-env
+        env
+        'has?
+        (lambda (has?)
+            (if (eq? 'true (has? x))
+                (sexy-send-env
+                    env
+                    'get
+                    (lambda (getter)
+                        (cont (getter x)))
+                    err)
+                (sexy-send-env
+                    env
+                    'mama
+                    (lambda (mom)
+                        (if (and mom (not (eq? mom 'null)))
+                            (lookup mom x cont err)
+                            (cont not-found)))
+                    err)))
+        err))
 
-(define (extend env names vals)
+(define (extend env names vals cont err)
     (define noob (sexy-environment env))
-    (define (wreck! kv)
-        (mutate! noob (car kv) (cadr kv)))
-    (map wreck! (zip names vals))
-    noob)
+    (define args
+        (let loop ((ns names) (vs vals) (yargs '()))
+            (if (empty? ns)
+                yargs
+                (loop (cdr ns) (cdr vs) (cons (car ns) (cons (car vs) yargs))))))
+    (define params
+        (append
+            (list
+                noob
+                (lambda (null) (cont noob))
+                err)
+            args))
+    (apply mutate! params))
 
-(define (mutate! env . args)
-    (apply (sexy-send-atomic env 'set!) args))
+(define (mutate! env cont err . args)
+    (sexy-send-env
+        env
+        'def!
+        (lambda (def!)
+            (apply def! args)
+            (cont 'null))
+        err))
+
+(define (update! env k v cont err)
+    (sexy-send-env
+        env
+        'has?
+        (lambda (has?)
+            (if (eq? 'true (has? k))
+                (sexy-send-env
+                    env
+                    'def!
+                    (lambda (def!)
+                        (cont (def! k v)))
+                    err)
+                (sexy-send-env
+                    env
+                    'mama
+                    (lambda (mom)
+                        (if (and mom (not (eq? mom 'null)))
+                            (update! mom k v cont err)
+                            (cont not-found)))
+                    err)))
+        err))
 
 (define (glookup x)
-    (lookup genv x))
+    (if (eq? 'true (g-has? x))
+        (g-get x)
+        not-found))
 
 (define (sexy-run program)
     (if (pair? program)
-        ((sexy-seq-subcontractor program)
+        ((sexy-seq-subcontractor program #t)
             (cli-env)
             (lambda (v) (exit))
             top-err)
