@@ -290,7 +290,7 @@
 
 (test 'tco
     (seq
-        (def count 120000)
+        (def count 12000)
         (def upto
             (fn (max)
                 (def helper

@@ -14,10 +14,10 @@
 (use openssl)
 (use http-client)
 
-(declare
-    (block)
-    (inline)
-    (local))
+;(declare
+;    (block)
+;    (inline)
+;    (local))
 
 
 ; start
@@ -583,15 +583,21 @@ END
                 (lambda args
                     (define noob (sexy-record))
                     (hts! noob 'vars (hash-table-copy vars))
-                    (apply (sexy-send-atomic noob 'set!) args)
-                    noob))
+                    (sexy-send-record
+                        noob
+                        'set!
+                        (lambda (setter!)
+                            (apply setter! args)
+                            noob)
+                        err)))
             ((set!)
                 (lambda args
                     (for-pairs (lambda (k v) (hts! vars k v)) args)
                     'null))
             ((del!)
-                (lambda args (map (lambda (k) (htd! vars k)) args))
-                'null)
+                (lambda args
+                    (map (lambda (k) (htd! vars k)) args)
+                    'null))
             ((has?)
                 (lambda (x)
                     (transbool (hte? vars x))))
@@ -609,7 +615,6 @@ END
             ((reduce) 'niy)
             ((map) 'niy)
             ((filter) 'niy)
-            ((sort) 'niy)
             (else
                 (if (hte? vars msg)
                     (htr vars msg)

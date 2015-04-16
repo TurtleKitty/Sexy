@@ -4,19 +4,35 @@
 (def barerec (record))
 (def simp (record 'x 2 'y 3))
 
-(test 'rec-type (= simp.type 'record))
-(test 'rec-true (= true simp.to-bool))
-(test 'rec-false (= false barerec.to-bool))
+(test 'record-type (= simp.type 'record))
+(test 'record-true (= true simp.to-bool))
+(test 'record-false (= false barerec.to-bool))
 
 (test 'message-send (and? (= simp.x 2) (= simp.y 3)))
-(test 'rec-apply (= 2 (simp 'x)))
-;(test 'rec-view (= '((a : 1)(b : 2)) (simp.view.sort (fn (x y) (< (x 2) (y 2))))))
+(test 'record-apply (= 2 (simp 'x)))
+;(test 'record-view (= '((a : 1)(b : 2)) (simp.view.sort (fn (x y) (< (x 2) (y 2))))))
 
 ; primitive messages
 
-(test 'rec-has? (simp.has? 'x))
-;(test 'rec-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
+(test 'record-has? (simp.has? 'x))
+(test 'record-get (= 2 (simp.get 'x)))
+(test 'record-put (= 5 (send (simp.put 'z 5) 'z)))
+(test 'record-set! (= 7 (seq
+                            (simp.set! 'z 7)
+                            simp.z)))
+(test 'record-del! (= false (seq
+                               (simp.del! 'z)
+                               (simp.has? 'z))))
 
-; keys values pairs 
+(test 'record-size (= simp.size 2))
 
+; (test 'record-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
+; (test 'record-values true)
+; (test 'record-pairs true)
+; (test 'record-merge true)
+; (test 'record-fold true)
+; (test 'record-reduce true)
+; (test 'record-map true)
+; (test 'record-filter true)
+; (test 'record-sort true)
 
