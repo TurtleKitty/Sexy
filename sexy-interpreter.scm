@@ -378,6 +378,7 @@ END
     (case msg
         ((type) (cont 'bool))
         ((to-bool) (cont obj))
+        ((to-string) (cont (if obj "true" "false")))
         ((view) (cont (if obj 'true 'false)))
         ((not) (cont (not obj)))
         (else (idk obj msg cont err))))
@@ -386,6 +387,7 @@ END
     (cont
         (case msg
             ((to-bool) #f)
+            ((to-string) "null")
             (else 'null))))
 
 (define (sexy-send-number obj msg cont err)
@@ -416,7 +418,7 @@ END
 
 (define (sexy-send-string obj msg cont err)
     (case msg
-        ((type view to-bool to-symbol to-number size)
+        ((type view to-bool to-symbol to-number to-string size)
             (cont
                 (case msg
                     ((type) 'string)
@@ -424,6 +426,7 @@ END
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
                     ((to-number) (string->number obj))
+                    ((to-string) obj)
                     ((size) (string-length obj)))))
         ((join) (cont 'niy))
         ((split) (cont 'niy))
@@ -1129,15 +1132,16 @@ END
         (define noob (sexy-environment #f))
         (sexy-send noob 'def!
             (lambda (def!)
-                (sexy-send env 'lookup
-                    (lambda (looker)
-                        (map
-                            (lambda (x)
-                                (def! x (looker x)))
-                            args)
-                        (expr-c noob cont err))
-                    err))
-            err)))
+                (let loop ((travellers args))
+                    (if (pair? travellers)
+                        (let ((x (car travellers)) (xs (cdr travellers)))
+                            (lookup env x
+                                (lambda (v)
+                                    (def! x v)
+                                    (loop xs))
+                                err))
+                        (expr-c noob cont err))))
+                    err)))
 
 (define (sexy-compile-gate code)
     (define expr (cadr code))

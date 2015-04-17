@@ -254,7 +254,16 @@
                         (+ 2 (error x))))))
         (and (= x 3) (= y 12)))))
                 
-
+(test 'wall
+    ((fn ()
+        (def x 1)
+        (def y 2)
+        (def z 3)
+        (wall (x y)
+            (def got-x (= x 1))
+            (def got-y (= y 2))
+            (def no-z  (not (env.has? 'z)))
+            (and got-x got-y no-z)))))
 
 ; use
 
