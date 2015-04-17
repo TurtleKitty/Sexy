@@ -48,6 +48,7 @@ END
 
 (define top-cont identity)
 (define top-err  (lambda (ex continue) (sexy-error "Uncaught error: " ex)))
+(define repl-err (lambda (ex continue) (sexy-error "Uncaught error: " ex) (continue 'null)))
 
 (define sexy-cache-dir "~/.sexy/compiled")
 
@@ -597,7 +598,13 @@ END
             ((keys) (htks vars))
             ((values) (htvs vars))
             ((pairs) (hash-table->alist vars))
-            ((merge) 'niy)
+            ((merge)
+                (lambda (other)
+                    (define nuvars (hash-table-merge vars (htr other 'vars)))
+                    (define noob (mkht))
+                    (hts! noob 'type 'record)
+                    (hts! noob 'vars nuvars)
+                    noob))
             ((fold) 'niy)
             ((reduce) 'niy)
             ((map) 'niy)
@@ -744,10 +751,10 @@ END
     (sexy-parse (read port)))
 
 (define (sexy-write obj port)
-    (write (sexy-view obj)))
+    (write (sexy-view obj) port))
 
 (define (sexy-print obj port)
-    (display (sexy-view obj)))
+    (display (sexy-view obj) port))
 
 (define (sexy-send-port obj msg cont err)
     (case msg
@@ -1473,28 +1480,32 @@ END
     (define stderr (current-error-port))
     (define (loop env)
         (display "(sexy) ")
-        (sexy-send stdin 'read
-            (lambda (reader)
-                (define expr (reader))
-                (define compiled
-                    (sexy-compile
-                        (sexy-expand expr (sexy-environment env))))
-                (compiled
-                    env
-                    (lambda (v)
-                        (sexy-send stdout 'print
-                            (lambda (printer)
-                                (printer v)
-                                (newline)
-                                (loop (sexy-environment env)))
-                            top-err))
-                    top-err))
-            top-err))
+        (let ((expr (sexy-read stdin))) 
+            (define compiled
+                (sexy-compile
+                    (sexy-expand expr (sexy-environment env))))
+            (compiled
+                env
+                (lambda (v)
+                    (define noob   (local-env))
+                    (define mom    (htr env 'mama))
+                    (define evars  (htr env 'vars))
+                    (define mvars  (htr mom 'vars))
+                    (sexy-send-record mvars 'merge
+                        (lambda (fn)
+                            (define nuvars (fn evars))
+                            (hts! mom  'vars nuvars)
+                            (hts! noob 'mama mom)
+                            (sexy-write v stdout)
+                            (newline)
+                            (loop noob))
+                        repl-err))
+                repl-err)))
     (newline)
     (display "Welcome to the Sexy Read-Eval-Print Loop.  Press Ctrl-D to exit.")
     (newline)
     (newline)
-    (loop (local-env)))
+    (loop (sexy-environment (local-env))))
 
 (start)
 
