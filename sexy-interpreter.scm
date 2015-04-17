@@ -240,7 +240,8 @@ END
         (cons (reverse args) opts))
     (if (pair? xs)
         (let* ((options (sexy-record))
-               (setopt! (sexy-send-atomic options 'set!)))
+               (vars (htr options 'vars))
+               (setopt! (lambda (k v) (hts! vars k v))))
             (let loop ((head (car xs)) (tail (cdr xs)) (args '()))
                 (if (keyword? head)
                     (let ((k (string->symbol (keyword->string head))) (v (car tail)))
@@ -470,7 +471,7 @@ END
                     ((tail val cdr) (cdr obj))
                     ((size) (length obj))
                     ((reverse) (reverse obj))
-                    ((has?)i
+                    ((has?)
                         (lambda (item)
                             (if (member item obj)
                                 #t
