@@ -5,19 +5,19 @@
 (def pi 3.14)
 
 (test 'zero?
-    (and?
+    (and
         zero.zero?
         (not one.zero?)
         (not pi.zero?)))
 
 (test 'null?
-    (not (or?
+    (not (or
         (null? zero)
         (null? one)
         (null? pi))))
 
 (test 'int-type
-    (and?
+    (and
         (= 'int zero.type)
         (= 'int one.type)))
 
@@ -25,7 +25,7 @@
     (= 'real pi.type))
 
 (test 'to-string
-    (and?
+    (and
         (= zero.to-string "0")
         (= one.to-string "1")
         (= pi.to-string "3.14")))
@@ -33,34 +33,34 @@
 (test '= (= one 1))
 
 (test '+
-    (and?
+    (and
         (= 1 (+ zero one))
         (= 3 (+ one two))
         (= 2 (+ 3 -1))))
 
 (test '-
-    (and?
+    (and
         (= 1 (- 1 0))
         (= 0 (- 1 1))
         (= 7 (- 5 -2))))
 
 (test '*
-    (and?
+    (and
         (= 25 (* 5 5))
         (= -4 (* 4 -1))
         (= 4 (* -2 -2))))
 
 (test '/
-    (and?
+    (and
         (= 4 (/ 8 2))
         (= -4 (/ 8 -2))
         (= -4 (/ -8 2))
         (= 4 (/ -8 -2))))
 
 (test '> (> 2 1))
-(test '>= (and? (>= 2 1) (>= 2 2)))
+(test '>= (and (>= 2 1) (>= 2 2)))
 (test '< (< 1 2))
-(test '<= (and? (<= 1 2) (<= 1 1)))
+(test '<= (and (<= 1 2) (<= 1 1)))
 
 (test 'div (= 3 (div 7 2)))
 (test 'rem-pos (= 1 (rem 7 2)))

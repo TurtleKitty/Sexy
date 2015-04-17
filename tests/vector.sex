@@ -2,7 +2,7 @@
 (def empty (vector))
 (def vick (vector 8 6 7 5 3 0 9))
 
-(test 'vector-access (and? (= vick.0 8) (= vick.3 5) (= vick.6 9)))
+(test 'vector-access (and (= vick.0 8) (= vick.3 5) (= vick.6 9)))
 (test 'vector-apply (= (vick 5) 0)) 
 
 (test 'vector-type        (= vick.type 'vector))

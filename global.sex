@@ -26,6 +26,25 @@
             true)
         false))
 
+(fun or (x)
+    (if x
+        true
+        (if rest
+            (or.apply rest)
+            false)))
+
+(fun not (x)
+    x.to-bool.not)
+
+(fun nand ()
+    (not (and.apply rest)))
+
+(fun nor ()
+    (not (or.apply rest)))
+
+(fun xor (x y)
+    (nor (and x y) (nor x y)))
+
 (fun fooooo () fooooo)
 
 (fun square (x)

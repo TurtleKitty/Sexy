@@ -8,7 +8,7 @@
 
 (test 'obj-type (= simp.type 'object))
 (test 'obj-view (= simp.view 'object))
-(test 'message-send (and? (= simp.a 1) (= simp.b 2)))
+(test 'message-send (and (= simp.a 1) (= simp.b 2)))
 (test 'obj-apply (= 1 (simp 'a)))
 
 (test 'obj-true (= true simp.to-bool))

@@ -87,7 +87,7 @@
                         (list x opt.keymaster opt.gatekeeper)
                         (list x opt.keymaster))
                     x)))
-        (and?
+        (and
             (= (zuul 'gozer) 'gozer)
             (= (zuul 'gozer keymaster: 'louis) '(gozer louis))
             (= (zuul 'gozer keymaster: 'louis gatekeeper: 'dana) '(gozer louis dana)))))
@@ -116,7 +116,7 @@
                 (if (= n 0)
                     0
                     (- n (F (M (- n 1)))))))
-        (and? (= (F 19) 12) (= (M 19) 12)))) 
+        (and (= (F 19) 12) (= (M 19) 12)))) 
 
 (test 'fn-lexical-closure
     (seq
@@ -130,14 +130,14 @@
         (def c2 (counter 23))
         (c1 inc: 1)
         (c2 inc: 7)
-        (and? (= (c1) 1)
-              (= (c2) 30)
-              ((fn ()
+        (and (= (c1) 1)
+             (= (c2) 30)
+             ((fn ()
                 (def x 99)
                 (c1 inc: 7)
-                (and? (= x 99)
-                      (= (c1) 8)))))))
-            
+                (and (= x 99)
+                     (= (c1) 8)))))))
+
 
 ; continuations - return, gate, and capture
 
@@ -225,7 +225,7 @@
             (ensure
                 (fn () (set! x 3))
                 (seq (set! x 2) (+ x 3))))
-        (and? (= x 3) (= y 5)))))
+        (and (= x 3) (= y 5)))))
 
 (test 'ensure-no-capture-across
     ((fn ()
@@ -239,7 +239,7 @@
                             (set! x 5)
                             (+ 2
                                 (capture (fn (k) (k (k x))))))))))
-        (and? (= x 3) (= y 90)))))
+        (and (= x 3) (= y 90)))))
 
 (test 'ensure-error
     ((fn ()
@@ -252,7 +252,7 @@
                     (seq
                         (set! x 5)
                         (+ 2 (error x))))))
-        (and? (= x 3) (= y 12)))))
+        (and (= x 3) (= y 12)))))
                 
 
 
@@ -290,7 +290,7 @@
 
 (test 'tco
     (seq
-        (def count 12000)
+        (def count 30000)
         (def upto
             (fn (max)
                 (def helper

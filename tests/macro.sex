@@ -23,7 +23,7 @@
                     (list 'list 'x 'y body))))
         (mac-on-mac boo 3)
         (mac-on-mac blorg 'meow)
-        (and?
+        (and
             (= (boo 1 2) '(1 2 3))
             (= (blorg 4 5) '(4 5 meow)))))
 

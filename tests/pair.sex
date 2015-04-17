@@ -2,7 +2,7 @@
 (def empty '())
 (def ys (list 8 6 7 5 3 0 9))
 
-(test 'pair-access (and? (= ys.0 8) (= ys.3 5) (= ys.6 9)))
+(test 'pair-access (and (= ys.0 8) (= ys.3 5) (= ys.6 9)))
 (test 'pair-apply (= (ys 5) 0))
 
 (test 'pair-type        (= ys.type 'pair))

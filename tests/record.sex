@@ -8,7 +8,7 @@
 (test 'record-true (= true simp.to-bool))
 (test 'record-false (= false barerec.to-bool))
 
-(test 'message-send (and? (= simp.x 2) (= simp.y 3)))
+(test 'message-send (and (= simp.x 2) (= simp.y 3)))
 (test 'record-apply (= 2 (simp 'x)))
 ;(test 'record-view (= '((a : 1)(b : 2)) (simp.view.sort (fn (x y) (< (x 2) (y 2))))))
 

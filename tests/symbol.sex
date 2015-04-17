@@ -8,6 +8,6 @@
     (= x.to-string "foo"))
 
 (test 'symbol-etc
-    (and?
+    (and
         (= x.type 'symbol)
         (= x.to-bool true))) 
