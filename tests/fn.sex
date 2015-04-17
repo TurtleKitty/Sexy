@@ -1,14 +1,14 @@
 
 ; primitives
 
-(test 'primitive-type (= pair.type 'fn))
-(test 'primitive-view (= pair.view 'primitive-function))
-(test 'primitive-code (= pair.code 'primitive-function))
-(test 'primitive-true (= pair.to-bool true))
-(test 'primitive-env (= pair.env 'global))
-(test 'primitive-arity (= pair.arity 2))
-(test 'primitive-variadic (= +.arity '*))
-(test 'primitive-apply (= (+.apply '(1 2 3)) 6))
+(sys.test 'primitive-type (= pair.type 'fn))
+(sys.test 'primitive-view (= pair.view 'primitive-function))
+(sys.test 'primitive-code (= pair.code 'primitive-function))
+(sys.test 'primitive-true (= pair.to-bool true))
+(sys.test 'primitive-env (= pair.env 'global))
+(sys.test 'primitive-arity (= pair.arity 2))
+(sys.test 'primitive-variadic (= +.arity '*))
+(sys.test 'primitive-apply (= (+.apply '(1 2 3)) 6))
 
 
 ; sexy functions
@@ -17,11 +17,11 @@
     (fn (x y)
         (+ x y)))
 
-(test 'sexy-fn-type (= foo.type 'fn))
-(test 'sexy-fn-view (= foo.view '(fn (x y) (+ x y))))
-(test 'sexy-fn-code (= foo.code '(fn (x y) (+ x y))))
-(test 'sexy-fn-true (= foo.to-bool true))
-(test 'sexy-fn-env (is? foo.env env))
-(test 'sexy-fn-arity (= foo.arity 2))
-(test 'sexy-fn-apply (= (foo.apply '(1 2)) 3))
+(sys.test 'sexy-fn-type (= foo.type 'fn))
+(sys.test 'sexy-fn-view (= foo.view '(fn (x y) (+ x y))))
+(sys.test 'sexy-fn-code (= foo.code '(fn (x y) (+ x y))))
+(sys.test 'sexy-fn-true (= foo.to-bool true))
+(sys.test 'sexy-fn-env (is? foo.env env))
+(sys.test 'sexy-fn-arity (= foo.arity 2))
+(sys.test 'sexy-fn-apply (= (foo.apply '(1 2)) 3))
 

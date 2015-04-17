@@ -4,12 +4,12 @@
 (def one "1")
 (def pi "3.14")
 
-(test 'string-type (= str.type 'string))
-(test 'string-true (= str.to-bool true))
-(test 'string-false (= empty.to-bool false))
-(test 'string-to-symbol (= str.to-symbol 'sexy))
-(test 'string-to-int (= one.to-number 1))
-(test 'string-to-real (= pi.to-number 3.14))
+(sys.test 'string-type (= str.type 'string))
+(sys.test 'string-true (= str.to-bool true))
+(sys.test 'string-false (= empty.to-bool false))
+(sys.test 'string-to-symbol (= str.to-symbol 'sexy))
+(sys.test 'string-to-int (= one.to-number 1))
+(sys.test 'string-to-real (= pi.to-number 3.14))
 
 ; join, split, match ?
 

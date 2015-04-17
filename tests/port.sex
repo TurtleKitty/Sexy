@@ -1,5 +1,4 @@
 
-(test 'port-type (= stdout.type 'port))
-(test 'port-true (= stdout.to-bool true))
-(test 'port-view true)
+(sys.test 'port-type (= sys.stdout.type 'port))
+(sys.test 'port-true (= sys.stdout.to-bool true))
 

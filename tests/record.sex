@@ -4,35 +4,35 @@
 (def barerec (record))
 (def simp (record 'x 2 'y 3))
 
-(test 'record-type (= simp.type 'record))
-(test 'record-true (= true simp.to-bool))
-(test 'record-false (= false barerec.to-bool))
+(sys.test 'record-type (= simp.type 'record))
+(sys.test 'record-true (= true simp.to-bool))
+(sys.test 'record-false (= false barerec.to-bool))
 
-(test 'message-send (and (= simp.x 2) (= simp.y 3)))
-(test 'record-apply (= 2 (simp 'x)))
-;(test 'record-view (= '((a : 1)(b : 2)) (simp.view.sort (fn (x y) (< (x 2) (y 2))))))
+(sys.test 'message-send (and (= simp.x 2) (= simp.y 3)))
+(sys.test 'record-apply (= 2 (simp 'x)))
+;(sys.test 'record-view (= '((a : 1)(b : 2)) (simp.view.sort (fn (x y) (< (x 2) (y 2))))))
 
 ; primitive messages
 
-(test 'record-has? (simp.has? 'x))
-(test 'record-get (= 2 (simp.get 'x)))
-(test 'record-put (= 5 (send (simp.put 'z 5) 'z)))
-(test 'record-set! (= 7 (seq
+(sys.test 'record-has? (simp.has? 'x))
+(sys.test 'record-get (= 2 (simp.get 'x)))
+(sys.test 'record-put (= 5 (send (simp.put 'z 5) 'z)))
+(sys.test 'record-set! (= 7 (seq
                             (simp.set! 'z 7)
                             simp.z)))
-(test 'record-del! (= false (seq
+(sys.test 'record-del! (= false (seq
                                (simp.del! 'z)
                                (simp.has? 'z))))
 
-(test 'record-size (= simp.size 2))
+(sys.test 'record-size (= simp.size 2))
 
-; (test 'record-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
-; (test 'record-values true)
-; (test 'record-pairs true)
-; (test 'record-merge true)
-; (test 'record-fold true)
-; (test 'record-reduce true)
-; (test 'record-map true)
-; (test 'record-filter true)
-; (test 'record-sort true)
+; (sys.test 'record-keys (= (simp.keys.sort (fn (x y) fuck)) '(a b c)))
+; (sys.test 'record-values true)
+; (sys.test 'record-pairs true)
+; (sys.test 'record-merge true)
+; (sys.test 'record-fold true)
+; (sys.test 'record-reduce true)
+; (sys.test 'record-map true)
+; (sys.test 'record-filter true)
+; (sys.test 'record-sort true)
 

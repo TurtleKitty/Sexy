@@ -1,13 +1,13 @@
 
 (def x 'foo)
 
-(test 'symbol-view
+(sys.test 'symbol-view
     (= x.view 'foo))
 
-(test 'symbol-to-string
+(sys.test 'symbol-to-string
     (= x.to-string "foo"))
 
-(test 'symbol-etc
+(sys.test 'symbol-etc
     (and
         (= x.type 'symbol)
         (= x.to-bool true))) 

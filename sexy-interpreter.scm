@@ -129,8 +129,6 @@ END
 (define hts! hash-table-set!)
 (define htd! hash-table-delete!)
 
-(define (nop v) 'null)
-(define (empty? xs) (eq? xs '()))
 (define not-found 'this-sexy-name-was-not-found)
 (define will-exist 'this-sexy-name-is-about-to-be-defined)
 
@@ -682,7 +680,7 @@ END
                     'env
                     (lambda (args opts cont err)
                         (let loop ((names '()) (vals '()) (left args))
-                            (if (empty? left)
+                            (if (eq? '() left)
                                 (extend obj names vals cont err)
                                 (loop (cons (car left) names) (cons (cadr left) vals) (cddr args))))))))
         ((mama) (cont (htr obj 'mama)))
@@ -1283,14 +1281,84 @@ END
 
 (define (cli-env)
     (define lenv (local-env))
+    (define sys
+        (sexy-object
+            (list
+                'stdin   (current-input-port)
+                'stdout  (current-output-port)
+                'stderr  (current-error-port)
+                'file
+                    (sexy-object
+                        (list)
+                        #f #f #f)
+                'socket 'niy
+                'spawn 'niy
+                '64738 'C64-forever!
+                'read
+                    (sexy-proc
+                        'primitive-function
+                        'sys
+                        (lambda (args opts cont err)
+                            (sexy-send sys 'stdin
+                                (lambda (in)
+                                    (cont (sexy-read in)))
+                                err)))
+                'write
+                    (sexy-proc
+                        'primitive-function
+                        'sys
+                        (lambda (args opts cont err)
+                            (sexy-send sys 'stdout
+                                (lambda (out)
+                                    (sexy-write (car args) out)
+                                    (cont 'null))
+                                err)))
+                'print
+                    (sexy-proc
+                        'primitive-function
+                        'sys
+                        (lambda (args opts cont err)
+                            (sexy-send sys 'stdout
+                                (lambda (out)
+                                    (sexy-print (car args) out)
+                                    (cont 'null))
+                                err)))
+                'carp
+                    (sexy-proc
+                        'primitive-function
+                        'sys
+                        (lambda (args opts cont err)
+                            (sexy-send sys 'stderr
+                                (lambda (stderr)
+                                    (sexy-write (car args) stderr)
+                                    (cont 'null))
+                                err)))
+                'show
+                    (sexy-proc
+                        'primitive-function
+                        'sys
+                        (lambda (args opts cont err)
+                            (sexy-send sys 'print
+                                (lambda (printer)
+                                    (sexy-apply printer args
+                                        (lambda (null)
+                                            (newline)
+                                            (cont 'null))
+                                        err))
+                                err)))
+                'test
+                    (lambda (tname ok)
+                        (debug tname (if ok 'ok 'FAIL))
+                        'null))
+            #f
+            #f
+            #f))
     (extend lenv
-        '(opt rest stdin stdout stderr)
+        '(opt rest sys)
         (list
             (cdr global-arg-pair)
             (car global-arg-pair)
-            (current-input-port)
-            (current-output-port)
-            (current-error-port))
+            sys)
         top-cont
         top-err))
 
@@ -1353,18 +1421,9 @@ END
                             (if (< l 2)
                                 (err (list 'arity "Send requires two arguments: an object and a message.") cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
-                (cons 'show
-                    (lambda (x)
-                        (sexy-write x (current-output-port))
-                        (newline)
-                        x))
                 (cons 'gensym
                     (lambda ()
                         (string->symbol (string-append "symbol-" (uuid-v4)))))
-                (cons 'test
-                    (lambda (tname ok)
-                        (debug tname (if ok 'ok 'FAIL))
-                        'null))
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)
@@ -1418,7 +1477,7 @@ END
     (define noob (sexy-environment env))
     (define args
         (let loop ((ns names) (vs vals) (yargs '()))
-            (if (empty? ns)
+            (if (eq? '() ns)
                 yargs
                 (loop (cdr ns) (cdr vs) (cons (car ns) (cons (car vs) yargs))))))
     (define params
@@ -1505,7 +1564,7 @@ END
     (display "Welcome to the Sexy Read-Eval-Print Loop.  Press Ctrl-D to exit.")
     (newline)
     (newline)
-    (loop (sexy-environment (local-env))))
+    (loop (sexy-environment (cli-env))))
 
 (start)
 

@@ -1,19 +1,19 @@
 
 ; macro expansion
 
-(test 'simple-macro
+(sys.test 'simple-macro
     (seq
         (macro foo (x y) (list 'list x y))
         (= (foo 1 2) '(1 2))))
 
-(test 'macro-object
+(sys.test 'macro-object
     (seq
         (macro brat (x)
             (def foo (object 'a x))
             foo.a)
         (= (brat 1) 1)))
 
-(test 'macro-writing-macro
+(sys.test 'macro-writing-macro
     (seq
         (macro mac-on-mac (name body)
             (list 'macro name '(x y)
@@ -27,7 +27,7 @@
             (= (boo 1 2) '(1 2 3))
             (= (blorg 4 5) '(4 5 meow)))))
 
-(test 'macro-with-internal-function
+(sys.test 'macro-with-internal-function
     ((fn ()
         (macro qux (foon ball)
             (fun bar (x y)
@@ -35,7 +35,7 @@
             (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
         (= (qux 2 3) '((-1 6) (1 6))))))
 
-(test 'macro-with-external-function
+(sys.test 'macro-with-external-function
     ((fn ()
         (def bar (fn (x y)
             (list (- x y) (* x y))))
@@ -43,7 +43,7 @@
             (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
         (= (quux 2 3) '((-1 6) (1 6))))))
 
-;(test 'macro-with-internal-macro
+;(sys.test 'macro-with-internal-macro
 ;    ((fn ()
 ;        (macro bob (x y)
 ;            (macro fred (x)

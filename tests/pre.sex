@@ -4,16 +4,16 @@
 (fun mahfun (x y)
     (* x y 10))
 
-(test 'fun
+(sys.test 'fun
     (= 120 (mahfun 3 4)))
 
-(test 'isa?
+(sys.test 'isa?
     (= true (isa? mahfun 'fn)))
 
-(test 'pair?
+(sys.test 'pair?
     (= true (pair? '(1 2))))
 
-(test 'let
+(sys.test 'let
     ((fn ()
         (def foo
             (let loop (n 0)
@@ -22,5 +22,5 @@
                     (loop (+ n 1)))))
         (= foo 10))))
 
-;(test 'cond false)
+;(sys.test 'cond false)
 
