@@ -1364,7 +1364,7 @@ END
                             (sexy-send sys 'print
                                 (lambda (printer)
                                     (sexy-apply printer args
-                                        (lambda (null)
+                                        (lambda (x)
                                             (newline)
                                             (cont 'null))
                                         err))

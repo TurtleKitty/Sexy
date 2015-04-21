@@ -1,5 +1,5 @@
 #!/usr/local/bin/sexy run
 
-(show opt)
-(show rest)
+(sys.show opt)
+(sys.show rest)
 
