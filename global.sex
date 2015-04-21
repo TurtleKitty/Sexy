@@ -56,15 +56,6 @@
 (fun xor (x y)
     (nor (and x y) (nor x y)))
 
-(fun fooooo () fooooo)
-
-(fun square (x)
-    (if (> x 1000)
-        true
-            (seq
-                (show x)
-                (square (* x x)))))
-
 (macro let (name vars)
     (fun sep (x y xs names vals)
         (if xs.empty?
