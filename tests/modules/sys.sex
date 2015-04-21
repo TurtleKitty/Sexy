@@ -1,0 +1,5 @@
+
+(lib (system x y)
+    (system.show (* x y))
+    (fn (z) (system.show (+ x y z))))
+

@@ -15,11 +15,6 @@
 ;(use openssl)
 (use http-client)
 
-;(declare
-;    (block)
-;    (inline)
-;    (local))
-
 
 ; start
 
@@ -51,6 +46,7 @@ END
 (define top-err  (lambda (ex continue) (sexy-error "Uncaught error: " ex) (exit)))
 (define repl-err (lambda (ex continue) (sexy-error "Uncaught error: " ex) (continue 'null)))
 
+(define *cwd* (current-directory))
 (define sexy-mod-dir   "~/.sexy/modules")
 (define sexy-cache-dir "~/.sexy/compiled")
 
@@ -81,7 +77,6 @@ END
     (define fpath (check-file fname))
     (define cpath (get-sexy-cached-path fpath))
     (define is-cached (and (file-exists? cpath) (file-newer? cpath fpath)))
-    (debug fname (htr env 'vars) fpath cpath is-cached)
     (if is-cached
         (read
             (open-input-file cpath))
@@ -166,7 +161,7 @@ END
     (newline)
     (display "ERRORED!!") (newline)
     (display (sexy-view form)) (newline)
-    (display args) (newline)
+    (display (sexy-view args)) (newline)
     (newline)
     identity)
 
@@ -881,7 +876,7 @@ END
                             (read-expand-cache-prog sexy-path (local-env))))
                     (read-expand-cache-prog uri (local-env))))
             (else (sexy-error code "load: Identifier must be a symbol or a string."))))
-    `(wall ()
+    `(wall ,(cddr code)
         (gate
             (guard
                 (fn (exn cont)
@@ -944,7 +939,7 @@ END
                 `(lambda (,(inject 'env) ,(inject 'cont) ,(inject 'err)) ,@body)))))
 
 (define blessed
-    '(def quote if seq set! fn wall gate capture ensure guard error macro env opt rest return))
+    '(def quote if seq set! fn wall gate capture ensure guard error macro env argv opt rest return))
 
 (define (holy? name)
     (or (member name blessed)
@@ -1313,13 +1308,14 @@ END
                 'stdin   (current-input-port)
                 'stdout  (current-output-port)
                 'stderr  (current-error-port)
+                'exit exit
                 'file
                     (sexy-object
                         (list)
                         #f #f #f)
                 'socket 'niy
                 'spawn 'niy
-                '64764 'C64-forever!
+                '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
                 'read
                     (sexy-proc
                         'primitive-function
@@ -1446,11 +1442,12 @@ END
                         (lambda (args opts cont err)
                             (define l (length args))
                             (if (< l 2)
-                                (err (list 'arity "Send requires two arguments: an object and a message.") cont)
+                                (err (list 'arity "send requires two arguments: an object and a message.") cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
                 (cons 'gensym
                     (lambda ()
                         (string->symbol (string-append "symbol-" (uuid-v4)))))
+                (cons 'compile sexy-expand)
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)
