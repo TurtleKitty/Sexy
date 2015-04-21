@@ -7,6 +7,17 @@
             'fn
             (pair vars (pair body rest)))))
 
+(macro lib (vars body)
+    (list 'def 'sexy-library-export-function
+        (pair
+            'fn
+            (pair vars (pair body rest)))))
+
+(macro use (name uri)
+    (list 'def name
+        (pair 'load
+            (pair uri (rest.append opt.to-plist)))))
+
 (fun isa? (thing type)
     (= thing.type type))
 

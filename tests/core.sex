@@ -270,22 +270,26 @@
 
 (sys.test 'use-file
     (seq
-        (use "~/dev/sexy/tests/module.sex")
-        (= (foreign-fn 1 2) '(foreigner 1 2))))
+        (use foreigner "~/dev/sexy/tests/module.sex")
+        (= (foreigner 1 2) '(foreigner 1 2))))
 
 (sys.test 'use-http
     (seq 
-        (use "http://anwu.org/sexylib/fun.sex/1.0")
-        (= (fun-fn 3 4 5) '(fun-object 3 7 20))))
+        (use fun-maker "http://anwu.org/sexylib/fun.sex/1.0")
+        (= (fun-maker 3 4 5) '(fun-object 3 7 20))))
 
 ;(sys.test 'use-https
     ;(use "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/pre.sex")
 
-
-;(sys.test 'use-as
-;    (seq
-;        (use "~/dev/sexy/tests/module.sex" as: meow)
-;        (= (meow.foreign-fn 3 4) '(foreigner 3 4))))
+(sys.test 'use-parameters
+    (seq
+        (use one   "~/dev/sexy/tests/module_param.sex" 1 2)
+        (use two   "~/dev/sexy/tests/module_param.sex" 'a 'b 'c 'd)
+        (use three "~/dev/sexy/tests/module_param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
+        (and
+            (= one   '(1 2 null null ()))
+            (= two   '(a b null null (c d)))
+            (= three '(2 3 "FOO" "BAR" (4 5 6))))))
 
 
 ; misc

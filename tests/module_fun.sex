@@ -1,0 +1,7 @@
+
+(def fun-fn
+    (fn (x y z)
+        (list 'fun-object x (+ x y) (* y z))))
+
+(lib () fun-fn)
+
