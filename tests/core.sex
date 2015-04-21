@@ -303,7 +303,7 @@
 
 (sys.test 'tco
     (seq
-        (def count 30000)
+        (def count 120000)
         (def upto
             (fn (max)
                 (def helper

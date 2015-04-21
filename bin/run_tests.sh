@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for i in tests/*; do
+for i in tests/*.sex; do
     echo $i
     echo
     ./sexy run $i;

@@ -900,9 +900,10 @@ END
               err))
     (cond
         ((procedure? obj)
-            (handle-exceptions exn
-                (err (condition->list exn) (lambda (ys) (cont (apply obj ys))))
-                (cont (apply obj xs))))
+            (cont 
+                (handle-exceptions exn
+                    (err (condition->list exn) (lambda (ys) (cont (apply obj ys))))
+                    (apply obj xs))))
         ((hash-table? obj)
             (let ((type (htr obj 'type)))
                 (if (or (eq? type 'fn) (eq? type 'macro))
