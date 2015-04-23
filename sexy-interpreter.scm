@@ -12,7 +12,7 @@
 (use uuid)
 (use vector-lib)
 
-;(use openssl)
+(use openssl)
 (use http-client)
 
 
@@ -43,26 +43,34 @@ END
     (newline))
 
 (define top-cont identity)
-(define top-err  (lambda (ex continue) (sexy-error "Uncaught error: " ex) (exit)))
-(define repl-err (lambda (ex continue) (sexy-error "Uncaught error: " ex) (continue 'null)))
+(define top-err  (lambda (ex continue) (debug "Uncaught error: " ex) (exit)))
 
 (define *cwd* (current-directory))
 (define sexy-mod-dir   "~/.sexy/modules")
 (define sexy-cache-dir "~/.sexy/compiled")
 
+(define (uri? str)
+    (string-contains str ":"))
 
-(define (check-file f)
-    (if (file-exists? f)
-        (let ((idx0 (string-ref f 0)))
-            (if (or (equal? idx0 #\~) (equal? idx0 #\/))
-                f   ; absolute filename
-                (string-append (current-directory) "/" f)))
+(define (absolute-path? path)
+    (define idx0 (string-ref path 0))
+    (or (equal? idx0 #\~) (equal? idx0 #\/)))
+
+(define (get-uri uri)
+    (define (reader port)
+        (read-string #f port))
+    (handle-exceptions exn
         (begin
-            (debug "File not found!" f)
-            (exit))))
+            (debug "URI not found!" uri)
+            (debug (condition->list exn))
+            not-found)
+            (call-with-input-request
+                uri
+                #f
+                reader)))
 
 (define (get-sexy-path f)
-    (irregex-replace/all "[^a-zA-Z0-9_]" f "_"))
+    (irregex-replace/all "[^a-zA-Z0-9_.]" f "_"))
 
 (define (get-sexy-module-path f)
     (string-append sexy-mod-dir "/" (get-sexy-path f)))
@@ -70,25 +78,56 @@ END
 (define (get-sexy-cached-path f)
     (string-append sexy-cache-dir "/" (get-sexy-path f)))
 
+(define (find-file path)
+    (define (fnf f)
+        (debug "File not found!" f)
+        (exit))
+    (cond
+        ((symbol? path)
+            (niy))
+        ((uri? path)
+            (let ((module-path (get-sexy-module-path path)))
+                (if (file-exists? module-path)
+                    module-path
+                    (let ((prog-text (get-uri path)))
+                        (if (eq? prog-text not-found)
+                            (fnf path)
+                            (let ((mport (open-output-file module-path)))
+                                (display prog-text mport)
+                                (close-output-port mport)
+                                module-path))))))
+        ((file-exists? path)
+            path)
+        (else
+            (fnf path))))
+
 (define (file-newer? f1 f2)
     (> (file-modification-time f1) (file-modification-time f2)))
 
-(define (read-expand-cache-prog fname env)
-    (define fpath (check-file fname))
+(define (read-expand-cache-prog path env)
+    (define abs-path
+        (if (or (uri? path) (absolute-path? path))
+                path
+                (string-append *cwd* "/" path)))
+    (define path-to (irregex-replace "(/.*)/.*$" abs-path 1))
+    (define fpath (find-file abs-path))
     (define cpath (get-sexy-cached-path fpath))
     (define is-cached (and (file-exists? cpath) (file-newer? cpath fpath)))
     (if is-cached
         (read
             (open-input-file cpath))
-        (let ((expanded
-                (sexy-expand
-                    (sexy-read-file
-                        (open-input-file fpath))
-                    env))
-               (fport (open-output-file cpath)))
-            (write expanded fport)
-            (close-output-port fport)
-            expanded)))
+        (let ((old-wd *cwd*))
+            (set! *cwd* path-to)
+            (let ((expanded
+                    (sexy-expand
+                        (sexy-read-file
+                            (open-input-file fpath))
+                        env))
+                   (fport (open-output-file cpath)))
+                (write expanded fport)
+                (close-output-port fport)
+                (set! *cwd* old-wd)
+                expanded))))
 
 (define (start)
     (define args (command-line-arguments))
@@ -114,7 +153,7 @@ END
                 ((compile)
                     (begin
                         (read-expand-cache-prog (fname) (cli-env))
-                        (debug "Wrote compiled file to " (get-sexy-cached-path (check-file (cadr args))))))
+                        (debug "Wrote compiled file to " (get-sexy-cached-path (find-file (cadr args))))))
                 ((expand)
                     (begin
                         (sexy-write
@@ -138,8 +177,7 @@ END
 (define will-exist 'this-sexy-name-is-about-to-be-defined)
 
 (define (idk obj msg cont err)
-    (debug "IDK!!!" obj msg cont err)
-    (err (list 'message-not-understood obj msg) cont))
+    (err (list 'message-not-understood (sexy-view obj) msg) cont))
 
 (define (debug . xs)
     (display xs) (newline))
@@ -170,21 +208,6 @@ END
 
 (define (nodef x)
     (sexy-error x "Symbol " x " is not defined"))
-
-(define (get-uri uri)
-    (define (reader port)
-        (read-string #f port))
-    (call-with-input-request
-        uri
-        #f
-        reader))
-
-(define (get-file fname)
-    (define (reader port)
-        (read-string #f port))
-    (call-with-input-file
-        fname
-        reader))
 
 
 ; mini-parser
@@ -324,7 +347,7 @@ END
                 'primitive-function
                 'object
                 (lambda (args opts cont err)
-                    (err (list 'message-not-understood this (car args)) cont)))))
+                    (idk this (car args) cont err)))))
     this)
 
 (define (sexy-compile-method code)
@@ -609,7 +632,7 @@ END
                     (hash-table->alist vars)))
             ((merge)
                 (lambda (other)
-                    (define nuvars (hash-table-merge vars (htr other 'vars)))
+                    (define nuvars (hash-table-merge (htr other 'vars) vars))
                     (define noob (mkht))
                     (hts! noob 'type 'record)
                     (hts! noob 'vars nuvars)
@@ -817,7 +840,7 @@ END
                         env))))
         (else 
             (case (car code)
-                ((load) (sexy-expand (sexy-expand-load code env) env))
+                ((load) (sexy-expand-load code env))
                 ((def)
                     (let ((dval (caddr code)))
                         (if (and (pair? dval) (eq? (car dval) 'fn)) 
@@ -858,31 +881,39 @@ END
     (define arg-pair (prepare-sexy-args (cdr code)))
     (define args (car arg-pair))
     (define opts (cdr arg-pair))
-    (define uri (car args))
-    (define (uri? str)
-        (string-contains str ":"))
-    (define sexy-path (get-sexy-module-path uri))
+    (define path (car args))
     (define prog
         (cond
-            ((symbol? uri) (niy))
-            ((string? uri)
-                (if (uri? uri)
-                    (if (file-exists? sexy-path)
-                        (read-expand-cache-prog sexy-path (local-env))
-                        (begin
-                            (let ((mport (open-output-file sexy-path)))
-                                (display (get-uri uri) mport)
-                                (close-output-port mport))
-                            (read-expand-cache-prog sexy-path (local-env))))
-                    (read-expand-cache-prog uri (local-env))))
-            (else (sexy-error code "load: Identifier must be a symbol or a string."))))
-    `(wall ,(cddr code)
-        (gate
-            (guard
-                (fn (exn cont)
-                    (error (list 'load-failure ,uri exn)))
-                ,@prog
-                ((send sexy-library-export-function 'apply) ,(cons 'list (cddr code)))))))
+            ((symbol? path) (niy))
+            ((string? path)
+                (read-expand-cache-prog path (local-env)))
+            (else (sexy-error code "load: path must be a symbol or a string."))))
+    (define defs
+        (map
+            (lambda (expr)
+                (define name (gensym))
+                `(def ,name ,expr))
+            (cdr args)))
+    (define set-opts!
+        (map
+            (lambda (p)
+                (define key (car p))
+                (define val (cdr p))
+                `((send opt 'set!) (quote ,key) ,val))
+            (hash-table->alist (htr opts 'vars))))
+    (define pass-symbols (map cadr defs))
+    (define wall-args (append pass-symbols '(opt rest)))
+    `(seq
+        ,@defs
+        ,@set-opts!
+        (wall ,wall-args
+            (gate
+                (guard
+                    (fn (exn cont)
+                        (error (list 'load-failure ,path exn)))
+                    ,@prog
+                    ((send sexy-library-export-function 'apply)
+                        ((send (list ,@pass-symbols) 'append) (send opt 'to-plist))))))))
 
 
 ; eval/apply
@@ -902,7 +933,13 @@ END
         ((procedure? obj)
             (cont 
                 (handle-exceptions exn
-                    (err (condition->list exn) (lambda (ys) (cont (apply obj ys))))
+                    (err
+                        (list
+                            'exn
+                            (list 'location  ((condition-property-accessor 'exn 'location) exn))
+                            (list 'arguments ((condition-property-accessor 'exn 'arguments) exn))
+                            (list 'message   ((condition-property-accessor 'exn 'message) exn)))
+                        (lambda (ys) (cont (apply obj ys))))
                     (apply obj xs))))
         ((hash-table? obj)
             (let ((type (htr obj 'type)))
@@ -982,7 +1019,6 @@ END
                 ((false) (frag (cont #f)))
                 ((null) pass)
                 ((env) (frag (cont env)))
-                ((global) (frag (cont genv)))
                 (else
                     (if (sexy-global? code)
                         (frag
@@ -1326,6 +1362,7 @@ END
                                 (lambda (in)
                                     (cont (sexy-read in)))
                                 err)))
+                'parse 'niy
                 'write
                     (sexy-proc
                         'primitive-function
@@ -1461,7 +1498,7 @@ END
             (set! g-get (sexy-send-env noob 'get top-cont top-err))
             noob)))
 
-(define prelude-file "./global.sex")
+(define prelude-file "global.sex")
 
 (define (add-global-prelude)
     (define expanded-code (read-expand-cache-prog prelude-file (local-env)))
@@ -1563,6 +1600,10 @@ END
     (define stdout (current-output-port))
     (define stderr (current-error-port))
     (define (loop env)
+        (define repl-err
+            (lambda (ex continue)
+                (debug "Uncaught error: " ex)
+                (loop env)))
         (display "(sexy) ")
         (let ((expr (sexy-read stdin))) 
             (define compiled
