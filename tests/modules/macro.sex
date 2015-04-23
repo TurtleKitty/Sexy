@@ -1,0 +1,7 @@
+
+(macro foreign-mac (x y z)
+    (list 'quote (list x y z)))
+
+(lib ()
+    foreign-mac)
+

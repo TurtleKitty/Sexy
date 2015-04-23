@@ -268,28 +268,55 @@
 
 ; use
 
-(sys.test 'use-file
+(sys.test 'use-fn-file
     (seq
-        (use foreigner "~/dev/sexy/tests/modules/simple.sex")
+        (use foreigner "tests/modules/fn.sex")
         (= (foreigner 1 2) '(foreigner 1 2))))
 
-(sys.test 'use-http
+(sys.test 'use-fn-https
     (seq 
-        (use fun-maker "http://anwu.org/sexylib/fun.sex/1.0")
-        (= (fun-maker 3 4 5) '(fun-object 3 7 20))))
+        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/fn.sex")
+        (= (foreigner 1 2) '(foreigner 1 2))))
 
-;(sys.test 'use-https
-    ;(use "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/pre.sex")
-
-(sys.test 'use-parameters
+(sys.test 'use-macro-file
     (seq
-        (use one   "~/dev/sexy/tests/modules/param.sex" 1 2)
-        (use two   "~/dev/sexy/tests/modules/param.sex" 'a 'b 'c 'd)
-        (use three "~/dev/sexy/tests/modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
+        (use foreigner "tests/modules/macro.sex")
+        (= (foreigner 2 3 5) '(2 3 5))))
+
+(sys.test 'use-macro-https
+    (seq 
+        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/macro.sex")
+        (= (foreigner 2 3 5) '(2 3 5))))
+
+(sys.test 'use-parameters-file
+    (seq
+        (use one   "tests/modules/param.sex" 1 2)
+        (use two   "tests/modules/param.sex" 'a 'b 'c 'd)
+        (use three "tests/modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
         (and
             (= one   '(1 2 null null ()))
             (= two   '(a b null null (c d)))
             (= three '(2 3 "FOO" "BAR" (4 5 6))))))
+
+(sys.test 'use-parameters-https
+    (seq
+        (use one   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sex" 1 2)
+        (use two   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sex" 'a 'b 'c 'd)
+        (use three "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
+        (and
+            (= one   '(1 2 null null ()))
+            (= two   '(a b null null (c d)))
+            (= three '(2 3 "FOO" "BAR" (4 5 6))))))
+
+(sys.test 'use-other-file
+    (seq
+        (use other "tests/modules/use_other.sex" type: 'adler)
+        (= other '(5 7 adler))))
+
+(sys.test 'use-other-https
+    (seq
+        (use other "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/use_other.sex" type: 'bobkin)
+        (= other '(5 7 bobkin))))
 
 
 ; misc
