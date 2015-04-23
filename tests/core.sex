@@ -270,7 +270,7 @@
 
 (sys.test 'use-fn-file
     (seq
-        (use foreigner "tests/modules/fn.sex")
+        (use foreigner "modules/fn.sex")
         (= (foreigner 1 2) '(foreigner 1 2))))
 
 (sys.test 'use-fn-https
@@ -280,7 +280,7 @@
 
 (sys.test 'use-macro-file
     (seq
-        (use foreigner "tests/modules/macro.sex")
+        (use foreigner "modules/macro.sex")
         (= (foreigner 2 3 5) '(2 3 5))))
 
 (sys.test 'use-macro-https
@@ -290,9 +290,9 @@
 
 (sys.test 'use-parameters-file
     (seq
-        (use one   "tests/modules/param.sex" 1 2)
-        (use two   "tests/modules/param.sex" 'a 'b 'c 'd)
-        (use three "tests/modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
+        (use one   "modules/param.sex" 1 2)
+        (use two   "modules/param.sex" 'a 'b 'c 'd)
+        (use three "modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
         (and
             (= one   '(1 2 null null ()))
             (= two   '(a b null null (c d)))
@@ -310,12 +310,12 @@
 
 (sys.test 'use-other-file
     (seq
-        (use other "tests/modules/use_other.sex" type: 'adler)
+        (use other "modules/use_other.sex" foon-type: 'adler)
         (= other '(5 7 adler))))
 
 (sys.test 'use-other-https
     (seq
-        (use other "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/use_other.sex" type: 'bobkin)
+        (use other "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/use_other.sex" foon-type: 'bobkin)
         (= other '(5 7 bobkin))))
 
 

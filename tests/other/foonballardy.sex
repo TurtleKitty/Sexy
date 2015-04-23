@@ -1,5 +1,5 @@
 
 
-(lib (x y) (list 'foonballardy x y opt.foon-type))
+(lib (x y) (list 'foonballardy x y opt.foon))
 
 
