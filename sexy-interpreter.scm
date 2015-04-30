@@ -1373,6 +1373,10 @@ END
                 'stdout  (current-output-port)
                 'stderr  (current-error-port)
                 'exit exit
+                'srand
+                    (lambda (v)
+                        (randomize v)
+                        'null)
                 'file
                     (sexy-object
                         (list)
@@ -1380,6 +1384,7 @@ END
                 'socket 'niy
                 'spawn 'niy
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
+                'ts (lambda () (current-seconds))
                 'read
                     (sexy-proc
                         'primitive-function
@@ -1438,7 +1443,7 @@ END
                     (lambda (tname ok)
                         (debug tname (if ok 'ok 'FAIL))
                         'null))
-            #f
+            '(ts)
             #f
             #f))
     (extend lenv
@@ -1482,6 +1487,7 @@ END
                 (cons 'list? list?)
                 (cons 'vector vector)
                 (cons 'vector? vector?)
+                (cons 'rand random)
                 (cons 'record
                     (sexy-proc
                         'primitive-function

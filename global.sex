@@ -96,6 +96,14 @@
                         noob)))
             '())))
 
+(fun ndx (n x)
+    (fun dx ()
+        (+ 1 (rand x)))
+    (let loop (m n total 0)
+        (if m.zero?
+            total
+            (loop m.dec (+ total (dx))))))
+
 ; awaiting quasiquote...
 ;(macro spec (name pred exec)
 ;    (def obj (env.lookup name))
