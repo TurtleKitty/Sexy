@@ -378,16 +378,13 @@ END
         ((port? obj) (sexy-send-port obj msg cont err))
         ((hash-table? obj)
             (let ((t (htr obj 'type)))
-                (if (eq? msg 'type)
-                    (cont t)
-                    (case t
-                        ((env)    (sexy-send-env obj msg cont err))
-                        ((record) (sexy-send-record obj msg cont err))
-                        ((object) (sexy-send-object obj msg cont err))
-                        ((fn)     (sexy-send-fn obj msg cont err))
-                        ((operator)  (sexy-send-fn obj msg cont err))
-                        (else (wtf))))))
-        ((eof-object? obj) (newline) (newline) (exit))
+                (case t
+                    ((env)    (sexy-send-env obj msg cont err))
+                    ((record) (sexy-send-record obj msg cont err))
+                    ((fn)     (sexy-send-fn obj msg cont err))
+                    ((operator)  (sexy-send-fn obj msg cont err))
+                    (else (sexy-send-object obj msg cont err)))))
+        ((eof-object? obj) (display 'EOF) (newline) (newline) (exit))
         (else (wtf))))
 
 (define (sexy-send-atomic obj msg)
@@ -592,6 +589,7 @@ END
     (define vars (htr obj 'vars))
     (cont
         (case msg
+            ((type) 'record)
             ((view)
                 (let ((keys (htks vars)))
                     (cons ': 
@@ -673,7 +671,7 @@ END
         (if (hte? resends msg)
             (sexy-send (htr resends msg) msg cont err)
             (case msg
-                ((view) (cont 'object))
+                ((type view) (cont 'object))
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
                 ((apply) (cont (lambda args (sexy-send obj (car args) top-cont err))))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
@@ -681,6 +679,7 @@ END
 
 (define (sexy-send-fn obj msg cont err)
     (case msg
+        ((type) 'fn)
         ((view) (sexy-send obj 'code cont err))
         ((to-bool) (cont #t))
         ((arity code env formals) (cont (htr obj msg)))
@@ -697,6 +696,7 @@ END
     (case msg
         ((get has? del! view to-bool pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
+        ((type) 'env)
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
         ((set!)
@@ -1443,7 +1443,7 @@ END
                     (lambda (tname ok)
                         (debug tname (if ok 'ok 'FAIL))
                         'null))
-            '(ts)
+            '(ts 64764)
             #f
             #f))
     (extend lenv
