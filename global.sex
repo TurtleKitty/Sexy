@@ -81,6 +81,9 @@
     (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
     (list 'seq dname (pair name p.tail)))
 
+(macro % (head tail)
+    (list 'pair (list 'quote head) tail))
+
 (macro : () ; record literal
     (pair 'record
         (if (pair? rest)

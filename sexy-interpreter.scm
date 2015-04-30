@@ -504,7 +504,7 @@ END
                     ((view)
                         (if (list? obj)
                             (map sexy-view obj)
-                            (cons (sexy-view (car obj)) (sexy-view (cdr obj)))))
+                            (list '% (sexy-view (car obj)) (sexy-view (cdr obj)))))
                     ((to-bool) #t)
                     ((to-vector) (list->vector obj))
                     ((head key car) (car obj))
