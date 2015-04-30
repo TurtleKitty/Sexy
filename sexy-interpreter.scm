@@ -441,6 +441,8 @@ END
     (case msg
         ((type) (cont 'int))
         ((times) (cont 'niy))
+        ((inc) (cont (+ obj 1)))
+        ((dec) (cont (- obj 1)))
         (else (idk obj msg cont err))))
  
 (define (sexy-send-real obj msg cont err)

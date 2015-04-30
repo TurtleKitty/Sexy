@@ -43,11 +43,25 @@
             (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
         (= (quux 2 3) '((-1 6) (1 6))))))
 
-;(sys.test 'macro-with-internal-macro
-;    ((fn ()
-;        (macro bob (x y)
-;            (macro fred (x)
-;                (list 'list x (* x x)))
-;            (cons 'list x (fred y))
-;        (= (bob 1 2) '(1 2 4))))))
+(sys.test 'macro-with-internal-macro
+    ((fn ()
+        (macro bob (n)
+            (let loop (x n totes 0)
+                (if x.zero?
+                    totes
+                    (loop x.dec (+ x totes)))))
+        (= (bob 5) 15))))
+
+(sys.test 'runtime-macro ; muhahahaha
+    (wall ()
+        (macro screw-with-fn (f) 
+            (list (list 'fn '(x) (list '* 10 f.code.tail.tail.head)) 3)) 
+        (fun foo (x) (* x x)) 
+        (fun bar (x) (+ x x)) 
+        (def fs (list foo bar))
+        (= '(9 6 (90 60))
+            (list
+                (foo 3)
+                (bar 3)
+                (env.eval (pair 'list (fs.map screw-with-fn)))))))
 

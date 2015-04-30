@@ -332,17 +332,3 @@
             (fn (x) (* 10 x)))
         (= (λא象 10) 100)))
 
-
-(sys.test 'tco
-    (seq
-        (def count 120000)
-        (def upto
-            (fn (max)
-                (def helper
-                    (fn (acc)
-                        (if (= acc max)
-                            acc
-                            (helper (+ acc 1)))))
-                (helper 0)))
-        (= (upto count) count)))
-

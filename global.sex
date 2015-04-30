@@ -25,6 +25,9 @@
         (pair 'load
             (pair uri (rest.append opt.to-plist)))))
 
+(macro thunk ()
+    (pair 'fn (pair '() rest)))
+
 (fun isa? (thing type)
     (= thing.type type))
 
@@ -76,7 +79,19 @@
             (pair '() '())
             (sep vars.head vars.1 vars.tail.tail '() '())))
     (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
-    (list (list 'fn '() dname (pair name p.tail))))
+    (list 'seq dname (pair name p.tail)))
+
+(macro : () ; record literal
+    (pair 'record
+        (if (pair? rest)
+            (if (!= (mod rest.size 2) 0)
+                (error (list ': "requires an even number of arguments"))
+                (let loop (k rest.head v rest.1 xs rest.tail.tail acc '())
+                    (def noob (pair (list 'quote k) (pair v acc)))
+                    (if (pair? xs)
+                        (loop xs.head xs.tail.head xs.tail.tail noob)
+                        noob)))
+            '())))
 
 ; awaiting quasiquote...
 ;(macro spec (name pred exec)
