@@ -1,6 +1,13 @@
 
 ; global environment
 
+(def macro
+    (operator (name vars body)
+        (list 'def name
+            (pair
+                'operator
+                (pair vars (pair body rest))))))
+
 (macro fun (name vars body)
     (list 'def name
         (pair
@@ -47,6 +54,9 @@
 (fun not (x)
     x.to-bool.not)
 
+(fun != (x y)
+    (not (= x y)))
+
 (fun nand ()
     (not (and.apply rest)))
 
@@ -83,6 +93,7 @@
 ;                        ((fn ,fs ,exec) ,@fs)
 ;                        (,foo (list ,@fs)))))
 ;            (if is-local
+;                ; This will not work with globals.  Think on it some more.
 ;                `(seq (def ,foo ,name) (set! ,name ,noob))
 ;                `(seq (def ,foo ,name) (def ,name ,noob))))))
 
