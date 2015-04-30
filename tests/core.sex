@@ -309,14 +309,20 @@
         (= other '(foonballardy 5 7 bobkin))))
 
 (sys.test 'use-macro-file
-    (seq
-        (use foreigner "modules/macro.sex")
-        (= (foreigner 2 3 5) '(2 3 5))))
+    ((fn ()
+        (load "modules/macro.sex")
+        (and
+            (= (quote-xyz 1 2 3)     '(1 2 3))
+            (= (calc-xyz 1 2 3)      '(fn (v) (* v 17)))
+            (= ((calc-xyz 1 2 3) 4 ) 68)))))
 
 (sys.test 'use-macro-https
-    (seq 
-        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/macro.sex")
-        (= (foreigner 2 3 5) '(2 3 5))))
+    ((fn ()
+        (load "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/macro.sex")
+        (and
+            (= (quote-xyz 1 2 3)     '(1 2 3))
+            (= (calc-xyz 1 2 3)      '(fn (v) (* v 17)))
+            (= ((calc-xyz 1 2 3) 4)  68)))))
 
 ; misc
 

@@ -2,12 +2,11 @@
 (macro m1 (x y z)
     (list 'quote (list x y z)))
 
+(syntax 
+    quote-xyz m1
+    calc-xyz  m2)
+
 (macro m2 (x y z)
     (list 'fn (list 'v)
         (list '* 'v (+ x (* 2 y) (* 4 z)))))
-
-(lib ()
-    (object
-        'quote-xyz m1
-        'calc-xyz  m2))
 
