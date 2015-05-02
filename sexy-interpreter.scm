@@ -424,8 +424,8 @@ END
 
 (define (sexy-send-number obj msg cont err)
     (case msg
-        ((zero?) (cont (eq? obj 0)))
-        ((to-bool) (cont (not (eq? obj 0))))
+        ((zero?) (cont (= obj 0)))
+        ((to-bool) (cont (not (= obj 0))))
         ((to-string) (cont (number->string obj)))
         ((view) (cont obj))
         (else
@@ -440,14 +440,17 @@ END
         ((times) (cont 'niy))
         ((inc) (cont (+ obj 1)))
         ((dec) (cont (- obj 1)))
+        ((floor) (cont obj))
+        ((ceil) (cont obj))
+        ((round) (cont obj))
         (else (idk obj msg cont err))))
  
 (define (sexy-send-real obj msg cont err)
     (case msg
         ((type) (cont 'real))
-        ((floor) (cont (floor obj)))
-        ((ceil) (cont (ceiling obj)))
-        ((round) (cont (round obj)))
+        ((floor) (cont (inexact->exact (floor obj))))
+        ((ceil) (cont (inexact->exact (ceiling obj))))
+        ((round) (cont (inexact->exact (round obj))))
         (else (idk obj msg cont err))))
 
 (define (sexy-send-string obj msg cont err)
@@ -493,7 +496,7 @@ END
 
 (define (sexy-send-pair obj msg cont err)
     (case msg
-        ((type empty? view to-bool to-vector head key car tail val cdr size reverse has? append apply)
+        ((type empty? view to-bool to-vector head key car tail val cdr size reverse has? append take drop apply)
             (cont
                 (case msg
                     ((type) 'pair)
@@ -507,6 +510,7 @@ END
                     ((head key car) (car obj))
                     ((tail val cdr) (cdr obj))
                     ((size) (length obj))
+                    ((clone) (list-copy obj))
                     ((reverse) (reverse obj))
                     ((has?)
                         (lambda (item)
@@ -514,6 +518,8 @@ END
                                 #t
                                 #f)))
                     ((append) (lambda (other) (append obj other)))
+                    ((take) (lambda (n) (take obj n)))
+                    ((drop) (lambda (n) (drop obj n)))
                     ((apply)
                         (sexy-proc
                             'primitive-function
@@ -557,11 +563,28 @@ END
                 cont
                 err))
         ((sort)
-            (lambda (funk)
-                (sort
-                    obj
-                    (lambda (x y)
-                        ((sexy-apply-wrapper funk) x y)))))
+            (sexy-ho
+                '(fn (xs)
+                    (fn (funk)
+                        (def merge (fn (a b)
+                            (if a.size.zero?
+                                b
+                                (if b.size.zero?
+                                    a
+                                    (if (funk a.head b.head)
+                                        (pair a.0 (merge a.tail b))
+                                        (pair b.0 (merge a b.tail)))))))
+                        (def sort (fn (yarr)
+                            (def len yarr.size)
+                            (if (< len 2)
+                                yarr
+                                (seq
+                                    (def half (send (/ len 2) 'floor))
+                                    (merge (sort (yarr.take half)) (sort (yarr.drop half)))))))
+                        (sort xs)))
+                obj
+                cont
+                err))
         (else
             (if (number? msg)
                 (if (> (length obj) msg)
