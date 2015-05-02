@@ -1,0 +1,11 @@
+
+(def runs 0)
+
+(fun omega (x)
+    (set! runs (+ 1 runs))
+    (sys.show (list 'run runs))
+    (x x))
+
+(omega omega) ; KABOOM
+
+

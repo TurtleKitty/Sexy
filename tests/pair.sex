@@ -1,6 +1,7 @@
 
 (def empty '())
 (def ys (list 8 6 7 5 3 0 9))
+(def alist (list (% x 1) (% y 2)))
 
 (sys.test 'pair-access (and (= ys.0 8) (= ys.3 5) (= ys.6 9)))
 (sys.test 'pair-apply (= (ys 5) 0))
@@ -10,6 +11,7 @@
 (sys.test 'pair-view        (= ys.view '(8 6 7 5 3 0 9)))
 (sys.test 'pair-false       (= empty.to-bool false))
 (sys.test 'pair-true        (= ys.to-bool true))
+(sys.test 'pair-to-record   (= alist.to-record (: x 1 y 2)))
 (sys.test 'pair-to-vector   (= ys.to-vector '#(8 6 7 5 3 0 9)))
 (sys.test 'pair-head        (= ys.head 8))
 (sys.test 'pair-tail        (= ys.tail '(6 7 5 3 0 9)))
@@ -18,10 +20,10 @@
 (sys.test 'pair-has?-not    (= (ys.has? 4) false))
 
 (sys.test 'pair-fold    (= (ys.fold 0 +) 38))
-(sys.test 'pair-reduce   (= (ys.reduce 0 +) 38))
+(sys.test 'pair-reduce  (= (ys.reduce 0 +) 38))
 (sys.test 'pair-map     (= (ys.map (fn (x) (* 10 x))) '(80 60 70 50 30 0 90)))
 (sys.test 'pair-filter  (= (ys.filter (fn (x) (> x 5))) '(8 6 7 9)))
-(sys.test 'pair-sort-<    (= (ys.sort <) '(0 3 5 6 7 8 9)))
-(sys.test 'pair-sort->    (= (ys.sort >) '(9 8 7 6 5 3 0)))
+(sys.test 'pair-sort-<  (= (ys.sort <) '(0 3 5 6 7 8 9)))
+(sys.test 'pair-sort->  (= (ys.sort >) '(9 8 7 6 5 3 0)))
 
 

@@ -713,7 +713,15 @@ END
                     obj
                     cont
                     err))
-            ((filter) 'niy)
+            ((filter) 
+                (sexy-ho
+                    '(fn (rec)
+                        (fn (funk)
+                            (def mapped (rec.to-list.filter funk))
+                            mapped.to-record))
+                    obj
+                    cont
+                    err))
             (else
                 (if (hte? vars msg)
                     (cont (htr vars msg))
