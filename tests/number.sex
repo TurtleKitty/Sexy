@@ -68,8 +68,8 @@
 (sys.test 'rem-neg (= -1 (rem -7 2)))
 (sys.test 'mod-neg (= 1 (mod -7 2)))
 
-(sys.test 'floor (= pi.floor 3.0))
-(sys.test 'ceil (= pi.ceil 4.0))
+(sys.test 'floor (= pi.floor 3))
+(sys.test 'ceil (= pi.ceil 4))
 
 
 

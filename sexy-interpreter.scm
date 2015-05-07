@@ -809,7 +809,7 @@ END
 
 (define (sexy-send-vector obj msg cont err)
     (case msg
-        ((type view to-bool to-list size has? apply)
+        ((type view to-bool to-list pairs size has? set! apply)
             (cont 
                 (case msg
                     ((type) 'vector)
@@ -819,6 +819,7 @@ END
                             obj))
                     ((to-bool) (not (eq? (vector-length obj) 0)))
                     ((to-list) (vector->list obj))
+                    ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
                     ((size) (vector-length obj))
                     ((has?)
                         (lambda (item)
@@ -827,6 +828,13 @@ END
                                     obj)
                                 #t
                                 #f)))
+                    ((set!)
+                        (lambda (idx val)
+                            (if (> idx (vector-length obj))
+                                (err (list 'out-of-bounds idx obj) cont)
+                                (begin
+                                    (vector-set! obj idx val)
+                                    obj))))
                     ((apply)
                         (sexy-proc
                             'primitive-function
@@ -834,27 +842,48 @@ END
                             (lambda (args opts cont err)
                                 (sexy-send-vector obj (car args) cont err)))))))
         ((fold)
-            (lambda (init funk)
-                (vector-fold (sexy-apply-wrapper funk) init obj)))
+            (sexy-ho
+                '(fn (vec)
+                    (fn (acc funk)
+                        (vec.to-list.fold acc funk)))
+                obj
+                cont
+                err))
         ((reduce)
-            (lambda (init funk)
-                (vector-fold-right (sexy-apply-wrapper funk) init obj)))
+            (sexy-ho
+                '(fn (vec)
+                    (fn (acc funk)
+                        (vec.to-list.reduce acc funk)))
+                obj
+                cont
+                err))
         ((map)
-            (lambda (funk)
-                (vector-map (sexy-apply-wrapper funk) obj)))
+            (sexy-ho
+                '(fn (vec)
+                    (fn (funk)
+                        (def mapped (vec.to-list.map funk))
+                        mapped.to-vector))
+                obj
+                cont
+                err))
         ((filter)
-            (lambda (funk)
-                (list->vector
-                    (filter
-                        (lambda (x)
-                            ((sexy-apply-wrapper funk) x))
-                        (vector->list obj)))))
+            (sexy-ho
+                '(fn (vec)
+                    (fn (funk)
+                        (def mapped (vec.to-list.filter funk))
+                        mapped.to-vector))
+                obj
+                cont
+                err))
         ((sort)
-            (lambda (funk)
-                (sort
-                    obj
-                    (lambda (x y)
-                        ((sexy-apply-wrapper funk) x y)))))
+            (sexy-ho
+                '(fn (vec)
+                    (fn (funk)
+                        (def sorted (vec.to-list.sort funk))
+                        sorted.to-vector))
+                obj
+                cont
+                err))
         (else
             (if (number? msg)
                 (if (> (vector-length obj) msg)
