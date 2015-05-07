@@ -25,10 +25,11 @@
 Usage:
 
 sexy repl
+sexy exec "<code string>"
 sexy run <filename>
 sexy check <filename>
-sexy compile <filename>
 sexy expand <filename>
+sexy compile <filename>
 
 END
 )
@@ -151,8 +152,15 @@ END
         (usage)
         (let ((cmd (string->symbol (car args))))
             (case cmd
-                ((run) (sexy-run (read-expand-cache-prog (fname) (cli-env))))
                 ((repl) (sexy-repl))
+                ((exec) 
+                    (let ((code-str (fname)))
+                        (sexy-run
+                            (sexy-expand
+                                (sexy-read-file
+                                    (open-input-string code-str))
+                                (cli-env)))))
+                ((run) (sexy-run (read-expand-cache-prog (fname) (cli-env))))
                 ((check) (niy))
                 ((compile)
                     (begin
