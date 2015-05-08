@@ -168,9 +168,9 @@ END
                         (debug "Wrote compiled file to " (get-sexy-cached-path (find-file (cadr args))))))
                 ((expand)
                     (begin
-                        (sexy-write
-                            (read-expand-cache-prog (fname) (cli-env))
-                            (current-output-port))
+                        (pp
+                            (sexy-view
+                                (read-expand-cache-prog (fname) (cli-env))))
                         (newline)))
                 (else (printf "Unknown command: ~A~%" cmd))))))
 

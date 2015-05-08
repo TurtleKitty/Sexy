@@ -49,34 +49,44 @@
 (fun record? (thing)
     (isa? thing 'record))
 
-(fun and (x)
-    (if x
-        (if rest
-            (and.apply rest)
-            true)
-        false))
-
-(fun or (x)
-    (if x
-        true
-        (if rest
-            (or.apply rest)
-            false)))
-
 (fun not (x)
     x.to-bool.not)
 
 (fun != (x y)
     (not (= x y)))
 
+(macro and (x)
+    (if rest
+        (list 'if x (and.apply rest) 'false)
+        (list 'send x ''to-bool)))
+
+(fun and? (x)
+    (if x
+        (if rest
+            (and?.apply rest)
+            true)
+        false))
+
+(macro or (x)
+    (if rest
+        (list 'if x 'true (or.apply rest))
+        (list 'send x ''to-bool)))
+
+(fun or? (x)
+    (if x
+        true
+        (if rest
+            (or?.apply rest)
+            false)))
+
 (fun nand ()
-    (not (and.apply rest)))
+    (not (and?.apply rest)))
 
 (fun nor ()
-    (not (or.apply rest)))
+    (not (or?.apply rest)))
 
 (fun xor (x y)
-    (nor (and x y) (nor x y)))
+    (nor (and? x y) (nor x y)))
 
 (macro let (name vars)
     (fun sep (x y xs names vals)
