@@ -55,6 +55,12 @@
 (fun != (x y)
     (not (= x y)))
 
+(fun >= (x y)
+    (not (< x y)))
+
+(fun <= (x y)
+    (not (> x y)))
+
 (macro and (x)
     (if rest
         (list 'if x (and.apply rest) 'false)

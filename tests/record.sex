@@ -41,7 +41,7 @@
 
 (sys.test 'record-size (= simp.size 2))
 
-(sys.test 'record-keys false) ;(= '(x y) (simp.keys.sort (fn (a b) (< a b)))))
+(sys.test 'record-keys (= '(x y) (simp.keys.sort <))) 
 
 (sys.test 'record-values
     (= '(2 3)
