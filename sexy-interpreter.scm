@@ -423,12 +423,11 @@ END
         (else (idk obj msg cont err))))
 
 (define (sexy-send-null obj msg cont err)
-    (cont
-        (case msg
-            ((to-bool) #f)
-            ((to-string) "null")
-            ((apply) (err 'null-is-not-applicable cont))
-            (else 'null))))
+    (case msg
+        ((to-bool) (cont #f))
+        ((to-string) (cont "null"))
+        ((apply) (err 'null-is-not-applicable cont))
+        (else (cont 'null))))
 
 (define (sexy-send-number obj msg cont err)
     (case msg
@@ -487,7 +486,7 @@ END
         ((type empty? view to-bool head tail key val car cdr size)
             (cont
                 (case msg
-                    ((type) 'pair)
+                    ((type) 'empty)
                     ((empty?) #t)
                     ((view) '())
                     ((to-bool) #f)
@@ -611,7 +610,7 @@ END
 (define (sexy-send-primitive obj msg cont err)
     (cont 
         (case msg
-            ((type) 'fn)
+            ((type) (cont 'fn))
             ((view code) 'primitive-function)
             ((to-bool) #t)
             ((env) 'global)
@@ -755,7 +754,7 @@ END
 
 (define (sexy-send-fn obj msg cont err)
     (case msg
-        ((type) 'fn)
+        ((type) (cont 'fn))
         ((view) (sexy-send obj 'code cont err))
         ((to-bool) (cont #t))
         ((arity code env formals) (cont (htr obj msg)))
@@ -772,7 +771,7 @@ END
     (case msg
         ((get has? del! view to-bool pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
-        ((type) 'env)
+        ((type) (cont 'env))
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
         ((set!)
@@ -941,9 +940,7 @@ END
             (glookup x)
             (lookup env x top-cont top-err)))
     (define (sexy-macro? obj)
-        (if (and (hash-table? obj) (eq? (htr obj 'type) 'operator))
-            #t
-            #f))
+        (and (hash-table? obj) (eq? (htr obj 'type) 'operator)))
     (if (atom? code)
         code
         (let ((head (car code)))

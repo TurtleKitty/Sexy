@@ -7,11 +7,26 @@
 (sys.test 'fun
     (= 120 (mahfun 3 4)))
 
+(sys.test 'null?
+    (null? null))
+
 (sys.test 'isa?
     (= true (isa? mahfun 'fn)))
 
+(sys.test 'bool?
+    (bool? false))
+
 (sys.test 'pair?
-    (= true (pair? '(1 2))))
+    (pair? (% 1 2)))
+
+(sys.test 'list?
+    (list? (list 1)))
+
+(sys.test 'vector?
+    (vector? (vector 2 3)))
+
+(sys.test 'record?
+    (record? (: x 1 y 2)))
 
 (sys.test 'let
     ((fn ()
@@ -22,5 +37,31 @@
                     (loop (+ n 1)))))
         (= foo 10))))
 
-;(sys.test 'cond false)
+(sys.test 'cond
+    ((thunk
+        (fun foo (x)
+            (cond
+                (= x 0) 'foo
+                (= x 1) 'bar
+                (= x 2) (+ x x x)
+                default: (* x x)))
+        (and
+            (= 'foo (foo 0))
+            (= 'bar (foo 1))
+            (= 6    (foo 2))
+            (= 9    (foo 3))))))
+
+(sys.test 'qq
+    ((thunk
+        (def x 1)
+        (def y 'foo)
+        (def z (list 2 3))
+        (and
+            (= (qq x) 'x)
+            (= (qq (unq x)) 1)
+            (= (qq (unq y)) 'foo)
+            (= (qq (unq z)) '(2 3))
+            (= (qq (x y z)) '(x y z))
+            (= (qq (x (unq x) y (unq y) z (unq z))) '(x 1 y foo z (2 3)))
+            (= (qq (x (unq x) y (unq y) z (unqs z))) '(x 1 y foo z 2 3))))))
 

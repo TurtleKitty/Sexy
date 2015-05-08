@@ -37,8 +37,17 @@
 (fun fn? (thing)
     (isa? thing 'fn))
 
+(fun symbol? (thing)
+    (isa? thing 'symbol))
+
+(fun string? (thing)
+    (isa? thing 'string))
+
 (fun null? (thing)
     (= thing null))
+
+(fun record? (thing)
+    (isa? thing 'record))
 
 (fun and (x)
     (if x
@@ -81,7 +90,7 @@
     (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
     (list 'seq dname (pair name p.tail)))
 
-(macro % (head tail)
+(macro % (head tail) ; pair literal
     (list 'pair (list 'quote head) tail))
 
 (macro : () ; record literal
@@ -96,6 +105,75 @@
                         noob)))
             '())))
 
+(fun append (xs ys)
+    (def rv (xs.append ys))
+    (if rest
+        (append.apply (pair rv rest))
+        rv))
+
+(macro cond ()
+    (def default
+        (if opt.default
+            opt.default
+            (list 'error (list 'list ''cond-no-matching-clause (list 'pair ''cond (list 'quote rest))))))
+    (if (< rest.size 2)
+        (error (list 'bad-cond "cond should have at least one predicate and consequent." (pair 'cond rest)))
+        (let loop (pred rest.0 conseq rest.1 remaining rest.tail.tail)
+            (if remaining
+                (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
+                (list 'if pred conseq default)))))
+
+(macro qq (expr)
+    (fun constant? (expr)
+        (if (pair? expr)
+            (= expr.head 'quote)
+            (not (symbol? expr))))
+    (fun combine-skeletons (left right expr)
+        (cond
+            (and (constant? left) (constant? right))
+                (if (and (= (env.eval left)  expr.head)
+                         (= (env.eval right) expr.tail))
+                    (list 'quote expr)
+                    (list 'quote (pair (env.eval left) (env.eval right))))
+            (= right '())
+                (list 'list left)
+            (and (pair? right) (= right.head 'list))
+                (pair 'list (pair left right.tail))
+            default: (list 'pair left right)))
+    (fun expand-quasiquote (expr nesting)
+        (cond
+            (not (pair? expr))
+                (if (constant? expr) expr (list 'quote expr))
+            (and (is? expr.head 'unq) (= expr.size 2))
+                (if nesting.zero?
+                    expr.1
+                    (combine-skeletons
+                        ''unq
+                        (expand-quasiquote expr.tail (- nesting 1))
+                        expr))
+            (and (is? expr.head 'qq) (= expr.size 2))
+                (combine-skeletons
+                    ''qq
+                    (expand-quasiquote expr.tail (+ nesting 1))
+                    expr)
+            (if (pair? expr.head)
+                (and (= expr.head.head 'unqs) (= expr.head.size 2))
+                false)
+                (if (= nesting 0)
+                    (list 'append
+                          expr.head.1
+                          (expand-quasiquote expr.tail nesting))
+                    (combine-skeletons
+                        (expand-quasiquote expr.head (- nesting 1))
+                        (expand-quasiquote expr.tail nesting)
+                        expr))
+            default:
+                (combine-skeletons
+                    (expand-quasiquote expr.head nesting)
+                    (expand-quasiquote expr.tail nesting)
+                    expr)))
+    (expand-quasiquote expr 0))
+
 (fun ndx (n x)
     (fun dx ()
         (+ 1 (rand x)))
@@ -104,7 +182,6 @@
             total
             (loop m.dec (+ total (dx))))))
 
-; awaiting quasiquote...
 ;(macro spec (name pred exec)
 ;    (def obj (env.lookup name))
 ;    (def is-local (env.local? name))
