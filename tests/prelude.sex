@@ -7,14 +7,38 @@
 (sys.test 'fun
     (= 120 (mahfun 3 4)))
 
+(sys.test '%
+    (= (% x 1) (pair 'x 1)))
+
+(sys.test ':
+    (= (record 'x 1 'y 2) (: x 1 y 2)))
+
 (sys.test 'null?
     (null? null))
 
 (sys.test 'isa?
     (= true (isa? mahfun 'fn)))
 
+(sys.test 'fn?
+    (fn? mahfun))
+
 (sys.test 'bool?
     (bool? false))
+
+(sys.test 'symbol?
+    (symbol? 'foo))
+
+(sys.test 'num?
+    (and (num? 0) (num? 3.14159)))
+
+(sys.test 'int?
+    (int? 23))
+
+(sys.test 'real?
+    (real? 2.71828))
+
+(sys.test 'string?
+    (string? "foo"))
 
 (sys.test 'pair?
     (pair? (% 1 2)))
@@ -27,6 +51,9 @@
 
 (sys.test 'record?
     (record? (: x 1 y 2)))
+
+(sys.test 'append
+    (= '(1 2 3 4 5) (append '(1 2) '(3) '(4 5))))
 
 (sys.test 'let
     ((fn ()
@@ -64,4 +91,9 @@
             (= (qq (x y z)) '(x y z))
             (= (qq (x (unq x) y (unq y) z (unq z))) '(x 1 y foo z (2 3)))
             (= (qq (x (unq x) y (unq y) z (unqs z))) '(x 1 y foo z 2 3))))))
+
+(sys.test 'ndx
+    ((thunk
+        (def roll (ndx 10 6)) ; fireball!
+        (and (>= roll 10) (<= roll 60)))))
 

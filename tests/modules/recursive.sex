@@ -1,0 +1,6 @@
+
+(lib (x)
+    (if (< x 2)
+        1
+        (* x (load "recursive.sex" x.dec)))) ; KABOOM
+

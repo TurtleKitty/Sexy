@@ -218,6 +218,30 @@ END
 (define (sexy-view obj)
     (sexy-send-atomic obj 'view))
 
+(define (sort-symbol-alist ps)
+    (sort ps
+        (lambda (a b)
+            (string<? (symbol->string (car a)) (symbol->string (car b))))))
+
+(define (sexy-equal? x y)
+    (if (or (hash-table? x) (hash-table? y))
+        (let ((xt (htr x 'type)) (yt (htr y 'type)))
+            (if (not (eq? xt yt))
+                #f
+                (case xt
+                    ((env fn operator) (eq? x y))
+                    ((record)
+                        (let ((x-pairs (sort-symbol-alist (hash-table->alist (htr x 'vars))))
+                              (y-pairs (sort-symbol-alist (hash-table->alist (htr y 'vars)))))
+                            (equal? x-pairs y-pairs)))
+                    (else
+                        (sexy-send-object
+                            x
+                            '=
+                            (lambda (f) (cont (f y)))
+                            top-err)))))
+        (equal? x y)))
+
 (define (nodef x)
     (sexy-error x "Symbol " x " is not defined"))
 
@@ -748,6 +772,7 @@ END
             (case msg
                 ((type view) (cont 'object))
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
+                ((=) (cont (lambda (other) #f)))
                 ((apply) (cont (lambda args (sexy-send obj (car args) top-cont err))))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
                 (else (sexy-apply (htr obj 'default) (list msg) cont err))))))
@@ -1572,7 +1597,7 @@ END
                 (cons '- -)
                 (cons '* *)
                 (cons '/ /)
-                (cons '= equal?)
+                (cons '= sexy-equal?)
                 (cons '> >)
                 (cons '>= >=)
                 (cons '< <)
