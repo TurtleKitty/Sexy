@@ -207,11 +207,17 @@
             opt.default
             (list 'error (list 'list ''case-no-matching-clause (list 'pair ''case (list 'quote rest))))))
     (if (< rest.size 2)
-        (error (list 'bad-cond "cond should have at least one predicate and consequent." (pair 'cond rest)))
-        (let loop (set rest.0 conseq rest.1 remaining rest.tail.tail)
-            (if remaining
-                (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
-                (list 'if pred conseq default)))))
+        (error (list 'bad-case "case should have at least one predicate and consequent." (pair 'case rest)))
+        (seq
+            (def cval (gensym))
+            (qq
+                (let ((unq cval) (unq val))
+                    (unq
+                        (let loop (set rest.0 conseq rest.1 remaining rest.tail.tail)
+                            (def pred (qq ((send (quote (unq set)) 'has?) (unq cval))))
+                            (if remaining
+                                (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
+                                (list 'if pred conseq default)))))))))
 
 (fun ndx (n x)
     (fun dx ()
