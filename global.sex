@@ -94,7 +94,18 @@
 (fun xor (x y)
     (nor (and? x y) (nor x y)))
 
-(macro let (name vars)
+(fun append (xs ys)
+    (def rv (xs.append ys))
+    (if rest
+        (append.apply (pair rv rest))
+        rv))
+
+(fun apply (f args)
+    (f.apply args))
+
+(macro let (name/vars)
+    (def is-named (symbol? name/vars))
+    (def vars (if is-named rest.head name/vars))
     (fun sep (x y xs names vals)
         (if xs.empty?
             (pair ((pair x names) 'reverse) ((pair y vals) 'reverse))
@@ -103,8 +114,14 @@
         (if vars.empty?
             (pair '() '())
             (sep vars.head vars.1 vars.tail.tail '() '())))
-    (def dname (list 'def name (((list 'fn p.head) 'append) rest)))
-    (list 'seq dname (pair name p.tail)))
+    (def fn-form (append (list 'fn p.head) (if is-named rest.tail rest)))
+    (if is-named
+        (seq
+            (def args (gensym))
+            (list 'let (list args (pair 'list p.tail))
+                    (list 'def name/vars fn-form)
+                    (list 'apply name/vars args)))
+        (pair fn-form p.tail)))
 
 (macro % (head tail) ; pair literal
     (list 'pair (list 'quote head) tail))
@@ -120,12 +137,6 @@
                         (loop xs.head xs.tail.head xs.tail.tail noob)
                         noob)))
             '())))
-
-(fun append (xs ys)
-    (def rv (xs.append ys))
-    (if rest
-        (append.apply (pair rv rest))
-        rv))
 
 (macro cond ()
     (def default
@@ -189,6 +200,18 @@
                     (expand-quasiquote expr.tail nesting)
                     expr)))
     (expand-quasiquote expr 0))
+
+(macro case (val)
+    (def default
+        (if opt.default
+            opt.default
+            (list 'error (list 'list ''case-no-matching-clause (list 'pair ''case (list 'quote rest))))))
+    (if (< rest.size 2)
+        (error (list 'bad-cond "cond should have at least one predicate and consequent." (pair 'cond rest)))
+        (let loop (set rest.0 conseq rest.1 remaining rest.tail.tail)
+            (if remaining
+                (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
+                (list 'if pred conseq default)))))
 
 (fun ndx (n x)
     (fun dx ()
