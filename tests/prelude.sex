@@ -92,6 +92,59 @@
             (= (qq (x (unq x) y (unq y) z (unq z))) '(x 1 y foo z (2 3)))
             (= (qq (x (unq x) y (unq y) z (unqs z))) '(x 1 y foo z 2 3))))))
 
+(sys.test 'when
+    (let ()
+        (fun foo (x)
+            (when (> x 10) 'is-a-biggun))
+        (=  (list (foo 0) (foo 9) (foo 23) (foo 42) (foo 153))
+           '(null null is-a-biggun is-a-biggun is-a-biggun))))
+
+(sys.test 'case
+    (let ()
+        (fun foo (x)
+            (case x
+                (0) 'foo
+                (1) 'bar
+                (2 3) (+ x x x)
+                default: (* x x)))
+        (and
+            (= 'foo (foo 0))
+            (= 'bar (foo 1))
+            (= 6    (foo 2))
+            (= 9    (foo 3))
+            (= 16   (foo 4)))))
+
+(sys.test 'while
+    (let (i 0 total 0)
+        (def rv
+            (while (< i 20)
+                (set! total (+ total i))
+                (set! i i.inc)
+                (list i total)))
+        (= rv '(20 190)))) 
+
+(sys.test 'while-next
+    (let (i 0 total 0)
+        (def rv
+            (while (< i 20)
+                (set! i i.inc)
+                (when (mod i 3)
+                    (next (list 'next i total)))
+                (set! total (+ total i))
+                (list i total)))
+        (= rv '(next 20 63))))
+
+(sys.test 'while-last
+    (let (i 0 total 0)
+        (def rv
+            (while (< i 20)
+                (set! i i.inc)
+                (when (> total 30)
+                    (last (list 'last i total)))
+                (set! total (+ total i))
+                (list i total)))
+        (= rv '(last 9 36))))
+
 (sys.test 'ndx
     ((thunk
         (def roll (ndx 10 6)) ; fireball!

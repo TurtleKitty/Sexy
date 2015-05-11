@@ -229,12 +229,18 @@
     ; call (next <value>) to skip the rest of the bodies and go to the next loop (continue)
     ;   if predicate is true, <value> will be returned from the while expression
     ; call (return <value>) to terminate the loop and return said value (break)
+    (def loop (gensym))
     (def rv (gensym))
     (qq
-        (let next ((unq rv) null)
-            (if (unq pred)
-                (next (seq (unqs (pair body rest))))
-                (unq rv)))))
+        ((thunk
+            (def (unq loop)
+                (fn ((unq rv))
+                    (macro next (v) (list 'return (list '(unq loop) v)))
+                    (macro last (v) (qq (return (unq v))))
+                    (if (unq pred)
+                        ((unq loop) (seq (unqs (pair body rest))))
+                        (unq rv))))
+            ((unq loop) null)))))
 
 (fun ndx (n x)
     (fun dx ()
