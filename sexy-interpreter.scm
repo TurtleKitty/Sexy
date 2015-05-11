@@ -1423,7 +1423,8 @@ END
             (expr-c env identity err))))
 
 (define (sexy-compile-capture code)
-    (define lamb (cadr code))
+    (define name (cadr code))
+    (define lamb (cons 'fn (cons (list name) (cddr code))))
     (define lamb-c (sexy-compile lamb))
     (frag
         (lamb-c

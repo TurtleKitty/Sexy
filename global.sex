@@ -201,6 +201,12 @@
                     expr)))
     (expand-quasiquote expr 0))
 
+(macro when (pred)
+    (qq
+        (if (unq pred)
+            (seq (unqs rest))
+            null)))
+
 (macro case (val)
     (def default
         (if opt.default
@@ -218,6 +224,17 @@
                             (if remaining
                                 (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
                                 (list 'if pred conseq default)))))))))
+
+(macro while (pred body)
+    ; call (next <value>) to skip the rest of the bodies and go to the next loop (continue)
+    ;   if predicate is true, <value> will be returned from the while expression
+    ; call (return <value>) to terminate the loop and return said value (break)
+    (def rv (gensym))
+    (qq
+        (let next ((unq rv) null)
+            (if (unq pred)
+                (next (seq (unqs (pair body rest))))
+                (unq rv)))))
 
 (fun ndx (n x)
     (fun dx ()

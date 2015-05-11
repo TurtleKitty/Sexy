@@ -164,19 +164,19 @@
     (= 2
         (gate
             (+ 1
-                (capture (fn (c) 2))))))
+                (capture k 2)))))
 
 (sys.test 'capture-call-1
     (= 3
         (gate
             (+ 1
-                (capture (fn (c) (+ 1 (c 1))))))))
+                (capture k (+ 1 (k 1)))))))
 
 (sys.test 'capture-call-n
     (= 5
         (gate
             (+ 1
-                (capture (fn (c) (+ 1 (c (c (c 1))))))))))
+                (capture k (+ 1 (k (k (k 1)))))))))
 
 
 ; errors - ensure, guard, and error
@@ -238,7 +238,7 @@
                         (seq
                             (set! x 5)
                             (+ 2
-                                (capture (fn (k) (k (k x))))))))))
+                                (capture k (k (k x)))))))))
         (and (= x 3) (= y 90)))))
 
 (sys.test 'ensure-error
