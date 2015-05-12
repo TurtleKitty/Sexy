@@ -227,7 +227,7 @@
 
 (macro while (pred body)
     ; call (next <value>) to skip the rest of the bodies and go to the next loop (continue)
-    ;   if predicate is true, <value> will be returned from the while expression
+    ;     if predicate evals false, <value> will be returned from the while expression
     ; call (return <value>) to terminate the loop and return said value (break)
     (def loop (gensym))
     (def rv (gensym))
@@ -241,6 +241,19 @@
                         ((unq loop) (seq (unqs (pair body rest))))
                         (unq rv))))
             ((unq loop) null)))))
+
+(macro _ (body)
+    (def uscore (gensym))
+    (def bodies (pair body rest))
+    (fun rename (form)
+        (if (pair? form)
+            (form.map rename)
+            (if (= form '_)
+                uscore
+                form)))
+    (qq
+        (fn ((unq uscore))
+            (unqs (rename bodies)))))
 
 (fun ndx (n x)
     (fun dx ()

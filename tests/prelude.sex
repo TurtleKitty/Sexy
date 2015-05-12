@@ -145,6 +145,13 @@
                 (list i total)))
         (= rv '(last 9 36))))
 
+(sys.test '_
+    (= '(2 4 9)
+        (list
+            ((_ (+ _ _)) 1)
+            ((_ (* 2 _)) 2)
+            ((_ (* _ _)) 3))))
+
 (sys.test 'ndx
     ((thunk
         (def roll (ndx 10 6)) ; fireball!
