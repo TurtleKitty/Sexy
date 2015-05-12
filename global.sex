@@ -94,6 +94,15 @@
 (fun xor (x y)
     (nor (and? x y) (nor x y)))
 
+(fun identity (x) x)
+
+(fun curry (f arg)
+    (fn ()
+        (apply f (pair arg rest))))
+
+(fun compose (f g)
+    (fn () (f (apply g rest))))
+
 (fun append (xs ys)
     (def rv (xs.append ys))
     (if rest

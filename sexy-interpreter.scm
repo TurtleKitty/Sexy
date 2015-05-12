@@ -511,6 +511,9 @@ END
 (define (sexy-send-number obj msg cont err)
     (case msg
         ((zero?) (cont (= obj 0)))
+        ((pos?) (cont (> obj 0)))
+        ((neg?) (cont (< obj 0)))
+        ((abs) (cont (abs obj)))
         ((to-bool) (cont (not (= obj 0))))
         ((to-string) (cont (number->string obj)))
         ((view) (cont obj))
@@ -526,9 +529,12 @@ END
         ((times) (cont 'niy))
         ((inc) (cont (+ obj 1)))
         ((dec) (cont (- obj 1)))
+        ((even?) (cont (even? obj)))
+        ((odd?) (cont (odd? obj)))
         ((floor) (cont obj))
         ((ceil) (cont obj))
         ((round) (cont obj))
+        ((truncate) (cont obj))
         (else (idk obj msg cont err))))
  
 (define (sexy-send-real obj msg cont err)
@@ -537,6 +543,7 @@ END
         ((floor) (cont (inexact->exact (floor obj))))
         ((ceil) (cont (inexact->exact (ceiling obj))))
         ((round) (cont (inexact->exact (round obj))))
+        ((truncate) (cont (inexact->exact (truncate obj))))
         (else (idk obj msg cont err))))
 
 (define (sexy-send-string obj msg cont err)
@@ -1715,6 +1722,27 @@ END
                             (if (< l 2)
                                 (err (list 'arity "send requires two arguments: an object and a message.") cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
+                (cons 'math
+                    (sexy-object
+                        (list
+                            'e   2.71828182845904
+                            'phi 1.61803398874989
+                            'pi  3.14159265358979
+                            'tau 6.28318530717959
+                            'max max
+                            'min min
+                            'sum (lambda args (apply + args))
+                            'product (lambda args (apply * args))
+                            'pow (lambda (x y) (expt x y))
+                            'sqrt sqrt
+                            'log log
+                            'sin sin
+                            'cos cos
+                            'tan tan
+                        )
+                        #f
+                        #f
+                        #f))
                 (cons 'gensym sexy-gensym)
                 (cons 'uuid uuid-v4)
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
