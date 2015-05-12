@@ -260,6 +260,15 @@
         (let (unq (apply append (gs.map (_ (list _ '(gensym))))))
             (unqs rest))))
 
+(macro each (name arg body)
+    (def bodies (pair body rest))
+    (with-gensyms (xs loop)
+        (qq
+            (let ((unq xs) (send (unq arg) 'to-list))
+                (fun (unq loop) ((unq name))
+                    (unqs bodies))
+                ((send (unq xs) 'each) (unq loop))))))
+
 (fun range (start end)
     (def step (if opt.step opt.step 1))
     (let loop (i start acc '())

@@ -549,6 +549,7 @@ END
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
                     ((to-number) (string->number obj))
+                    ((to-list) (niy))
                     ((to-string) obj)
                     ((size) (string-length obj)))))
         ((join) (cont 'niy))
@@ -562,13 +563,14 @@ END
 
 (define (sexy-send-empty obj msg cont err)
     (case msg
-        ((type empty? view to-bool head tail key val car cdr size)
+        ((type empty? view to-bool to-list head tail key val car cdr size)
             (cont
                 (case msg
                     ((type) 'empty)
                     ((empty?) #t)
                     ((view) '())
                     ((to-bool) #f)
+                    ((to-list) '())
                     ((head tail key val car cdr) 'null)
                     ((size) 0))))
         (else (sexy-send-pair obj msg cont err))))
@@ -582,7 +584,7 @@ END
 
 (define (sexy-send-pair obj msg cont err)
     (case msg
-        ((type empty? view to-bool to-vector head key car tail val cdr size reverse has? append take drop apply)
+        ((type empty? view to-bool to-list to-vector head key car tail val cdr size reverse has? append take drop apply)
             (cont
                 (case msg
                     ((type) 'pair)
@@ -905,6 +907,10 @@ END
             (cont
                 (lambda (code)
                     (sexy-eval code obj))))
+        ((expand)
+            (cont
+                (lambda (code)
+                    (sexy-expand code obj))))
         (else (idk obj msg cont err))))
 
 (define (sexy-send-vector obj msg cont err)
@@ -1711,7 +1717,6 @@ END
                                 (sexy-send (car args) (cadr args) cont err)))))
                 (cons 'gensym sexy-gensym)
                 (cons 'uuid uuid-v4)
-                (cons 'compile sexy-expand)
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)

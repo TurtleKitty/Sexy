@@ -145,6 +145,24 @@
                 (list i total)))
         (= rv '(last 9 36))))
 
+(sys.test 'each
+    (let (items (range 1 5) total 0)
+        (each n items
+            (set! total (+ total n)))
+        (= total 15)))
+
+(sys.test 'each-vector
+    (let (items (apply vector (range 1 5)) total 0)
+        (each n items
+            (set! total (+ total n)))
+        (= total 15)))
+
+(sys.test 'each-record
+    (let (items (: x 1 y 2 z 3 u 4 v 5) total 0)
+        (each n items
+            (set! total (+ total n.val)))
+        (= total 15)))
+
 (sys.test '_
     (= '(2 4 9)
         (list
