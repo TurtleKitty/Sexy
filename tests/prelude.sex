@@ -145,6 +145,37 @@
                 (list i total)))
         (= rv '(last 9 36))))
 
+(sys.test 'for
+    (= 210
+        (for (i 0 total 0) (<= i 20) (set! i i.inc)
+            (set! total (+ total i))
+            total)))
+
+(sys.test 'for-next
+    (= 110
+        (for (i 0 total 0) (<= i 20) (set! i i.inc)
+            (when (mod i 2)
+                (next total))
+            (set! total (+ total i))
+            total)))
+
+(sys.test 'for-redo
+    (= 220
+        (for (i 0 total 0) (<= i 20) (set! i i.inc)
+            (when (mod total 2)
+                (set! total total.inc)
+                (redo total))
+            (set! total (+ total i))
+            total)))
+
+(sys.test 'for-last
+    (= 105
+        (for (i 0 total 0) (<= i 20) (set! i i.inc)
+            (when (> total 100)
+                (last total))
+            (set! total (+ total i))
+            total)))
+
 (sys.test 'each
     (let (items (range 1 5) total 0)
         (each n items

@@ -260,6 +260,23 @@
         (let (unq (apply append (gs.map (_ (list _ '(gensym))))))
             (unqs rest))))
 
+(macro for (init pred update body)
+    (def bodies (pair body rest))
+    (with-gensyms (loop rv tmp)
+        (qq
+            (let (unq init)
+                (def (unq loop)
+                    (fn ((unq rv))
+                        (macro redo (v) (list 'return (list '(unq loop) v)))
+                        (macro next (v) (list 'seq '(unq update) (list 'return (list '(unq loop) v))))
+                        (macro last (v) (qq (return (unq v))))
+                        (if (unq pred)
+                            (let ((unq tmp) (seq (unqs bodies)))
+                                (unq update)
+                                ((unq loop) (unq tmp)))
+                            (unq rv))))
+                ((unq loop) null)))))
+
 (macro each (name arg body)
     (def bodies (pair body rest))
     (with-gensyms (xs loop)
