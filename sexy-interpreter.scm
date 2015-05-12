@@ -592,6 +592,7 @@ END
                             (map sexy-view obj)
                             (list '% (sexy-view (car obj)) (sexy-view (cdr obj)))))
                     ((to-bool) #t)
+                    ((to-list) obj)
                     ((to-vector) (list->vector obj))
                     ((head key car) (car obj))
                     ((tail val cdr) (cdr obj))
@@ -637,6 +638,18 @@ END
                         (if xs.empty?
                             acc
                             (funk xs.head (xs.tail.reduce acc funk)))))
+                obj
+                cont
+                err))
+        ((each)
+            (sexy-ho
+                '(fn (xs)
+                    (fn (funk)
+                        (if xs.empty?
+                            null
+                            (seq
+                                (funk xs.head)
+                                (xs.tail.each funk)))))
                 obj
                 cont
                 err))
