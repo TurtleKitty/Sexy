@@ -255,6 +255,18 @@
         (fn ((unq uscore))
             (unqs (rename bodies)))))
 
+(macro with-gensyms (gs)
+    (qq
+        (let (unq (apply append (gs.map (_ (list _ '(gensym))))))
+            (unqs rest))))
+
+(fun range (start end)
+    (def step (if opt.step opt.step 1))
+    (let loop (i start acc '())
+        (if (> i end)
+            acc.reverse
+            (loop (+ i step) (pair i acc)))))
+
 (fun ndx (n x)
     (fun dx ()
         (+ 1 (rand x)))
