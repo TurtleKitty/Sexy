@@ -1386,7 +1386,7 @@ END
     (if (pair? formals)
         (let loop ((f (car formals)) (fs (cdr formals)))
             (if (holy? f)
-                (blasphemy code name)
+                (blasphemy code f)
                 (if (pair? fs)
                     (loop (car fs) (cdr fs))
                     #f))))
