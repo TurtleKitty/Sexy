@@ -1593,7 +1593,7 @@ END
                 'socket 'niy
                 'spawn 'niy
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
-                'ts (lambda () (current-seconds))
+                'ts (lambda () (inexact->exact (current-seconds)))
                 'read
                     (sexy-proc
                         'primitive-function
@@ -1745,6 +1745,10 @@ END
                         #f))
                 (cons 'gensym sexy-gensym)
                 (cons 'uuid uuid-v4)
+                (cons 'parse
+                    (lambda (code-str)
+                        (sexy-read-file
+                            (open-input-string code-str))))
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)

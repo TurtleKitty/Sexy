@@ -302,6 +302,16 @@
             acc.reverse
             (loop (+ i step) (pair i acc)))))
 
+(macro matrix ()
+    ; (matrix ((0 0 1) (0 0 2)) ((0 1 1) (0 2 1))) -> (# (# (# 0 0 1) (# 0 0 2)) (# (# 0 1 1) (# 0 2 1)))
+    (qq
+        (vector
+            (unqs
+                (rest.map
+                    (_ (if (pair? _)
+                          (qq (matrix (unqs _)))
+                          _)))))))
+
 (fun ndx (n x)
     (fun dx ()
         (+ 1 (rand x)))
