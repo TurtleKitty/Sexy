@@ -256,7 +256,9 @@
     (def bodies (pair body rest))
     (fun rename (form)
         (if (pair? form)
-            (form.map rename)
+            (if (= form.head '_)
+                form
+                (form.map rename))
             (if (= form '_)
                 uscore
                 form)))
