@@ -898,7 +898,15 @@ END
                     'primitive-function
                     'env
                     (lambda (args opts cont err)
-                        (lookup obj (car args) cont err)))))
+                        (lookup
+                            obj
+                            (car args)
+                            (lambda (val)
+                                (cont
+                                    (if (eq? val not-found)
+                                        'null
+                                        val)))
+                            err)))))
         ((extend)
             (cont
                 (sexy-proc
