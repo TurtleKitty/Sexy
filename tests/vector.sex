@@ -7,7 +7,7 @@
 (sys.test 'vector-apply (= (vick 5) 0)) 
 
 (sys.test 'vector-type        (= vick.type 'vector))
-(sys.test 'vector-view        (= vick.view '#(8 6 7 5 3 0 9)))
+(sys.test 'vector-view        (= vick.view '(^ 8 6 7 5 3 0 9)))
 (sys.test 'vector-false       (= empty.to-bool false))
 (sys.test 'vector-true        (= vick.to-bool true))
 (sys.test 'vector-to-list     (= vick.to-list '(8 6 7 5 3 0 9)))

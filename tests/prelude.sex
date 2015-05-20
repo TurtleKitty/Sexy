@@ -201,6 +201,42 @@
             ((_ (* 2 _)) 2)
             ((_ (* _ _)) 3))))
 
+(sys.test 'generic-functions
+    ; generic functions!
+    (= '(murakami 4 -4 1 5 16 6 ("1" "2" "3" "4" "5" "6" "7"))
+        (let ()
+            (gen nosuke 'murakami) ; default case
+            (spec nosuke (x)
+                x.pos?
+                (* x x))
+            (spec nosuke (x)
+                x.neg?
+                (- (* x x)))
+            (spec nosuke (x y)
+                (> x y)
+                (+ x y))
+            (spec nosuke (x y)
+                (< x y)
+                (- y x))
+            (spec nosuke (x y)
+                (= x y)
+                (* x y))
+            (spec nosuke (x y z)
+                rest.size.zero?
+                (+ x y z))
+            (spec nosuke (x y z p d q r)
+                true
+                ((send (list x y z p d q r) 'map) (_ _.to-string)))
+            (list
+                (nosuke 0)
+                (nosuke 2)
+                (nosuke -2)
+                (nosuke 2 3)
+                (nosuke 3 2)
+                (nosuke 4 4)
+                (nosuke 1 2 3)
+                (nosuke 1 2 3 4 5 6 7)))))
+
 (sys.test 'ndx
     ((thunk
         (def roll (ndx 10 6)) ; fireball!

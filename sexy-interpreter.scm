@@ -935,9 +935,10 @@ END
                 (case msg
                     ((type) 'vector)
                     ((view)
-                        (vector-map
-                            (lambda (i x) (sexy-view x))
-                            obj))
+                        (cons '^
+                            (map
+                                sexy-view
+                                (vector->list obj))))
                     ((to-bool) (not (eq? (vector-length obj) 0)))
                     ((to-list) (vector->list obj))
                     ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
@@ -1403,7 +1404,7 @@ END
         env 
         (lambda (args opts cont err)
             (if (< (length args) arity)
-                (err (list 'arity code (sprintf "Procedure requires ~A arguments!" arity)) cont)
+                (err (list 'arity code (sprintf "Procedure requires ~A arguments. Given: " arity) args) cont)
                 (let* ((fargs (if (pair? args) (take args arity) '()))
                        (the-rest (if (pair? args) (drop args arity) '()))
                        (returner (lambda (v) (cont v))))

@@ -179,28 +179,28 @@
     (fun expand-quasiquote (expr nesting)
         (cond
             (not (pair? expr))
-                (if (constant? expr) expr (list 'quote expr))
+                (if (constant? expr)
+                    expr
+                    (list 'quote expr))
             (and (is? expr.head 'unq) (= expr.size 2))
                 (if nesting.zero?
                     expr.1
                     (combine-skeletons
                         ''unq
-                        (expand-quasiquote expr.tail (- nesting 1))
+                        (expand-quasiquote expr.tail nesting.dec)
                         expr))
             (and (is? expr.head 'qq) (= expr.size 2))
                 (combine-skeletons
                     ''qq
-                    (expand-quasiquote expr.tail (+ nesting 1))
+                    (expand-quasiquote expr.tail nesting.inc)
                     expr)
-            (if (pair? expr.head)
-                (and (= expr.head.head 'unqs) (= expr.head.size 2))
-                false)
+            (and (pair? expr.head) (= expr.head.head 'unqs) (= expr.head.size 2))
                 (if (= nesting 0)
                     (list 'append
                           expr.head.1
                           (expand-quasiquote expr.tail nesting))
                     (combine-skeletons
-                        (expand-quasiquote expr.head (- nesting 1))
+                        (expand-quasiquote expr.head nesting.dec)
                         (expand-quasiquote expr.tail nesting)
                         expr))
             default:
@@ -305,7 +305,7 @@
             (loop (+ i step) (pair i acc)))))
 
 (macro matrix ()
-    ; (matrix ((0 0 1) (0 0 2)) ((0 1 1) (0 2 1))) -> (# (# (# 0 0 1) (# 0 0 2)) (# (# 0 1 1) (# 0 2 1)))
+    ; (matrix ((0 0 1) (0 0 2)) ((0 1 1) (0 2 1))) -> (^ (^ (^ 0 0 1) (^ 0 0 2)) (^ (^ 0 1 1) (^ 0 2 1)))
     (qq
         (vector
             (unqs
@@ -313,6 +313,51 @@
                     (_ (if (pair? _)
                           (qq (matrix (unqs _)))
                           _)))))))
+
+(macro gen (name body)
+    (qq
+        (def (unq name)
+            (let (default (fn () (unqs (pair body rest)))
+                  clauses (vector.apply ((send (range 0 7) 'map) (_ '())))) ; max arity of 7 for generic functions
+                (fun add-clause! (pred body)
+                    (def idx pred.arity)
+                    (clauses.set!
+                        idx
+                        (pair (pair pred body) (clauses idx))))
+                (fun set-default! (body)
+                    (set! default body))
+                (fun gen-apply ()
+                    (def arity rest.size)
+                    (def the-rest rest)
+                    (let loop (n arity)
+                        (def cs (clauses n))
+                        (fun n-zero ()
+                            (if n.zero?
+                                (default.apply the-rest)
+                                (loop n.dec)))
+                        (if (not (pair? cs))
+                            (n-zero)
+                            (let larp (x cs.head xs cs.tail)
+                                (if (x.head.apply the-rest)
+                                    (x.tail.apply the-rest)
+                                    (if (pair? xs)
+                                        (larp xs.head xs.tail)
+                                        (n-zero)))))))
+                (fun view ()
+                    (send
+                        (pair clauses (pair 'default default))
+                        'view))
+                (object
+                    'add-clause! add-clause!
+                    'set-default! set-default!
+                    'apply gen-apply
+                    'view view
+                    (unq 'auto:) '(view)))))) ; not sure why (unq (quote keyword:)) works, but I'll take it
+
+(macro spec (name args pred body)
+    (qq ((send (unq name) 'add-clause!)
+            (fn (unq args) (unq pred))
+            (fn (unq args) (unqs (pair body rest))))))
 
 (fun ndx (n x)
     (fun dx ()
