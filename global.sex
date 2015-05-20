@@ -367,22 +367,14 @@
             total
             (loop m.dec (+ total (dx))))))
 
-;(macro spec (name pred exec)
-;    (def obj (env.lookup name))
-;    (def is-local (env.local? name))
-;    (if (not (fn? obj))
-;        (error "spec is used to specialize functions.")
-;        (seq
-;            (def fs obj.formals)
-;            (def foo (gensym))
-;            (def noob
-;                `(fn ,fs
-;                    (if ((fn ,fs ,pred) ,@fs)
-;                        ((fn ,fs ,exec) ,@fs)
-;                        (,foo (list ,@fs)))))
-;            (if is-local
-;                ; This will not work with globals.  Think on it some more.
-;                `(seq (def ,foo ,name) (set! ,name ,noob))
-;                `(seq (def ,foo ,name) (def ,name ,noob))))))
 
+; reserving for future use
+
+(def ! null)
+(def ? null)
+(def $ null)
+(def @ null)
+(def & null)
+(def ~ null)
+(def ^ null)
 
