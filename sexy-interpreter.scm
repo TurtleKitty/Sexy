@@ -1,8 +1,6 @@
 
 ; CHICKEN!
 
-(use chicken-syntax)
-
 (use srfi-1)
 (use srfi-13)
 (use srfi-69)
@@ -244,7 +242,7 @@ END
                         (sexy-send-object
                             x
                             '=
-                            (lambda (f) (cont (f y)))
+                            (lambda (f) (f y))
                             top-err)))))
         (equal? x y)))
 
@@ -1603,6 +1601,8 @@ END
                 'spawn 'niy
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
                 'ts (lambda () (inexact->exact (current-seconds)))
+                'sleep (lambda (s) (sleep s))
+                'shell (lambda (cmd) (process-run cmd))
                 'read
                     (sexy-proc
                         'primitive-function
@@ -1612,7 +1612,6 @@ END
                                 (lambda (in)
                                     (cont (sexy-read in)))
                                 err)))
-                'parse 'niy
                 'write
                     (sexy-proc
                         'primitive-function
@@ -1905,5 +1904,4 @@ END
     (loop (sexy-environment (cli-env))))
 
 (start)
-
 
