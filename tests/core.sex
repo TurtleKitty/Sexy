@@ -259,7 +259,7 @@
         (def x 1)
         (def y 2)
         (def z 3)
-        (wall (x y)
+        (wall (x y) ; new environment with passed parameters
             (def got-x (= x 1))
             (def got-y (= y 2))
             (def no-z  (not (env.has? 'z)))
