@@ -9,14 +9,16 @@ Features:
 
     * Lisp-1
     * immutable global environment
-    * classless object machinery for simple composition and delegation
+    * classless object machinery for easy composition and delegation
     * delimited lexical scope
     * first-class environments
     * first-class delimited continuations
     * some degree of object capability security
     * restartable exceptions
     * dirty Common-Lisp-style macros
-    * module import via HTTP
+    * lexically scoped module import via HTTP
+    * parameterized modules
+    * generic functions with predicate dispatch
 
 ```scheme
 
