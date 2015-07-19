@@ -462,7 +462,7 @@ END
         ((symbol? obj) (sexy-send-symbol obj msg cont err))
         ((number? obj) (sexy-send-number obj msg cont err))
         ((char? obj) (sexy-send-rune obj msg cont err))
-        ((string? obj) (sexy-send-string obj msg cont err))
+        ((string? obj) (sexy-send-text obj msg cont err))
         ((null? obj) (sexy-send-empty obj msg cont err))
         ((pair? obj) (sexy-send-pair obj msg cont err))
         ((procedure? obj) (sexy-send-primitive obj msg cont err))
@@ -484,8 +484,8 @@ END
 
 (define (sexy-send-symbol obj msg cont err)
     (case msg
-        ((to-string) (cont (symbol->string obj)))
         ((view) (cont obj))
+        ((to-text) (cont (symbol->string obj)))
         (else
             (case obj
                 ((true) (sexy-send-bool #t msg cont err))
@@ -501,7 +501,7 @@ END
     (case msg
         ((type) (cont 'bool))
         ((to-bool) (cont obj))
-        ((to-string) (cont (if obj "true" "false")))
+        ((to-text) (cont (if obj "true" "false")))
         ((view) (cont (if obj 'true 'false)))
         ((not) (cont (not obj)))
         (else (idk obj msg cont err))))
@@ -509,7 +509,7 @@ END
 (define (sexy-send-null obj msg cont err)
     (case msg
         ((to-bool) (cont #f))
-        ((to-string) (cont "null"))
+        ((to-text) (cont "null"))
         ((apply) (err 'null-is-not-applicable cont))
         (else (cont 'null))))
 
@@ -520,7 +520,7 @@ END
         ((neg?) (cont (< obj 0)))
         ((abs) (cont (abs obj)))
         ((to-bool) (cont (not (= obj 0))))
-        ((to-string) (cont (number->string obj)))
+        ((to-text) (cont (number->string obj)))
         ((view) (cont obj))
         (else
             (cond
@@ -566,21 +566,32 @@ END
         ((to-text) (cont (string obj)))
         (else (idk obj msg cont err))))
 
-(define (sexy-send-string obj msg cont err)
+(define (sexy-send-text obj msg cont err)
     (case msg
-        ((type view to-bool to-symbol to-number to-string size)
+        ((type view to-bool to-symbol to-number to-text size)
             (cont
                 (case msg
-                    ((type) 'string)
+                    ((type) 'text)
                     ((view) obj)
+                    ((clone) (string-copy obj))
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
                     ((to-number) (string->number obj))
                     ((to-list) (string->list obj))
-                    ((to-string) obj)
+                    ((to-text) obj)
                     ((size) (string-length obj)))))
-        ((join) (cont 'niy))
-        ((split) (cont 'niy))
+        ((split)
+            (cont
+                (lambda (x)
+                    (string-split obj x))))
+        ((set!)
+            (cont 
+                (lambda (idx val)
+                    (if (> idx (string-length obj))
+                        (err (list 'out-of-bounds idx obj) cont)
+                        (begin
+                            (string-set! obj idx val)
+                            obj)))))
         (else
             (if (number? msg)
                 (if (> (string-length obj) msg)
@@ -1044,7 +1055,7 @@ END
 
 (define (sexy-send-port obj msg cont err)
     (case msg
-        ((type to-bool view read list read-line to-list to-string write print say nl)
+        ((type to-bool view read list read-line to-list to-text write print say nl)
             (cont 
                 (case msg
                     ((type) 'port)
@@ -1054,7 +1065,7 @@ END
                     ((list) (lambda () (map sexy-read (read-file obj))))
                     ((read-line) (lambda () (read-line obj)))
                     ((to-list) (lambda () (read-lines obj)))
-                    ((to-string) (lambda () (read-string obj)))
+                    ((to-text) (lambda () (read-string obj)))
                     ((write) (lambda (x) (sexy-write x obj) 'null))
                     ((print) (lambda (x) (sexy-print x obj) 'null))
                     ((say) (lambda (x) (sexy-print x obj) (newline obj) 'null))
@@ -1725,6 +1736,8 @@ END
                 (cons 'list? list?)
                 (cons 'vector vector)
                 (cons 'vector? vector?)
+                (cons 'text string)
+                (cons 'text? string?)
                 (cons 'rand random)
                 (cons 'record
                     (sexy-proc

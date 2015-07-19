@@ -1,3 +1,3 @@
 #!/bin/sh
 
-csc -w -O2 -d0 sexy-interpreter.scm -profile -o sexy-prof
+csc -w -O2 -d0 interpreter.scm -profile -o sexy-prof

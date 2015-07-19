@@ -48,8 +48,8 @@
 
 (sys.test 'set-other
     (seq
-        (set! mute "I'm a string!")
-        (= mute "I'm a string!")))
+        (set! mute "I'm a text!")
+        (= mute "I'm a text!")))
 
 (sys.test 'set-higher
     (seq

@@ -4,8 +4,8 @@
 (sys.test 'symbol-view
     (= x.view 'foo))
 
-(sys.test 'symbol-to-string
-    (= x.to-string "foo"))
+(sys.test 'symbol-to-text
+    (= x.to-text "foo"))
 
 (sys.test 'symbol-etc
     (and

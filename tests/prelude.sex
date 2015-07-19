@@ -37,8 +37,11 @@
 (sys.test 'real?
     (real? 2.71828))
 
-(sys.test 'string?
-    (string? "foo"))
+(sys.test 'rune?
+    (rune? #\x))
+
+(sys.test 'text?
+    (text? "foo"))
 
 (sys.test 'pair?
     (pair? (% 1 2)))
@@ -226,7 +229,7 @@
                 (+ x y z))
             (spec nosuke (x y z p d q r)
                 true
-                ((send (list x y z p d q r) 'map) (_ _.to-string)))
+                ((send (list x y z p d q r) 'map) (_ _.to-text)))
             (list
                 (nosuke 0)
                 (nosuke 2)

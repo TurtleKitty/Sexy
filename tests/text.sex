@@ -1,0 +1,18 @@
+
+(def empty "")
+(def str "sexy")
+(def one "1")
+(def pi "3.14")
+(def fbb "foo.bar.baz")
+
+(sys.test 'text-type (= str.type 'text))
+(sys.test 'text-true (= str.to-bool true))
+(sys.test 'text-false (= empty.to-bool false))
+(sys.test 'text-to-symbol (= str.to-symbol 'sexy))
+(sys.test 'text-to-int (= one.to-number 1))
+(sys.test 'text-to-real (= pi.to-number 3.14))
+(sys.test 'text-split (= '("foo" "bar" "baz") (fbb.split ".")))
+(sys.test 'text-set! (= "2" (seq (one.set! 0 #\2) one)))
+
+; match?
+

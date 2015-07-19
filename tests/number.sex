@@ -24,11 +24,11 @@
 (sys.test 'real-type
     (= 'real pi.type))
 
-(sys.test 'to-string
+(sys.test 'to-text
     (and
-        (= zero.to-string "0")
-        (= one.to-string "1")
-        (= pi.to-string "3.14")))
+        (= zero.to-text "0")
+        (= one.to-text "1")
+        (= pi.to-text "3.14")))
 
 (sys.test '= (= one 1))
 
