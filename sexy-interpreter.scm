@@ -8,6 +8,7 @@
 (use numbers)
 (use posix)
 (use symbol-utils)
+(use utf8)
 (use utils)
 (use uuid)
 (use vector-lib)
@@ -28,6 +29,7 @@ sexy run <filename>
 sexy check <filename>
 sexy expand <filename>
 sexy compile <filename>
+sexy clean
 
 END
 )
@@ -160,6 +162,7 @@ END
                                 (cli-env)))))
                 ((run) (sexy-run (read-expand-cache-prog (fname) (cli-env))))
                 ((check) (niy))
+                ((clean) (niy))
                 ((compile)
                     (begin
                         (read-expand-cache-prog (fname) (cli-env))

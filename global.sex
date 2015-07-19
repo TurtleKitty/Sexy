@@ -76,7 +76,7 @@
 (macro or (x)
     (if rest
         (list 'if x 'true (or.apply rest))
-        (list 'send x ''to-bool)))
+        (list 'if x x 'false)))
 
 (fun or? (x)
     (if x
