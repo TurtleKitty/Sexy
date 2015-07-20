@@ -1775,8 +1775,8 @@ END
                             'tau 6.28318530717959
                             'max max
                             'min min
-                            'sum (lambda args (apply + args))
-                            'product (lambda args (apply * args))
+                            'sum (lambda (xs) (apply + xs))
+                            'product (lambda (xs) (apply * xs))
                             'pow (lambda (x y) (expt x y))
                             'sqrt sqrt
                             'log log
@@ -1793,6 +1793,10 @@ END
                     (lambda (code-str)
                         (sexy-read-file
                             (open-input-string code-str))))
+                (cons 'cat
+                    (lambda (seperator . args)
+                        (define strings (map (lambda (x) (sexy-send-atomic x 'to-text)) args))
+                        (string-join strings seperator)))
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)
