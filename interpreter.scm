@@ -1195,8 +1195,10 @@ END
 ; eval/apply
 
 (define (sexy-eval code env)
+    (define macro-env
+        (sexy-environment env))
     (define prog
-        (sexy-compile (sexy-expand code env)))
+        (sexy-compile (sexy-expand code macro-env)))
     (prog env top-cont top-err))
 
 (define (sexy-apply obj xs cont err)
@@ -1662,6 +1664,7 @@ END
                 'spawn 'niy
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
                 'ts (lambda () (inexact->exact (current-seconds)))
+                'hostname (get-host-name)
                 'sleep (lambda (s) (sleep s))
                 'shell (lambda (cmd) (process-run cmd))
                 'read
