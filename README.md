@@ -45,7 +45,7 @@ Features:
         (seq
             (sys.say x)
             (loop xs.head xs.tail))
-        'null))
+        null))
 
 ; ->
 ; (2 3 ())
