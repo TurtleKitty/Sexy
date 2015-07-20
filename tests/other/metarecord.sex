@@ -26,4 +26,4 @@
 (meta-meta x)
 (meta-meta x)
 
-(sys.show (sys.read))
+(sys.say (sys.read))

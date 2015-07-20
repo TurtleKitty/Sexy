@@ -13,7 +13,7 @@ Features:
     * delimited lexical scope
     * first-class environments
     * first-class delimited continuations
-    * some degree of object capability security
+    * object capability security on operating system interfaces
     * restartable exceptions
     * dirty Common-Lisp-style macros
     * lexically scoped module import via HTTP
@@ -24,7 +24,9 @@ Features:
 
 (def foo (fn (x y) (* x y)))
 
-(sys.stdout.say (foo 3 4)) 
+(sys.stdout.say (foo 3 4))
+
+; -> 12
 
 (fun bar (x y) 
     (if opt.snazz
@@ -41,9 +43,15 @@ Features:
 (let loop (x baz.head xs baz.tail)
     (if x
         (seq
-            (sys.show x)
+            (sys.say x)
             (loop xs.head xs.tail))
         'null))
+
+; ->
+; (2 3 ())
+; (2 3 (4 5))
+; (2 3 true null (4 5))
+; (2 3 true Yarr! (4 5))
 
 (def fibby
     (fn (x)
@@ -53,21 +61,10 @@ Features:
 
 (def things '(1 2 3 4 5 6 7))
 
-(sys.show (things.map fibby))
+(sys.say (things.map fibby))
+
+; -> (1 1 2 3 5 8 13)
 
 
 ```
-
-Output:
-
-```scheme
-12
-(2 3 ())
-(2 3 (4 5))
-(2 3 true null (4 5))
-(2 3 true Yarr! (4 5))
-(1 1 2 3 5 8 13)
-
-```
-
 

@@ -1062,10 +1062,11 @@ END
                     ((to-bool) #t)
                     ((view) obj)
                     ((read) (lambda () (sexy-read obj)))
-                    ((list) (lambda () (map sexy-read (read-file obj))))
+                    ((read-rune) (lambda () (read-char obj)))
                     ((read-line) (lambda () (read-line obj)))
                     ((to-list) (lambda () (read-lines obj)))
                     ((to-text) (lambda () (read-string obj)))
+                    ((to-sexy) (lambda () (map sexy-read (read-file obj))))
                     ((write) (lambda (x) (sexy-write x obj) 'null))
                     ((print) (lambda (x) (sexy-print x obj) 'null))
                     ((say) (lambda (x) (sexy-print x obj) (newline obj) 'null))
@@ -1676,7 +1677,7 @@ END
                                     (newline stderr)
                                     (cont 'null))
                                 err)))
-                'show
+                'say
                     (sexy-proc
                         'primitive-function
                         'sys

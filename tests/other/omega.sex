@@ -3,7 +3,7 @@
 
 (fun omega (x)
     (set! runs (+ 1 runs))
-    (sys.show (list 'run runs))
+    (sys.say (list 'run runs))
     (x x))
 
 (omega omega) ; KABOOM
