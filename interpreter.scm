@@ -1622,6 +1622,33 @@ END
                 'stdin   (current-input-port)
                 'stdout  (current-output-port)
                 'stderr  (current-error-port)
+                'env
+                    (sexy-object
+                        (list
+                            'get
+                                (lambda (x)
+                                    (define envt (get-environment-variables))
+                                    (define (try z)
+                                        (define p (assoc z envt))
+                                        (if p (cdr p) 'null))
+                                    (if (symbol? x)
+                                        (let ((y (symbol->string x)))
+                                            (try y))
+                                        (try x)))
+                            'set!
+                                (lambda (k v)
+                                    (if (symbol? k)
+                                        (setenv (symbol->string k) v)
+                                        (setenv k v))
+                                        v)
+                            'del!
+                                (lambda (k)
+                                    (if (symbol? k)
+                                        (unsetenv (symbol->string k))
+                                    (unsetenv k))
+                                    'null)
+                        )
+                        #f #f #f)
                 'exit exit
                 'srand
                     (lambda (v)
