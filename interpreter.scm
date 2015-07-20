@@ -118,8 +118,10 @@ END
     (define cpath (get-sexy-cached-path fpath))
     (define is-cached (and (file-exists? cpath) (file-newer? cpath fpath)))
     (if (and *use-cache* is-cached)
-        (read
-            (open-input-file cpath))
+        (with-input-from-file
+            cpath
+            (lambda ()
+                (read)))
         (let ((old-wd *cwd*))
             (set! *cwd* path-to)
             (set! *use-cache* #f)
@@ -132,6 +134,7 @@ END
                 (write expanded fport)
                 (close-output-port fport)
                 (set! *cwd* old-wd)
+                (set! *use-cache* #t)
                 expanded))))
 
 (define (start)
@@ -1840,11 +1843,11 @@ END
             (set! g-get (sexy-send-env noob 'get top-cont top-err))
             noob)))
 
-(define prelude-file "global.sex")
+(define global-prelude-file "global.sex")
 
 (define (add-global-prelude)
-    (define expanded-code (read-expand-cache-prog prelude-file (local-env)))
-    (define prelude-c (sexy-seq-subcontractor expanded-code #t))
+    (define global-prelude-text (read-expand-cache-prog global-prelude-file (local-env)))
+    (define prelude-c (sexy-seq-subcontractor global-prelude-text #t))
     (define full
         (prelude-c
                 genv

@@ -41,11 +41,10 @@ Features:
         (bar 2 snazz: true snarf: "Yarr!" 3 4 5)))
 
 (let loop (x baz.head xs baz.tail)
-    (if x
+    (when x
         (seq
             (sys.say x)
-            (loop xs.head xs.tail))
-        null))
+            (loop xs.head xs.tail))))
 
 ; ->
 ; (2 3 ())
