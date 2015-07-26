@@ -136,7 +136,10 @@ END
                             (open-input-file fpath))
                         env))
                    (fport (open-output-file cpath)))
-                (define finished (cons (find-modules expanded) expanded))
+                (define finished
+                    (cons
+                        (delete-duplicates (find-modules expanded))
+                        expanded))
                 (write finished fport)
                 (close-output-port fport)
                 (set! *cwd* old-wd)

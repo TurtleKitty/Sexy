@@ -1,0 +1,6 @@
+
+(lib (y)
+    (if (= y 0)
+        'y
+        (load "x.sex" y.dec)))
+

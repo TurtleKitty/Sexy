@@ -333,3 +333,13 @@
 (sys.test 'use-recursive
     ((fn ()
         (= 120 (load "modules/recursive.sex" 5)))))
+
+(sys.test 'use-mutually-recursive
+    (let ()
+        (and
+            (= 'x (load "modules/x.sex" 4))
+            (= 'y (load "modules/x.sex" 5))
+            (= 'y (load "modules/y.sex" 4))
+            (= 'x (load "modules/y.sex" 5)))))
+
+
