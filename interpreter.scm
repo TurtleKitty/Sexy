@@ -108,12 +108,17 @@ END
 (define (file-newer? f1 f2)
     (> (file-modification-time f1) (file-modification-time f2)))
 
+(define (make-module-absolute-path path)
+    (if (or (uri? path) (absolute-path? path))
+        path
+        (string-append *cwd* "/" path)))
+
+(define (make-module-path-to path)
+    (irregex-replace "(/.*)/.*$" path 1))
+
 (define (read-expand-cache-prog path env)
-    (define abs-path
-        (if (or (uri? path) (absolute-path? path))
-                path
-                (string-append *cwd* "/" path)))
-    (define path-to (irregex-replace "(/.*)/.*$" abs-path 1))
+    (define abs-path (make-module-absolute-path path))
+    (define path-to (make-module-path-to abs-path))
     (define fpath (find-file abs-path))
     (define cpath (get-sexy-cached-path fpath))
     (define is-cached (and (file-exists? cpath) (file-newer? cpath fpath)))
@@ -131,11 +136,30 @@ END
                             (open-input-file fpath))
                         env))
                    (fport (open-output-file cpath)))
-                (write expanded fport)
+                (define finished (cons (find-modules expanded) expanded))
+                (write finished fport)
                 (close-output-port fport)
                 (set! *cwd* old-wd)
                 (set! *use-cache* #t)
-                expanded))))
+                finished))))
+
+(define (find-modules prog)
+    (define (finder prog xs)
+        (let loop ((form (car prog)) (rest (cdr prog)) (mods xs))
+            (if (pair? form)
+                (if (eq? (car form) 'load)
+                    (let ((numods (cons (make-module-absolute-path (cadr form)) mods)))
+                        (if (pair? rest)
+                            (loop (car rest) (cdr rest) numods)
+                            numods))
+                    (let ((numods (finder form mods)))
+                        (if (pair? rest)
+                            (finder rest numods)
+                            numods)))
+                (if (pair? rest)
+                    (loop (car rest) (cdr rest) mods)
+                    mods))))
+    (cons 'modules (finder prog '())))
 
 (define (start)
     (define args (command-line-arguments))
@@ -1082,6 +1106,8 @@ END
     
 ; macro expansion
 
+(define done-been-expanded (mkht))
+
 (define (sexy-expand code env)
     (define (expand x)
         (sexy-expand x env))
@@ -1095,7 +1121,13 @@ END
         code
         (let ((head (car code)))
             (case head
-                ((load) (sexy-expand-load code env))
+                ((load)
+                    (let ((p (make-module-absolute-path (cadr code))))
+                        (if (hte? done-been-expanded p)
+                            (cons 'load (cons p (cddr code)))
+                            (begin
+                                (hts! done-been-expanded p #t)
+                                (sexy-expand-load code env)))))
                 ((def)
                     (let ((dval (caddr code)))
                         (if (pair? dval)
@@ -1140,6 +1172,7 @@ END
     (define args (car arg-pair))
     (define opts (cdr arg-pair))
     (define path (car args))
+    (define abs-path (make-module-absolute-path path))
     (define prog-env (local-env))
     (define prog
         (cond
@@ -1147,21 +1180,6 @@ END
             ((string? path)
                 (read-expand-cache-prog path prog-env))
             (else (sexy-error code "load: path must be a symbol or a string."))))
-    (define defs
-        (map
-            (lambda (expr)
-                (define name (sexy-gensym))
-                `(def ,name ,expr))
-            (cdr args)))
-    (define set-opts!
-        (map
-            (lambda (p)
-                (define key (car p))
-                (define val (cdr p))
-                `((send opt 'set!) (quote ,key) ,val))
-            (hash-table->alist (htr opts 'vars))))
-    (define pass-symbols (map cadr defs))
-    (define wall-args (append pass-symbols '(opt rest)))
     (define load-err
         (lambda (e cont)
             (debug 'LOAD-ERROR e)
@@ -1179,20 +1197,7 @@ END
                 (defr! k op-val))
             (map set-em! names))
         #f)
-    (let ((library (lookup prog-env 'sexy-library-export-function top-cont load-err)))
-        (if (and library (not (eq? library not-found)))
-            `(seq
-                ,@defs
-                ,@set-opts!
-                (wall ,wall-args
-                    (gate
-                        (guard
-                            (fn (exn cont)
-                                (error (list 'load-failure ,path exn)))
-                            ,@prog
-                            ((send sexy-library-export-function 'apply)
-                                ((send (list ,@pass-symbols) 'append) (send opt 'to-plist)))))))
-            'null)))
+    (cons 'load (cons abs-path (cddr code))))
 
 
 ; eval/apply
@@ -1289,6 +1294,7 @@ END
             ((guard)    (sexy-compile-guard code))
             ((error)    (sexy-compile-error code))
             ((ensure)   (sexy-compile-ensure code))
+            ((load)     (sexy-compile-load code))
             (else       (sexy-compile-application code)))))
 
 (define (sexy-compile-atom code)
@@ -1547,6 +1553,25 @@ END
                     (sexy-apply protector-thunk '() identity err)
                     (err e k))
                 (p-cont (expr-c env identity p-err)))
+            err)))
+
+(define (sexy-compile-load code)
+    (define path (cadr code))
+    (define module (if (hte? sexy-modules path) (htr sexy-modules path) (lambda args 'null)))
+    (define load-env (local-env))
+    (define args-c (sexy-compile-list (cddr code)))
+    (frag 
+        (args-c
+            env
+            (lambda (args)
+                (module load-env top-cont top-err)
+                (lookup load-env 'sexy-library-export-function
+                    (lambda (exporter)
+                        (if (eq? exporter not-found)
+                            (cont (lambda args 'null))
+                            (cont
+                                (sexy-apply exporter args top-cont top-err))))
+                    top-err))
             err)))
 
 (define (sexy-compile-list xs)
@@ -1846,7 +1871,7 @@ END
 (define global-prelude-file "global.sex")
 
 (define (add-global-prelude)
-    (define global-prelude-text (read-expand-cache-prog global-prelude-file (local-env)))
+    (define global-prelude-text (cdr (read-expand-cache-prog global-prelude-file (local-env))))
     (define prelude-c (sexy-seq-subcontractor global-prelude-text #t))
     (define full
         (prelude-c
@@ -1932,13 +1957,36 @@ END
         (g-get x)
         not-found))
 
+(define sexy-modules (mkht))
+
+(define (def-sexy-module path)
+    (define has? (hte? sexy-modules path))
+    (if has?
+        #f
+        (let ((expanded (read-expand-cache-prog path (local-env))))
+            (hts! sexy-modules path 'loading)
+            (sexy-eval-module expanded path))))
+
 (define (sexy-run program)
     (if (pair? program)
-        ((sexy-seq-subcontractor program #t)
-            (cli-env)
-            (lambda (v) (exit))
-            top-err)
+        (let ((mods (cdar program)))
+            (map def-sexy-module mods)
+            ((sexy-seq-subcontractor (cdr program) #t)
+                (cli-env)
+                (lambda (v) (exit))
+                top-err))
         (exit)))
+
+(define (sexy-eval-module program path)
+    (define nop (lambda args 'null))
+    (if (pair? program)
+        (let ((mods (cdar program)))
+            (map def-sexy-module mods)
+            (hts!
+                sexy-modules
+                path
+                (sexy-seq-subcontractor (cdr program) #t)))
+        (hts! sexy-modules path nop)))
 
 (define (sexy-repl)
     (define stdin (current-input-port))

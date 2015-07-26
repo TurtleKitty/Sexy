@@ -265,6 +265,12 @@
             (def no-z  (not (env.has? 'z)))
             (and got-x got-y no-z)))))
 
+(sys.test 'unicode
+    (seq
+        (def λא象
+            (fn () "λא象"))
+        (= (λא象) "λא象")))
+
 
 ; use
 
@@ -324,11 +330,6 @@
             (= (send (calc-xyz 1 2 3) 'code) '(fn (v) (* v 17)))
             (= ((calc-xyz 1 2 3) 4 ) 68)))))
 
-; misc
-
-(sys.test 'unicode
-    (seq
-        (def λא象
-            (fn () "λא象"))
-        (= (λא象) "λא象")))
-
+(sys.test 'use-recursive
+    ((fn ()
+        (= 120 (load "modules/recursive.sex" 5)))))

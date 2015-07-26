@@ -17,7 +17,7 @@ Features:
     * restartable exceptions
     * dirty Common-Lisp-style macros
     * lexically scoped module import via HTTP
-    * parameterized modules
+    * parameterized, recursive modules
     * generic functions with predicate dispatch
 
 ```scheme
