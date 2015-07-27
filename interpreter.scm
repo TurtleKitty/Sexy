@@ -5,16 +5,16 @@
 (use srfi-13)
 (use srfi-69)
 
+(use http-client)
+(use tcp)
 (use numbers)
+(use openssl)
 (use posix)
 (use symbol-utils)
 (use utf8)
 (use utils)
 (use uuid)
 (use vector-lib)
-
-(use openssl)
-(use http-client)
 
 
 ; start
@@ -773,7 +773,8 @@ END
     (cont 
         (case msg
             ((type) (cont 'fn))
-            ((view code) 'primitive-function)
+            ((view) 'primitive-function)
+            ((code) '0xDEADBEEF)
             ((to-bool) #t)
             ((env) 'global)
             ((arity)
@@ -1085,7 +1086,7 @@ END
 
 (define (sexy-send-port obj msg cont err)
     (case msg
-        ((type to-bool view read list read-line to-list to-text write print say nl)
+        ((type to-bool view read read-rune read-line to-list to-text to-sexy write print say nl close)
             (cont 
                 (case msg
                     ((type) 'port)
@@ -1100,7 +1101,13 @@ END
                     ((write) (lambda (x) (sexy-write x obj) 'null))
                     ((print) (lambda (x) (sexy-print x obj) 'null))
                     ((say) (lambda (x) (sexy-print x obj) (newline obj) 'null))
-                    ((nl) (newline obj)))))
+                    ((nl) (newline obj))
+                    ((close) (begin
+                        (if (input-port? obj)
+                            (close-input-port obj)
+                            (close-output-port obj))
+                        'null))
+                )))
         (else (idk msg obj cont err))))
 
 (define (sexy-bool obj cont err)
@@ -1689,10 +1696,23 @@ END
                         'null)
                 'file
                     (sexy-object
+                        (list
+                            'open (sexy-proc
+                                    'primitive-function
+                                    'sys
+                                    (lambda (args opts cont err)
+                                        (define path (car args))
+                                        (define mode ((sexy-send-atomic opts 'get) 'mode))
+                                        (cont
+                                            (if (eq? mode 'w)
+                                                (open-output-file path)
+                                                (open-input-file path)))))
+                        )
+                        #f #f #f)
+                'socket
+                    (sexy-object
                         (list)
                         #f #f #f)
-                'socket 'niy
-                'spawn 'niy
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
                 'ts (lambda () (inexact->exact (current-seconds)))
                 'uname (system-information)
