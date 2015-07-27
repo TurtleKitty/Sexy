@@ -8,6 +8,7 @@ Sexy is an object-oriented dialect of Lisp inspired by Scheme, Self, and Perl.
 Features:
 
     * Lisp-1
+    * tail-call optimization
     * immutable global environment
     * classless object machinery for easy composition and delegation
     * delimited lexical scope

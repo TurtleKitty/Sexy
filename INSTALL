@@ -1,0 +1,22 @@
+
+The Sexy interpreter is written in Chicken Scheme.
+You will need this to compile it.
+
+http://www.call-cc.org/
+
+You will also need a number of "eggs".
+Once Chicken is in place, the following command should do it:
+
+chicken-install srfi-1 srfi-13 srfi-69 numbers posix symbol-utils utf8 utils uuid vector-lib openssl http-client
+
+./bin/compile.sh will compile sexy into an executable.
+
+./bin/run_tests.sh will use the new binary to execute everything in ./tests.
+
+./bin/clear_cache.sh may be useful on occasion;
+it deletes cached copies of macro-expanded Sexy code
+and all downloaded Sexy modules.
+
+Have fun! ^_^
+
+
