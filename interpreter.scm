@@ -1695,14 +1695,17 @@ END
                 'spawn 'niy
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
                 'ts (lambda () (inexact->exact (current-seconds)))
+                'uname (system-information)
                 'hostname (get-host-name)
                 'sleep (lambda (s) (sleep s))
                 'shell (lambda (cmd) (process-run cmd))
                 'signal (lambda (pid sig) (process-signal pid sig))
                 'fork (lambda (thunk) (process-fork thunk))
                 'pid (lambda () (current-process-id))
+                'uid (lambda () (current-user-id))
+                'gid (lambda () (current-group-id))
                 'parent-pid (lambda () (parent-process-id))
-                'gid (lambda (pid) (process-group-id pid))
+                'process-gid (lambda (pid) (process-group-id pid))
                 'read
                     (sexy-proc
                         'primitive-function
@@ -1760,7 +1763,7 @@ END
                     (lambda (tname ok)
                         (debug tname (if ok 'ok 'FAIL))
                         'null))
-            '(ts 64764 pid parent-pid)
+            '(ts 64764 uid gid pid parent-pid process-gid)
             #f
             #f))
     (extend lenv
