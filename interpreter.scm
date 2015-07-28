@@ -506,7 +506,7 @@ END
                     ((fn)     (sexy-send-fn obj msg cont err))
                     ((operator)  (sexy-send-fn obj msg cont err))
                     (else (sexy-send-object obj msg cont err)))))
-        ((eof-object? obj) (display 'EOF) (newline) (newline) (exit))
+        ((eof-object? obj) (display 'EOF) (newline) (exit))
         (else (wtf))))
 
 (define (sexy-send-atomic obj msg)
@@ -1092,12 +1092,12 @@ END
                     ((type) 'port)
                     ((to-bool) #t)
                     ((view) obj)
-                    ((read) (lambda () (sexy-read obj)))
-                    ((read-rune) (lambda () (read-char obj)))
-                    ((read-line) (lambda () (read-line obj)))
-                    ((to-list) (lambda () (read-lines obj)))
-                    ((to-text) (lambda () (read-string obj)))
-                    ((to-sexy) (lambda () (map sexy-read (read-file obj))))
+                    ((read) (sexy-read obj))
+                    ((read-rune) (read-char obj))
+                    ((read-line) (read-line obj))
+                    ((to-list) (read-lines obj))
+                    ((to-text) (read-string #f obj))
+                    ((to-sexy) (sexy-read-file obj))
                     ((write) (lambda (x) (sexy-write x obj) 'null))
                     ((print) (lambda (x) (sexy-print x obj) 'null))
                     ((say) (lambda (x) (sexy-print x obj) (newline obj) 'null))
@@ -1697,16 +1697,32 @@ END
                 'file
                     (sexy-object
                         (list
-                            'open (sexy-proc
-                                    'primitive-function
-                                    'sys
-                                    (lambda (args opts cont err)
-                                        (define path (car args))
-                                        (define mode ((sexy-send-atomic opts 'get) 'mode))
-                                        (cont
-                                            (if (eq? mode 'w)
-                                                (open-output-file path)
-                                                (open-input-file path)))))
+                            'open
+                                (sexy-object
+                                    (list
+                                        'in open-input-file
+                                        'out open-output-file
+                                    )
+                                    #f #f #f)
+                            'with
+                                (sexy-object
+                                    (list
+                                        'in (sexy-proc
+                                                'primitive-function
+                                                'sys
+                                                (lambda (args opts cont err)
+                                                    (call-with-input-file (car args)
+                                                        (lambda (f)
+                                                            (sexy-apply (cadr args) (list f) cont err)))))
+                                        'out (sexy-proc
+                                                'primitive-function
+                                                'sys
+                                                (lambda (args opts cont err)
+                                                    (call-with-output-file (car args)
+                                                        (lambda (f)
+                                                            (sexy-apply (cadr args) (list f) cont err)))))
+                                    )
+                                    #f #f #f)
                         )
                         #f #f #f)
                 'socket
@@ -1785,7 +1801,7 @@ END
                     (lambda (tname ok)
                         (debug tname (if ok 'ok 'FAIL))
                         'null))
-            '(ts 64764 uid gid pid parent-pid process-gid)
+            '(ts uid gid pid parent-pid process-gid exit 64764)
             #f
             #f))
     (extend lenv
