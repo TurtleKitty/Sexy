@@ -6,11 +6,12 @@
 (use srfi-69)
 
 (use http-client)
-(use tcp)
+(use medea)
 (use numbers)
 (use openssl)
 (use posix)
 (use symbol-utils)
+(use tcp)
 (use utf8)
 (use utils)
 (use uuid)
@@ -64,10 +65,7 @@ END
     (define (reader port)
         (read-string #f port))
     (handle-exceptions exn
-        (begin
-            (debug "URI not found!" uri)
-            (debug (condition->list exn))
-            not-found)
+            not-found
             (call-with-input-request
                 uri
                 #f
@@ -163,6 +161,31 @@ END
                     (loop (car rest) (cdr rest) mods)
                     mods))))
     (cons 'modules (finder prog '())))
+
+(define symbols.sex #<<END
+
+(fun sexy (sym)
+    (def str sym.to-text)
+    (def xs (str.split "/"))
+    (def path
+        (cat.apply
+            (pair "/"
+                (pair "https://raw.githubusercontent.com/TurtleKitty/sexy-lib/master" xs.tail))))
+    path)
+
+(fun github (sym)
+    (def str sym.to-text)
+    (def xs (str.split "/"))
+    (def user xs.1)
+    (def repo xs.2)
+    (def repo-path (xs.drop 3))
+    (def path
+        (cat.apply
+            ((send (list "/" "https://raw.githubusercontent.com" user repo "master") 'append) xs.tail)))
+    path)
+
+END
+)
 
 (define (start)
     (define args (command-line-arguments))
@@ -506,7 +529,7 @@ END
                     ((fn)     (sexy-send-fn obj msg cont err))
                     ((operator)  (sexy-send-fn obj msg cont err))
                     (else (sexy-send-object obj msg cont err)))))
-        ((eof-object? obj) (display 'EOF) (newline) (exit))
+        ((eof-object? obj) (cont 'EOF))
         (else (wtf))))
 
 (define (sexy-send-atomic obj msg)
@@ -1898,6 +1921,12 @@ END
                             (if (< l 2)
                                 (err (list 'arity "send requires two arguments: an object and a message.") cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
+                (cons 'fetch
+                    (lambda (uri)
+                        (define got (get-uri uri))
+                        (if (eq? got not-found)
+                            'null
+                            got)))
                 (cons 'math
                     (sexy-object
                         (list
@@ -1915,6 +1944,52 @@ END
                             'sin sin
                             'cos cos
                             'tan tan
+                        )
+                        #f
+                        #f
+                        #f))
+                (cons 'json
+                    (sexy-object
+                        (list
+                            'parse
+                                (lambda (json-str)
+                                    (define schemified (read-json json-str))
+                                    (define (revise obj)
+                                        (cond
+                                            ((vector? obj)
+                                                (vector-map
+                                                    (lambda (i x) (revise x))
+                                                    obj))
+                                            ((list? obj)
+                                                (let ((rec (sexy-record)))
+                                                    (hts! rec 'vars
+                                                        (alist->hash-table
+                                                            (map
+                                                                (lambda (x) (cons (car x) (revise (cdr x))))
+                                                                obj)))
+                                                    rec))
+                                            (else obj)))
+                                    (revise schemified))
+                            'stringify
+                                (lambda (obj)
+                                    (define (revise x)
+                                        (cond
+                                            ((char? x) (string x))
+                                            ((list? x) (revise (list->vector x)))
+                                            ((vector? x)
+                                                (vector-map
+                                                    (lambda (i y) (revise y))
+                                                    x))
+                                            ((hash-table? x)
+                                                (let ((t (htr x 'type)))
+                                                    (if (eq? t 'record)
+                                                        (let ((pairs (hash-table->alist (htr x 'vars))))
+                                                            (map 
+                                                                (lambda (x) (cons (revise (car x)) (revise (cdr x))))
+                                                                pairs))
+                                                        (error "json.stringify: I don't know how to stringify this object!" x))))
+                                            (else x)))
+                                    (json->string (revise obj)))
                         )
                         #f
                         #f
@@ -2087,9 +2162,12 @@ END
                             (define nuvars (fn evars))
                             (hts! mom  'vars nuvars)
                             (hts! noob 'mama mom)
-                            (sexy-write v stdout)
-                            (newline)
-                            (loop noob))
+                            (if (eof-object? v)
+                                (exit)
+                                (begin
+                                    (sexy-write v stdout)
+                                    (newline)
+                                    (loop noob))))
                         repl-err))
                 repl-err)))
     (newline)

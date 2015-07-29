@@ -7,7 +7,7 @@ http://www.call-cc.org/
 You will also need a number of "eggs".
 Once Chicken is in place, the following command should do it:
 
-chicken-install srfi-1 srfi-13 srfi-69 numbers posix symbol-utils utf8 utils uuid vector-lib openssl http-client
+chicken-install srfi-1 srfi-13 srfi-69 http-client medea numbers openssl posix symbol-utils utf8 utils uuid vector-lib
 
 ./bin/compile.sh will compile sexy into an executable.
 
