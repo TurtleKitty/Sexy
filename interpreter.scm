@@ -662,7 +662,7 @@ END
 
 (define (sexy-send-text obj msg cont err)
     (case msg
-        ((type view to-bool to-symbol to-number to-text size)
+        ((type view clone to-bool to-symbol to-number to-list to-text size)
             (cont
                 (case msg
                     ((type) 'text)

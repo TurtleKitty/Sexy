@@ -1,6 +1,4 @@
 
-; https://api.github.com/repos/TurtleKitty/sexy-lib/contents/test/sexy-lib
-
 (fun get-latest-version (repo path version)
     (fun frac (x) (x.split "."))
     (fun filt (n)
