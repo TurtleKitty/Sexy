@@ -342,4 +342,10 @@
             (= 'y (load "modules/y.sex" 4))
             (= 'x (load "modules/y.sex" 5)))))
 
+(sys.test 'use-symbol
+    (let ()
+        (and
+            (= '(test 2) (load sexy/test/sexy-lib/0 2))
+            (= '(test 3) (load github/TurtleKitty/sexy-lib/test/sexy-lib/0 3)))))
+
 

@@ -1,0 +1,48 @@
+
+; https://api.github.com/repos/TurtleKitty/sexy-lib/contents/test/sexy-lib
+
+(fun get-latest-version (repo path version)
+    (fun frac (x) (x.split "."))
+    (fun filt (n)
+        (fn (x)
+            (= x.0 n)))
+    (fun ton (x) (x.map (_ _.to-number)))
+    (fun sorter (x y)
+        (if (< x.0 y.0)
+            false
+            (if (< x.1 y.1)
+                false
+                (if (< x.2 y.2)
+                    false
+                    true))))
+    (def api-uri (cat "/" "https://api.github.com/repos" repo "contents" path))
+    (def git-info (json.parse (fetch api-uri)))
+    (when (not git-info)
+        (error (list 'not-found git-dir)))
+    (def names (git-info.map (_ _.name)))
+    (def nums (names.map (_ (ton (frac _)))))
+    (def only (nums.filter (filt version)))
+    (def sorted (only.sort sorter))
+    (def the-one (cat.apply (pair "." sorted.0)))
+    (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
+
+(fun sexy (str)
+    (def xs (str.split "/"))
+    (def version xs.reverse.head)
+    (def path
+        (cat.apply
+            (pair "/"
+                (xs.take xs.size.dec))))
+    (get-latest-version "TurtleKitty/sexy-lib" path version.to-number))
+
+(fun github (str)
+    (def xs (str.split "/"))
+    (def user xs.0)
+    (def repo xs.1)
+    (def repo-path
+        (cat.apply 
+            (pair "/" ((send (xs.drop 2) 'take) (- xs.size 3)))))
+    (def version xs.reverse.head)
+    (get-latest-version (cat "/" user repo) repo-path version.to-number))
+
+

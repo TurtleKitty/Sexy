@@ -51,8 +51,9 @@ END
 
 (define *cwd* (current-directory))
 (define *use-cache* #t)
-(define sexy-mod-dir   "~/.sexy/modules")
-(define sexy-cache-dir "~/.sexy/compiled")
+(define sexy-use-symbols "~/.sexy/symbols.sex")
+(define sexy-mod-dir     "~/.sexy/modules")
+(define sexy-cache-dir   "~/.sexy/compiled")
 
 (define (uri? str)
     (string-contains str ":"))
@@ -107,9 +108,19 @@ END
     (> (file-modification-time f1) (file-modification-time f2)))
 
 (define (make-module-absolute-path path)
-    (if (or (uri? path) (absolute-path? path))
-        path
-        (string-append *cwd* "/" path)))
+    (cond
+        ((symbol? path)
+            (let ((str (symbol->string path)))
+                (define xs (string-split str "/"))
+                (define name (string->symbol (car xs)))
+                (define the-rest (string-join (cdr xs) "/"))
+                (define the-fun (lookup load-symbols-env name top-cont top-err))
+                (if (not (and (hash-table? the-fun) (eq? (htr the-fun 'type) 'fn)))
+                    (sexy-error code "No entry found in symbols.sex for " name)
+                    (sexy-apply the-fun (list the-rest) top-cont top-err))))
+        ((or (uri? path) (absolute-path? path)) path)
+        (else (string-append *cwd* "/" path))))
+
 
 (define (make-module-path-to path)
     (irregex-replace "(/.*)/.*$" path 1))
@@ -164,25 +175,49 @@ END
 
 (define symbols.sex #<<END
 
-(fun sexy (sym)
-    (def str sym.to-text)
+(fun get-latest-version (repo path version)
+    (fun frac (x) (x.split "."))
+    (fun filt (n)
+        (fn (x)
+            (= x.0 n)))
+    (fun ton (x) (x.map (_ _.to-number)))
+    (fun sorter (x y)
+        (if (< x.0 y.0)
+            false
+            (if (< x.1 y.1)
+                false
+                (if (< x.2 y.2)
+                    false
+                    true))))
+    (def api-uri (cat "/" "https://api.github.com/repos" repo "contents" path))
+    (def git-info (json.parse (fetch api-uri)))
+    (when (not git-info)
+        (error (list 'not-found git-dir)))
+    (def names (git-info.map (_ _.name)))
+    (def nums (names.map (_ (ton (frac _)))))
+    (def only (nums.filter (filt version)))
+    (def sorted (only.sort sorter))
+    (def the-one (cat.apply (pair "." sorted.0)))
+    (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
+
+(fun sexy (str)
     (def xs (str.split "/"))
+    (def version xs.reverse.head)
     (def path
         (cat.apply
             (pair "/"
-                (pair "https://raw.githubusercontent.com/TurtleKitty/sexy-lib/master" xs.tail))))
-    path)
+                (xs.take xs.size.dec))))
+    (get-latest-version "TurtleKitty/sexy-lib" path version.to-number))
 
-(fun github (sym)
-    (def str sym.to-text)
+(fun github (str)
     (def xs (str.split "/"))
-    (def user xs.1)
-    (def repo xs.2)
-    (def repo-path (xs.drop 3))
-    (def path
-        (cat.apply
-            ((send (list "/" "https://raw.githubusercontent.com" user repo "master") 'append) xs.tail)))
-    path)
+    (def user xs.0)
+    (def repo xs.1)
+    (def repo-path
+        (cat.apply 
+            (pair "/" ((send (xs.drop 2) 'take) (- xs.size 3)))))
+    (def version xs.reverse.head)
+    (get-latest-version (cat "/" user repo) repo-path version.to-number))
 
 END
 )
@@ -199,8 +234,13 @@ END
             #f))
     (prep-dir sexy-mod-dir)
     (prep-dir sexy-cache-dir)
+    (if (not (file-exists? sexy-use-symbols))
+        (with-output-to-file sexy-use-symbols
+            (lambda ()
+                (write-string symbols.sex))))
     (global-env)
     (add-global-prelude)
+    (symbols-env)
     (if (not (pair? args))
         (usage)
         (let ((cmd (string->symbol (car args))))
@@ -616,6 +656,7 @@ END
         ((uc) (cont (char-upcase obj)))
         ((lc) (cont (char-downcase obj)))
         ((to-bool) (cont #t))
+        ((to-number) (cont (char->integer obj)))
         ((to-text) (cont (string obj)))
         (else (idk obj msg cont err))))
 
@@ -1208,10 +1249,8 @@ END
     (define abs-path (make-module-absolute-path path))
     (define prog-env (local-env))
     (define prog
-        (cond
-            ((symbol? path) (niy))
-            ((string? path)
-                (read-expand-cache-prog path prog-env))
+        (if (or (symbol? path) (string? path))
+            (read-expand-cache-prog path prog-env)
             (else (sexy-error code "load: path must be a symbol or a string."))))
     (define load-err
         (lambda (e cont)
@@ -1650,6 +1689,9 @@ END
 (define g-has? #f)
 (define g-get  #f)
 
+(define load-symbols-env #f)
+(define loaded-module-symbols)
+
 (define (local-env)
     (sexy-environment #f))
 
@@ -1836,6 +1878,13 @@ END
         top-cont
         top-err))
 
+(define (symbols-env)
+    (define expanded (read-expand-cache-prog sexy-use-symbols (local-env)))
+    (define compiled (sexy-seq-subcontractor (cdr expanded) #t))
+    (define the-env (local-env))
+    (compiled the-env top-cont top-err)
+    (set! load-symbols-env the-env))
+
 (define (global-env)
     (define (make-new)
         (define prelude (local-env))
@@ -2001,9 +2050,9 @@ END
                         (sexy-read-file
                             (open-input-string code-str))))
                 (cons 'cat
-                    (lambda (seperator . args)
+                    (lambda (separator . args)
                         (define strings (map (lambda (x) (sexy-send-atomic x 'to-text)) args))
-                        (string-join strings seperator)))
+                        (string-join strings separator)))
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)

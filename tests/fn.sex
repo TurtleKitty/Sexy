@@ -3,7 +3,7 @@
 
 (sys.test 'primitive-type (= pair.type 'fn))
 (sys.test 'primitive-view (= pair.view 'primitive-function))
-(sys.test 'primitive-code (= pair.code 'primitive-function))
+(sys.test 'primitive-code (= pair.code '0xDEADBEEF))
 (sys.test 'primitive-true (= pair.to-bool true))
 (sys.test 'primitive-env (= pair.env 'global))
 (sys.test 'primitive-arity (= pair.arity 2))
