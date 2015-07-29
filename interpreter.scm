@@ -1842,9 +1842,33 @@ END
                 (cons 'pair? pair?)
                 (cons 'list list)
                 (cons 'list? list?)
-                (cons 'vector vector)
+                (cons 'vector
+                    (sexy-proc
+                        'primitive-function
+                        'global
+                        (lambda (args opts cont err)
+                            (define size ((sexy-send-atomic opts 'get) 'size))
+                            (define init ((sexy-send-atomic opts 'get) 'init))
+                            (cont
+                                (if (integer? size)
+                                    (let ((v (make-vector size init)))
+                                        (vector-map (lambda (i x) (vector-set! v i x)) (list->vector args))
+                                        v)
+                                    (apply vector args))))))
                 (cons 'vector? vector?)
-                (cons 'text string)
+                (cons 'text
+                    (sexy-proc
+                        'primitive-function
+                        'global
+                        (lambda (args opts cont err)
+                            (define size ((sexy-send-atomic opts 'get) 'size))
+                            (define init ((sexy-send-atomic opts 'get) 'init))
+                            (cont
+                                (if (integer? size)
+                                    (let ((s (make-string size (if (char? init) init #\space))))
+                                        (vector-map (lambda (i x) (string-set! s i x)) (list->vector args))
+                                        s)
+                                    (apply string args))))))
                 (cons 'text? string?)
                 (cons 'rand random)
                 (cons 'record
