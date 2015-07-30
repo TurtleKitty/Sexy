@@ -541,6 +541,56 @@ END
                     (idk this (car args) cont err)))))
     this)
 
+(define (sexy-listener l)
+    (sexy-object
+        (list
+            'type   'listener
+            'view   (list 'listener (tcp-listener-port l))
+            'to-bool #t
+            'port   (tcp-listener-port l)
+            'ready? (lambda () (tcp-accept-ready? l))
+            'accept (lambda ()
+                        (let-values (((in out) (tcp-accept l)))
+                            (sexy-socket in out)))
+            'close  (lambda () (tcp-close l) 'null)
+        )
+        '(ready? accept close)
+        #f
+        #f))
+
+(define (sexy-socket in out)
+    (define-values (l-addr r-addr) (tcp-addresses in))
+    (define-values (l-port r-port) (tcp-port-numbers in))
+    (sexy-object
+        (list
+            'type   'socket
+            'view   (list 'socket l-addr l-port '-> r-addr r-port)
+            'to-bool #t
+            'local-addr l-addr
+            'local-port l-port
+            'remote-addr r-addr
+            'remote-port r-port
+            'read (lambda () (sexy-read in))
+            'read-rune (lambda () (read-char in))
+            'read-line (lambda () (read-line in))
+            'write  (lambda (x)
+                        (sexy-write x out) 'null)
+            'print  (lambda (x)
+                    (sexy-print x out) 'null)
+            'say (lambda (x)
+                    (sexy-print x out)
+                    (newline out)
+                    'null)
+            'nl (lambda () (newline out))
+            'close (lambda ()
+                       (close-input-port in)
+                       (close-output-port out)
+                       'null)
+        )
+        '(read read-rune read-line nl close)
+        #f
+        #f))
+
 (define (sexy-compile-method code)
     ((sexy-compile-fn (sexy-parse code)) (local-env) identity identity))
 
@@ -1792,7 +1842,13 @@ END
                         #f #f #f)
                 'socket
                     (sexy-object
-                        (list)
+                        (list
+                            'connect (lambda (host port)
+                                (define-values (in out) (tcp-connect host port))
+                                (sexy-socket in out))
+                            'listen (lambda (host port)
+                                (sexy-listener (tcp-listen port 100 host)))
+                        )
                         #f #f #f)
                 '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
                 'ts (lambda () (inexact->exact (current-seconds)))
