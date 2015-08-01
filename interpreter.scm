@@ -711,8 +711,16 @@ END
         (else (idk obj msg cont err))))
 
 (define (sexy-send-text obj msg cont err)
+    (define (build-regex re flags)
+        (define opts
+            (append
+                (list re 'fast 'utf8)
+                (filter
+                    (lambda (x) (not (eq? x 'g)))
+                    (map string->symbol (string-split flags "")))))
+        (apply irregex opts))
     (case msg
-        ((type view clone to-bool to-symbol to-number to-list to-text size)
+        ((type view clone to-bool to-symbol to-number to-list to-text size chop chomp index trim ltrim rtrim)
             (cont
                 (case msg
                     ((type) 'text)
@@ -722,12 +730,69 @@ END
                     ((to-symbol) (string->symbol obj))
                     ((to-number) (string->number obj))
                     ((to-list) (string->list obj))
+                    ((to-vector) (list->vector (string->list obj)))
                     ((to-text) obj)
+                    ((trim) (string-trim-both obj))
+                    ((ltrim) (string-trim obj))
+                    ((rtrim) (string-trim-right obj))
+                    ((chomp) (string-chomp obj))
+                    ((index) (lambda (which) (substring-index which obj)))
                     ((size) (string-length obj)))))
         ((split)
             (cont
-                (lambda (x)
-                    (string-split obj x))))
+                (sexy-proc
+                    'primitive-function
+                    'text
+                    (lambda (args opts cont err)
+                        (define flags (sexy-send-atomic opts 'flags))
+                        (define re (build-regex (car args) (if (eq? 'null flags) "" flags)))
+                        (cont (irregex-split re obj))))))
+        ((match)
+            (cont
+                (sexy-proc
+                    'primitive-function
+                    'text
+                    (lambda (args opts cont err)
+                        (define flags (sexy-send-atomic opts 'flags))
+                        (define re (build-regex (car args) (if (eq? 'null flags) "" flags)))
+                        (define rez (irregex-search re obj))
+                        (cont 
+                            (if rez
+                                #t
+                                #f))))))
+        ((capture)
+            (cont
+                (sexy-proc
+                    'primitive-function
+                    'text
+                    (lambda (args opts cont err)
+                        (define flags (sexy-send-atomic opts 'flags))
+                        (define re (build-regex (car args) (if (eq? 'null flags) "" flags)))
+                        (cont
+                            (irregex-fold
+                                re
+                                (lambda (idx match acc)
+                                    (define n (irregex-match-num-submatches match))
+                                    (let loop ((this n) (matches '()))
+                                        (if (= this 0)
+                                            (cons matches acc)
+                                            (loop (- this 1) (cons (irregex-match-substring match this) matches)))))
+                                '()
+                                obj
+                                (lambda (idx acc) (reverse acc))))))))
+        ((replace)
+            (cont
+                (sexy-proc
+                    'primitive-function
+                    'text
+                    (lambda (args opts cont err)
+                        (define fopt (sexy-send-atomic opts 'flags))
+                        (define flags (if (eq? 'null fopt) "" fopt))
+                        (define re (build-regex (car args) flags))
+                        (cont
+                            (if (string-contains flags "g")
+                                (apply irregex-replace/all (cons re (cons obj (cdr args))))
+                                (apply irregex-replace (cons re (cons obj (cdr args))))))))))
         ((set!)
             (cont 
                 (lambda (idx val)
@@ -777,6 +842,7 @@ END
                             (list '% (sexy-view (car obj)) (sexy-view (cdr obj)))))
                     ((to-bool) #t)
                     ((to-list) obj)
+                    ((to-text) (list->string obj))
                     ((to-vector) (list->vector obj))
                     ((head key car) (car obj))
                     ((tail val cdr) (cdr obj))
@@ -1121,6 +1187,7 @@ END
                                 (vector->list obj))))
                     ((to-bool) (not (eq? (vector-length obj) 0)))
                     ((to-list) (vector->list obj))
+                    ((to-text) (list->string (vector->list obj)))
                     ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
                     ((size) (vector-length obj))
                     ((clone) (vector-copy obj))
