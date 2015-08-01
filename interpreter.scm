@@ -1809,6 +1809,35 @@ END
                     (lambda (v)
                         (randomize v)
                         'null)
+                'launch-the-missile
+                    (lambda ()
+                        (define (alert n)
+                            (display "Launching in ")
+                            (display n)
+                            (display "...")
+                            (newline)
+                            (sleep 1))
+                        (display "Are you sure you want to do that, cowboy?")
+                        (newline)
+                        (let ((response (read)))
+                            (let ((r (string-ref (symbol->string response) 0)))
+                                (if (or (eq? r #\y) (eq? r #\Y))
+                                    (begin 
+                                        (display "Ok, mad hacker.  Hope you have a fallout shelter.")
+                                        (newline)
+                                        (let loop ((n 5))
+                                            (alert n)
+                                            (if (eq? n 1)
+                                                (begin
+                                                    (display "Good luck...")
+                                                    (newline)
+                                                    (sleep 7)
+                                                    'KABOOM)
+                                                (loop (- n 1)))))
+                                    (begin
+                                        (display "Wise man.")
+                                        (newline)
+                                        'null)))))
                 'file
                     (sexy-object
                         (list
@@ -1840,7 +1869,7 @@ END
                                     #f #f #f)
                         )
                         #f #f #f)
-                'socket
+                'tcp
                     (sexy-object
                         (list
                             'connect (lambda (host port)
@@ -1922,7 +1951,7 @@ END
                     (lambda (tname ok)
                         (debug tname (if ok 'ok 'FAIL))
                         'null))
-            '(ts uid gid pid parent-pid process-gid exit 64764)
+            '(ts uid gid pid parent-pid process-gid exit 64764 launch-the-missile)
             #f
             #f))
     (extend lenv
