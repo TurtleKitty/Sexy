@@ -1,6 +1,8 @@
 
+(def cache (:))
+
 (fun get-latest-version (repo path version)
-    (fun frac (x) (x.split "."))
+    (fun frac (x) (x.split "[.]"))
     (fun filt (n)
         (fn (x)
             (= x.0 n)))
@@ -14,15 +16,22 @@
                     false
                     true))))
     (def api-uri (cat "/" "https://api.github.com/repos" repo "contents" path))
-    (def git-info (json.parse (fetch api-uri)))
-    (when (not git-info)
-        (error (list 'not-found git-dir)))
-    (def names (git-info.map (_ _.name)))
-    (def nums (names.map (_ (ton (frac _)))))
-    (def only (nums.filter (filt version)))
-    (def sorted (only.sort sorter))
-    (def the-one (cat.apply (pair "." sorted.0)))
-    (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
+    (let (cpath (cat "-v" api-uri version))
+        (def cached (cache cpath))
+        (if cached
+            cached
+            (seq
+                (def git-info (json.parse (fetch api-uri)))
+                (when (not git-info)
+                    (error (list 'not-found git-dir)))
+                (def names (git-info.map (_ _.name)))
+                (def nums (names.map (_ (ton (frac _)))))
+                (def only (nums.filter (filt version)))
+                (def sorted (only.sort sorter))
+                (def the-one (cat.apply (pair "." sorted.0)))
+                (def the-uri (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
+                (cache.set! cpath the-uri)
+                the-uri))))
 
 (fun sexy (str)
     (def xs (str.split "/"))
@@ -42,5 +51,4 @@
             (pair "/" ((send (xs.drop 2) 'take) (- xs.size 3)))))
     (def version xs.reverse.head)
     (get-latest-version (cat "/" user repo) repo-path version.to-number))
-
 

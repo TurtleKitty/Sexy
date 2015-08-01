@@ -346,6 +346,8 @@
     (let ()
         (and
             (= '(test 2) (load sexy/test/sexy-lib/0 2))
-            (= '(test 3) (load github/TurtleKitty/sexy-lib/test/sexy-lib/0 3)))))
+            (= '(test 4) (load sexy/test/sexy-lib/1 2))
+            (= '(test 3) (load github/TurtleKitty/sexy-lib/test/sexy-lib/0 3))
+            (= '(test 9) (load github/TurtleKitty/sexy-lib/test/sexy-lib/1 3)))))
 
 
