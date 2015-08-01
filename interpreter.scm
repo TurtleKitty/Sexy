@@ -125,6 +125,12 @@ END
 (define (make-module-path-to path)
     (irregex-replace "(/.*)/.*$" path 1))
 
+(define (sexy-read-expand path env)
+    (sexy-expand
+        (sexy-read-file
+            (open-input-file path))
+        env))
+
 (define (read-expand-cache-prog path env)
     (define abs-path (make-module-absolute-path path))
     (define path-to (make-module-path-to abs-path))
@@ -139,12 +145,8 @@ END
         (let ((old-wd *cwd*))
             (set! *cwd* path-to)
             (set! *use-cache* #f)
-            (let ((expanded
-                    (sexy-expand
-                        (sexy-read-file
-                            (open-input-file fpath))
-                        env))
-                   (fport (open-output-file cpath)))
+            (let ((expanded (sexy-read-expand fpath env))
+                  (fport (open-output-file cpath)))
                 (define finished
                     (cons
                         (delete-duplicates (find-modules expanded))
@@ -172,6 +174,8 @@ END
                     (loop (car rest) (cdr rest) mods)
                     mods))))
     (cons 'modules (finder prog '())))
+
+
 
 (define symbols.sex #<<END
 
@@ -2467,11 +2471,24 @@ END
             (set! g-get (sexy-send-env noob 'get top-cont top-err))
             noob)))
 
-(define global-prelude-file "global.sex")
+(define-syntax import-global-prelude
+    (ir-macro-transformer
+         (lambda (expr inject compare)
+            (define global-prelude-file "global.sex")
+            (define text
+                (with-input-from-file global-prelude-file read-string))
+            `(define ,(inject 'global-prelude-text) ,text))))
+
+(import-global-prelude)
 
 (define (add-global-prelude)
-    (define global-prelude-text (cdr (read-expand-cache-prog global-prelude-file (local-env))))
-    (define prelude-c (sexy-seq-subcontractor global-prelude-text #t))
+    (define prelude-c
+        (sexy-seq-subcontractor
+            (sexy-expand
+                (sexy-read-file
+                    (open-input-string global-prelude-text))
+                (local-env))
+            #t))
     (define full
         (prelude-c
                 genv
