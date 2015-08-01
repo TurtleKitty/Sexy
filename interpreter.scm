@@ -903,7 +903,7 @@ END
 (define (sexy-send-record obj msg cont err)
     (define vars (htr obj 'vars))
     (case msg
-        ((type view size to-bool get put set! rm del! has? apply keys values pairs to-list to-plist merge)
+        ((type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-plist merge)
             (cont
                 (case msg
                     ((type) 'record)
@@ -916,6 +916,10 @@ END
                                     '()
                                     (hash-table->alist vars)))))
                     ((size) (hash-table-size vars))
+                    ((clone)
+                        (let ((noob (sexy-record)))
+                            (hts! noob 'vars (hash-table-copy vars))
+                            noob))
                     ((to-bool)
                         (> (hash-table-size vars) 0))
                     ((get)
