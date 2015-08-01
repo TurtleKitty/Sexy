@@ -1110,7 +1110,7 @@ END
 
 (define (sexy-send-vector obj msg cont err)
     (case msg
-        ((type view to-bool to-list pairs size has? set! apply)
+        ((type view to-bool to-list pairs size clone has? set! apply)
             (cont 
                 (case msg
                     ((type) 'vector)
@@ -1123,6 +1123,7 @@ END
                     ((to-list) (vector->list obj))
                     ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
                     ((size) (vector-length obj))
+                    ((clone) (vector-copy obj))
                     ((has?)
                         (lambda (item)
                             (if (vector-index
