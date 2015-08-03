@@ -275,7 +275,7 @@ END
     (display (sexy-view form)) (newline)
     (display (sexy-view args)) (newline)
     (newline)
-    identity)
+    (exit))
 
 (define (sexy-view obj)
     (sexy-send-atomic obj 'view))
@@ -998,7 +998,7 @@ END
                     (map string->symbol (string-split flags "")))))
         (apply irregex opts))
     (case msg
-        ((type view clone to-bool to-symbol to-number to-list to-text size chop chomp index trim ltrim rtrim)
+        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text size chop chomp index trim ltrim rtrim)
             (cont
                 (case msg
                     ((type) 'text)
@@ -1006,6 +1006,7 @@ END
                     ((clone) (string-copy obj))
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
+                    ((to-keyword) (string->keyword obj))
                     ((to-number) (string->number obj))
                     ((to-list) (string->list obj))
                     ((to-vector) (list->vector (string->list obj)))
@@ -1755,7 +1756,13 @@ END
                     (eq? x will-exist))))))
 
 (define (blasphemy code name)
-    (sexy-error code name " is sacred.  It cannot be redefined."))
+    (sexy-error code
+        (string-join
+            (list
+                "The name \""
+                (symbol->string name)
+                "\" is sacred.  It cannot be redefined.")
+            "")))
 
 (define (sexy-compile code)
     (if (atom? code)
@@ -2541,9 +2548,21 @@ END
                         (sexy-read-file
                             (open-input-string code-str))))
                 (cons 'cat
-                    (lambda (separator . args)
-                        (define strings (map (lambda (x) (sexy-send-atomic x 'to-text)) args))
-                        (string-join strings separator)))
+                    (sexy-proc
+                        'primitive-function
+                        'global
+                        (lambda (args opts cont err)
+                            (define l (length args))
+                            (define strings (map (lambda (x) (sexy-send-atomic x 'to-text)) args))
+                            (define joiner
+                                (let ((j (sexy-send-atomic opts 'with)))
+                                    (if (string? j)
+                                        j
+                                        "")))
+                            (cont
+                                (if (< l 1)
+                                    ""
+                                    (string-join strings joiner))))))
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)

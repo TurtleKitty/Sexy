@@ -1,6 +1,8 @@
 
 (def cache (:))
 
+(def with (send "with" 'to-keyword))
+
 (fun get-latest-version (repo path version)
     (fun frac (x) (x.split "[.]"))
     (fun filt (n)
@@ -15,8 +17,8 @@
                 (if (< x.2 y.2)
                     false
                     true))))
-    (def api-uri (cat "/" "https://api.github.com/repos" repo "contents" path))
-    (let (cpath (cat "-v" api-uri version))
+    (def api-uri (cat with: "/" "https://api.github.com/repos" repo "contents" path))
+    (let (cpath (cat with: "-v" api-uri version))
         (def cached (cache cpath))
         (if cached
             cached
@@ -28,7 +30,7 @@
                 (def nums (names.map (_ (ton (frac _)))))
                 (def only (nums.filter (filt version)))
                 (def sorted (only.sort sorter))
-                (def the-one (cat.apply (pair "." sorted.0)))
+                (def the-one (cat.apply (pair with (pair "." sorted.0))))
                 (def the-uri (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
                 (cache.set! cpath the-uri)
                 the-uri))))
@@ -38,8 +40,10 @@
     (def version xs.reverse.head)
     (def path
         (cat.apply
-            (pair "/"
-                (xs.take xs.size.dec))))
+            (pair
+                with 
+                (pair "/"
+                    (xs.take xs.size.dec)))))
     (get-latest-version "TurtleKitty/sexy-lib" path version.to-number))
 
 (fun github (str)
@@ -48,7 +52,16 @@
     (def repo xs.1)
     (def repo-path
         (cat.apply 
-            (pair "/" ((send (xs.drop 2) 'take) (- xs.size 3)))))
+            (pair
+                with 
+                (pair "/"
+                    ((send (xs.drop 2) 'take) (- xs.size 3))))))
     (def version xs.reverse.head)
-    (get-latest-version (cat "/" user repo) repo-path version.to-number))
+    (get-latest-version (cat with: "/" user repo) repo-path version.to-number))
+
+
+; (sys.say (sexy "test/sexy-lib/0"))
+; (sys.say (sexy "test/sexy-lib/1"))
+; (sys.say (github "TurtleKitty/sexy-lib/test/sexy-lib/0"))
+; (sys.say (github "TurtleKitty/sexy-lib/test/sexy-lib/1"))
 
