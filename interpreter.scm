@@ -998,7 +998,7 @@ END
                     (map string->symbol (string-split flags "")))))
         (apply irregex opts))
     (case msg
-        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text size chop chomp index trim ltrim rtrim)
+        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text to-port size chop chomp index trim ltrim rtrim)
             (cont
                 (case msg
                     ((type) 'text)
@@ -1011,6 +1011,7 @@ END
                     ((to-list) (string->list obj))
                     ((to-vector) (list->vector (string->list obj)))
                     ((to-text) obj)
+                    ((to-port) (open-input-string obj))
                     ((trim) (string-trim-both obj))
                     ((ltrim) (string-trim obj))
                     ((rtrim) (string-trim-right obj))
@@ -1543,28 +1544,54 @@ END
 
 (define (sexy-send-port obj msg cont err)
     (case msg
-        ((type to-bool view read read-rune read-line to-list to-text to-sexy write print say nl close)
+        ((type view to-bool input? output?)
             (cont 
                 (case msg
                     ((type) 'port)
-                    ((to-bool) #t)
                     ((view) obj)
+                    ((to-bool) #t)
+                    ((input?) (input-port? obj))
+                    ((output?) (output-port? obj)))))
+        (else
+            (if (input-port? obj)
+                (sexy-send-input-port obj msg cont err) 
+                (sexy-send-output-port obj msg cont err)))))
+
+(define (sexy-send-input-port obj msg cont err)
+    (case msg
+        ((read read-rune peek-rune read-line to-list to-text to-sexy close)
+            (cont 
+                (case msg
                     ((read) (sexy-read obj))
                     ((read-rune) (read-char obj))
+                    ((peek-rune) (peek-char obj))
                     ((read-line) (read-line obj))
                     ((to-list) (read-lines obj))
                     ((to-text) (read-string #f obj))
                     ((to-sexy) (sexy-read-file obj))
-                    ((write) (lambda (x) (sexy-write x obj) 'null))
-                    ((print) (lambda (x) (sexy-print x obj) 'null))
-                    ((say) (lambda (x) (sexy-print x obj) (newline obj) 'null))
-                    ((nl) (newline obj))
-                    ((close) (begin
-                        (if (input-port? obj)
-                            (close-input-port obj)
-                            (close-output-port obj))
-                        'null))
-                )))
+                    ((close) (begin (close-input-port obj) 'null)))))
+        (else (idk msg obj cont err))))
+
+(define (sexy-send-output-port obj msg cont err)
+    (case msg
+        ((write print say nl close)
+            (cont 
+                (case msg
+                    ((write)
+                        (lambda (x)
+                            (sexy-write x obj)
+                            'null))
+                    ((print)
+                        (lambda (x)
+                            (sexy-print x obj)
+                            'null))
+                    ((say)
+                        (lambda (x)
+                            (sexy-print x obj)
+                            (newline obj)
+                            'null))
+                    ((nl) (newline obj) 'null)
+                    ((close) (begin (close-output-port obj) 'null)))))
         (else (idk msg obj cont err))))
 
 (define (sexy-bool obj cont err)
@@ -2742,34 +2769,33 @@ END
                 (loop env)))
         (display "(sexy) ")
         (let ((expr (sexy-read stdin)))
-            (define expanded
-                (sexy-expand expr (sexy-environment env)))
-            (define check? (check-sexy-syntax expanded))
-            (if check?
-                (let ((compiled (sexy-compile expanded)))
-                    (compiled
-                        env
-                        (lambda (v)
-                            (define noob   (local-env))
-                            (define mom    (htr env 'mama))
-                            (define evars  (htr env 'vars))
-                            (define mvars  (htr mom 'vars))
-                            (sexy-send-record mvars 'merge
-                                (lambda (fn)
-                                    (define nuvars (fn evars))
-                                    (hts! mom  'vars nuvars)
-                                    (hts! noob 'mama mom)
-                                    (if (eof-object? v)
-                                        (exit)
-                                        (begin
-                                            (sexy-write v stdout)
+            (if (eof-object? expr)
+                (exit)
+                (let ((expanded (sexy-expand expr (sexy-environment env))))
+                    (define check? (check-sexy-syntax expanded))
+                    (if check?
+                        (let ((compiled (sexy-compile expanded)))
+                            (compiled
+                                env
+                                (lambda (v)
+                                    (define noob   (local-env))
+                                    (define mom    (htr env 'mama))
+                                    (define evars  (htr env 'vars))
+                                    (define mvars  (htr mom 'vars))
+                                    (sexy-send-record mvars 'merge
+                                        (lambda (fn)
+                                            (define nuvars (fn evars))
+                                            (define print-me (if (eof-object? v) 'EOF v))
+                                            (hts! mom  'vars nuvars)
+                                            (hts! noob 'mama mom)
+                                            (sexy-write print-me stdout)
                                             (newline)
-                                            (loop noob))))
+                                            (loop noob))
+                                        repl-err))
                                 repl-err))
-                        repl-err))
-                (begin
-                    (display "Syntax error!\n")
-                    (loop env)))))
+                        (begin
+                            (display "Syntax error!\n")
+                            (loop env)))))))
     (newline)
     (display "Welcome to the Sexy Read-Eval-Print Loop.  Press Ctrl-D to exit.")
     (newline)
