@@ -14,7 +14,7 @@
 (sys.test 'text-to-int (= one.to-number 1))
 (sys.test 'text-to-real (= pi.to-number 3.14))
 (sys.test 'text-split (= '("foo" "bar" "baz") (fbb.split "[.]")))
-(sys.test 'text-set! (= "2" (seq (one.set! 0 #\2) one)))
+(sys.test 'text-set! (= "2" (seq (one.set! 0 $2) one)))
 
 (sys.test 'text-regex-match-case-sensitive
     (and 

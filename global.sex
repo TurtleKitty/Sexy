@@ -132,10 +132,10 @@
                     (list 'apply name/vars args)))
         (pair fn-form p.tail)))
 
-(macro % (head tail) ; pair literal
+(macro % (head tail) ; pair macro
     (list 'pair (list 'quote head) tail))
 
-(macro : () ; record literal
+(macro : () ; record macro
     (pair 'record
         (if (pair? rest)
             (if (!= (mod rest.size 2) 0)
@@ -237,7 +237,7 @@
 (macro while (pred body)
     ; call (next <value>) to skip the rest of the bodies and go to the next loop (continue)
     ;     if predicate evals false, <value> will be returned from the while expression
-    ; call (return <value>) to terminate the loop and return said value (break)
+    ; call (last <value>) to terminate the loop and return said value (break)
     (def loop (gensym))
     (def rv (gensym))
     (qq
@@ -265,6 +265,9 @@
     (qq
         (fn ((unq uscore))
             (unqs (rename bodies)))))
+
+(macro qw ()
+    (pair 'list (rest.map (fn (x) x.to-text))))
 
 (macro with-gensyms (gs)
     (qq
@@ -387,8 +390,6 @@
 (def spawn null)
 (def ! null)
 (def ? null)
-(def $ null)
-(def @ null)
 (def & null)
 (def ~ null)
 (def ^ null)

@@ -38,7 +38,7 @@
     (real? 2.71828))
 
 (sys.test 'rune?
-    (rune? #\x))
+    (rune? $x))
 
 (sys.test 'text?
     (text? "foo"))

@@ -12,7 +12,7 @@
 (sys.test 'pair-false       (= empty.to-bool false))
 (sys.test 'pair-true        (= ys.to-bool true))
 (sys.test 'pair-to-record   (= alist.to-record (: x 1 y 2)))
-(sys.test 'pair-to-vector   (= ys.to-vector '#(8 6 7 5 3 0 9)))
+(sys.test 'pair-to-vector   (= ys.to-vector '(vector: 8 6 7 5 3 0 9)))
 (sys.test 'pair-head        (= ys.head 8))
 (sys.test 'pair-tail        (= ys.tail '(6 7 5 3 0 9)))
 (sys.test 'pair-size        (= ys.size 7))

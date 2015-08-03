@@ -116,7 +116,7 @@ END
                 (define the-rest (string-join (cdr xs) "/"))
                 (define the-fun (lookup load-symbols-env name top-cont top-err))
                 (if (not (and (hash-table? the-fun) (eq? (htr the-fun 'type) 'fn)))
-                    (sexy-error code "No entry found in symbols.sex for " name)
+                    (sexy-error path "No entry found in symbols.sex for " name)
                     (sexy-apply the-fun (list the-rest) top-cont top-err))))
         ((or (uri? path) (absolute-path? path)) path)
         (else (string-append *cwd* "/" path))))
@@ -138,10 +138,9 @@ END
     (define cpath (get-sexy-cached-path fpath))
     (define is-cached (and (file-exists? cpath) (file-newer? cpath fpath)))
     (if (and *use-cache* is-cached)
-        (with-input-from-file
+        (call-with-input-file
             cpath
-            (lambda ()
-                (read)))
+            sexy-read)
         (let ((old-wd *cwd*))
             (set! *cwd* path-to)
             (set! *use-cache* #f)
@@ -151,7 +150,7 @@ END
                     (cons
                         (delete-duplicates (find-modules expanded))
                         expanded))
-                (write finished fport)
+                (sexy-write finished fport)
                 (close-output-port fport)
                 (set! *cwd* old-wd)
                 (set! *use-cache* #t)
@@ -254,7 +253,8 @@ END
     (err (list 'message-not-understood (sexy-view obj) msg) cont))
 
 (define (debug . xs)
-    (display xs) (newline))
+    (display xs (current-error-port))
+    (newline (current-error-port)))
 
 (define (debug-obj x)
     (define ps (sexy-view x))
@@ -366,7 +366,138 @@ END
     (sexy-error x "Symbol " x " is not defined"))
 
 
-; mini-parser
+; parser
+
+(define (sexy-write obj port)
+    (write (sexy-view obj) port))
+
+(define (sexy-print obj port)
+    (display (sexy-view obj) port))
+
+(define (sexy-read port)
+    (define first-rune (peek-char port))
+    (if (eof-object? first-rune)
+        first-rune
+        (sexy-parse (sexy-reader port))))
+
+(define (sexy-reader port)
+    (define token (peek-char port))
+    (if (char-whitespace? token)
+        (let ((_ (read-char port)) (next (peek-char port)))
+            (if (eof-object? next)
+                next
+                (sexy-reader port)))
+        (case token
+            ((#\()
+                (let ((t (read-char port)) (peek-a-boo (peek-char port)))
+                    (cond
+                        ((eq? peek-a-boo #\))
+                            (read-char port)
+                            '())
+                        (else
+                            (let ((head (sexy-reader port)))
+                                (if (keyword? head)
+                                    (let ((kw (keyword->symbol head)))
+                                        (case kw
+                                            ((pair)   (sexy-read-pair port))
+                                            ((vector) (sexy-read-vector port))
+                                            ((record) (sexy-read-record port))
+                                            ((text)   (sexy-read-text port))
+                                            ((regex)  (sexy-read-regex port))
+                                            (else
+                                                (begin
+                                                    (sexy-read-list port)
+                                                    (sexy-reader port))))) 
+                                    (cons head (sexy-read-list port))))))))
+            ((#\)) (error "read error: unexpected \")\"!\n"))
+            ((#\') (sexy-read-quote port))
+            ((#\`) (sexy-read-quasiquote port))
+            ((#\,) (sexy-read-unquote port))
+            ((#\@) (sexy-read-unquote-splicing port))
+            ((#\$) (sexy-read-rune port))
+            ((#\#) (sexy-read-matrix port))
+            ((#\") (sexy-read-text port))
+            ((#\;) (sexy-read-comment port))
+            (else (read port)))))
+
+(define (sexy-read-pair port)
+    (define xs (sexy-read-list port))
+    (cons (car xs) (cadr xs)))
+
+(define (sexy-read-list port)
+    (let loop ((token (peek-char port)) (acc '()))
+        (cond
+            ((eof-object? token)
+                (error "read error: unexpected EOF in unterminated list!\n"))
+            ((char-whitespace? token)
+                (read-char port)
+                (loop (peek-char port) acc))
+            ((eq? token #\))
+                (read-char port)
+                (reverse acc))
+            ((eq? token #\;)
+                (let ((new-acc (cons (sexy-read-comment port) acc)))
+                    (loop (peek-char port) new-acc)))
+            (else
+                (let ((new-acc (cons (sexy-reader port) acc)))
+                    (loop (peek-char port) new-acc))))))
+
+(define (sexy-read-vector port)
+    (list->vector (sexy-read-list port)))
+
+(define (sexy-read-matrix port)
+    (read-char port)
+    'matrix)
+
+(define (sexy-read-record port)
+    (apply sexy-record (sexy-read-list port)))
+
+(define (sexy-read-text port)
+    (define foo (debug 'sexy-read-text))
+    (sexy-read-list port))
+
+(define (sexy-read-regex port)
+    (define foo (debug 'sexy-read-regex))
+    (sexy-read-list port))
+
+(define (sexy-read-quote port)
+    (read-char port)
+    (list 'quote (sexy-reader port)))
+
+(define (sexy-read-quasiquote port)
+    (read-char port)
+    (list 'qq (sexy-reader port)))
+
+(define (sexy-read-unquote port)
+    (read-char port)
+    (list 'unq (sexy-reader port)))
+
+(define (sexy-read-unquote-splicing port)
+    (read-char port)
+    (list 'unqs (sexy-reader port)))
+
+(define (sexy-read-rune port)
+    (read-char port)
+    (let ((next (peek-char port)))
+        (case next
+            ((#\( #\)) (read-char port))
+            (else
+                (if (char-alphabetic? next)
+                    (let ((sym (read port)))
+                        (case sym
+                            ((lf) #\newline)
+                            ((cr) #\return)
+                            ((space) #\space)
+                            ((tab) #\tab)
+                            (else (string-ref (symbol->string sym) 0))))
+                    (read-char port))))))
+
+(define (sexy-read-text port)
+    (read port))
+
+(define (sexy-read-comment port)
+    (read-line port)
+    (sexy-reader port))
 
 (define (sexy-parse form)
 	(define (desc form mt)
@@ -418,37 +549,42 @@ END
                     (loop (list 'send this `(quote ,(sym-or-num (car left)))) (cdr left))))))
     (cons match? transform))
 
+
+; syntax checkers
+
 (define (check-sexy-syntax prog)
-    (let loop ((form (cadr prog)) (rest (cddr prog))) ; skip (modules)
-        (define (go-on ok)
-            (if (not ok)
-                #f
-                (if (eq? rest '())
-                    ok
-                    (loop (car rest) (cdr rest)))))
-        (if (pair? form)
-            (if (not (list? form))
-                (syntax-error form "Improperly formed list!" '(x y z))
-                (go-on
-                    (let ((head (car form)))
-                        (case head
-                            ((def)      (check-sexy-def form))
-                            ((quote)    (check-sexy-quote form))
-                            ((if)       (check-sexy-if form))
-                            ((seq)      (check-sexy-seq form))
-                            ((set!)     (check-sexy-set! form))
-                            ((operator) (check-sexy-operator form))
-                            ((fn)       (check-sexy-fn form))
-                            ((wall)     (check-sexy-wall form))
-                            ((gate)     (check-sexy-gate form))
-                            ((capture)  (check-sexy-capture form))
-                            ((guard)    (check-sexy-guard form))
-                            ((error)    (check-sexy-error form))
-                            ((ensure)   (check-sexy-ensure form))
-                            ((load)     (check-sexy-load form))
-                            ((syntax)   (check-sexy-syntax-export form))
-                            (else       #t)))))
-            (go-on #t))))
+    (if (list? prog)
+        (let loop ((form (cadr prog)) (rest (cddr prog))) ; skip (modules)
+            (define (go-on ok)
+                (if (not ok)
+                    #f
+                    (if (eq? rest '())
+                        ok
+                        (loop (car rest) (cdr rest)))))
+            (if (list? form)
+                (if (eq? form '())
+                    (go-on #t)
+                    (go-on
+                        (let ((head (car form)))
+                            (case head
+                                ((def)      (check-sexy-def form))
+                                ((quote)    (check-sexy-quote form))
+                                ((if)       (check-sexy-if form))
+                                ((seq)      (check-sexy-seq form))
+                                ((set!)     (check-sexy-set! form))
+                                ((operator) (check-sexy-operator form))
+                                ((fn)       (check-sexy-fn form))
+                                ((wall)     (check-sexy-wall form))
+                                ((gate)     (check-sexy-gate form))
+                                ((capture)  (check-sexy-capture form))
+                                ((guard)    (check-sexy-guard form))
+                                ((error)    (check-sexy-error form))
+                                ((ensure)   (check-sexy-ensure form))
+                                ((load)     (check-sexy-load form))
+                                ((syntax)   (check-sexy-syntax-export form))
+                                (else       #t)))))
+                (go-on #t)))
+        #t))
 
 (define (say x)
     (display x)
@@ -504,7 +640,7 @@ END
 
 (define (check-sexy-operator code)
     (define usage '(operator (<arg> ...) <body> ...))
-    (if (not (pair? (cadr code)))
+    (if (not (list? (cadr code)))
         (syntax-error code "operator: second argument must be a list of formals." usage)
         (if (< (length code) 3)
             (syntax-error code "operator: at least one body form is required." usage)
@@ -512,7 +648,7 @@ END
 
 (define (check-sexy-fn code)
     (define usage '(fn (<arg> ...) <body> ...))
-    (if (not (pair? (cadr code)))
+    (if (not (list? (cadr code)))
         (syntax-error code "fn: second argument must be a list of formals." usage)
         (if (< (length code) 3)
             (syntax-error code "fn: at least one body form is required." usage)
@@ -582,6 +718,9 @@ END
                 (cdr code))
             #t)))
 
+(define (keyword->symbol k)
+    (string->symbol (keyword->string k)))
+
 (define (prepare-sexy-args xs)
     (define (rval args opts)
         (cons (reverse args) opts))
@@ -591,7 +730,7 @@ END
                (setopt! (lambda (k v) (hts! vars k v))))
             (let loop ((head (car xs)) (tail (cdr xs)) (args '()))
                 (if (keyword? head)
-                    (let ((k (string->symbol (keyword->string head))) (v (car tail)))
+                    (let ((k (keyword->symbol head)) (v (car tail)))
                         (setopt! k v)
                         (if (pair? (cdr tail))
                             (loop (cadr tail) (cddr tail) args)
@@ -829,7 +968,14 @@ END
 (define (sexy-send-rune obj msg cont err)
     (case msg
         ((type) (cont 'rune))
-        ((view) (cont obj))
+        ((view)
+            (cont
+                (case obj
+                    ((#\space) '$space)
+                    ((#\newline) '$lf)
+                    ((#\return) '$cr)
+                    ((#\tab) '$tab)
+                    (else (string->symbol (list->string (list #\$ obj)))))))
         ((alpha?) (cont (char-alphabetic? obj)))
         ((digit?) (cont (char-numeric? obj)))
         ((whitespace?) (cont (char-whitespace? obj)))
@@ -963,7 +1109,7 @@ END
 
 (define (sexy-send-pair obj msg cont err)
     (case msg
-        ((type empty? view to-bool to-list to-vector head key car tail val cdr size reverse has? append take drop apply)
+        ((type empty? view to-bool to-list to-text to-vector head key car tail val cdr size reverse has? append take drop apply)
             (cont
                 (case msg
                     ((type) 'pair)
@@ -971,7 +1117,7 @@ END
                     ((view)
                         (if (list? obj)
                             (map sexy-view obj)
-                            (list '% (sexy-view (car obj)) (sexy-view (cdr obj)))))
+                            (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj)))))
                     ((to-bool) #t)
                     ((to-list) obj)
                     ((to-text) (list->string obj))
@@ -1107,7 +1253,8 @@ END
                     ((type) 'record)
                     ((view)
                         (let ((keys (htks vars)))
-                            (cons ': 
+                            (cons
+                                (string->keyword "record")
                                 (fold
                                     (lambda (p xs)
                                         (cons (car p) (cons (sexy-view (cdr p)) xs)))
@@ -1313,7 +1460,7 @@ END
                 (case msg
                     ((type) 'vector)
                     ((view)
-                        (cons '^
+                        (cons (string->keyword "vector")
                             (map
                                 sexy-view
                                 (vector->list obj))))
@@ -1393,15 +1540,6 @@ END
                     (err (list 'out-of-bounds obj msg) cont))
                 (idk obj msg cont err)))))
 
-(define (sexy-read port)
-    (sexy-parse (read port)))
-
-(define (sexy-write obj port)
-    (write (sexy-view obj) port))
-
-(define (sexy-print obj port)
-    (display (sexy-view obj) port))
-
 (define (sexy-send-port obj msg cont err)
     (case msg
         ((type to-bool view read read-rune read-line to-list to-text to-sexy write print say nl close)
@@ -1445,69 +1583,71 @@ END
             (lookup env x top-cont top-err)))
     (define (sexy-macro? obj)
         (and (hash-table? obj) (eq? (htr obj 'type) 'operator)))
-    (if (atom? code)
+    (if (not (list? code))
         code
-        (let ((head (car code)))
-            (case head
-                ((load)
-                    (if (check-sexy-load code)
-                        (let ((p (make-module-absolute-path (cadr code))))
-                            (if (hte? done-been-expanded p)
-                                (cons 'load (cons p (cddr code)))
-                                (begin
-                                    (hts! done-been-expanded p #t)
-                                    (sexy-expand-load code env))))
-                        (exit)))
-                ((def)
-                    (if (check-sexy-def code)
-                        (let ((dval (caddr code)))
-                            (if (pair? dval)
-                                (let ((op (car dval)))
-                                    (case op
-                                        ((fn operator) 
-                                            (let* ((expanded (map expand (cdr code)))
-                                                   (nucode (cons 'def expanded)))
-                                                ((sexy-compile nucode) env top-cont top-err)
-                                                nucode))
-                                        (else (cons 'def (map expand (cdr code))))))
-                                (let ((nucode (cons 'def (map expand (cdr code)))))
-                                    ((sexy-compile nucode) env top-cont top-err)
-                                    nucode)))
-                        (exit)))
-                ((seq)
-                    (if (check-sexy-seq code)
-                        (let ((expanded (map expand code)))
-                            (prep-defs (cdr expanded) env top-cont top-err)
-                            expanded)
-                        (exit)))
-                ((quote)
-                    (if (check-sexy-quote code)
-                        code
-                        (exit)))
-                ((syntax)
-                    (if (check-sexy-syntax-export code)
-                        (let ((syn-fn
-                                (lambda ()
-                                    (apply sexy-record (cdr code))))
-                              (setter! (sexy-apply-wrapper (sexy-send-atomic env 'def!))))
-                            (setter! 'syntax syn-fn)
-                            'null)
-                        (exit)))
-                ((fn)
-                    (let ((noob (sexy-environment env)))
-                        (cons head (sexy-expand (cdr code) noob))))
-                ((operator)
-                    (let ((noob (sexy-environment env)))
-                        (cons head (sexy-expand (cdr code) noob))))
-                (else 
-                    (if (symbol? head)
-                        (let ((obj (look-it-up head)))
-                            (if (sexy-macro? obj)
-                                (sexy-expand
-                                    (apply (sexy-apply-wrapper obj) (cdr code))
-                                    env)
-                                (map expand code)))
-                        (map expand code)))))))
+        (if (eq? code '())
+            '()
+            (let ((head (car code)))
+                (case head
+                    ((load)
+                        (if (check-sexy-load code)
+                            (let ((p (make-module-absolute-path (cadr code))))
+                                (if (hte? done-been-expanded p)
+                                    (cons 'load (cons p (cddr code)))
+                                    (begin
+                                        (hts! done-been-expanded p #t)
+                                        (sexy-expand-load code env))))
+                            (exit)))
+                    ((def)
+                        (if (check-sexy-def code)
+                            (let ((dval (caddr code)))
+                                (if (pair? dval)
+                                    (let ((op (car dval)))
+                                        (case op
+                                            ((fn operator) 
+                                                (let* ((expanded (map expand (cdr code)))
+                                                       (nucode (cons 'def expanded)))
+                                                    ((sexy-compile nucode) env top-cont top-err)
+                                                    nucode))
+                                            (else (cons 'def (map expand (cdr code))))))
+                                    (let ((nucode (cons 'def (map expand (cdr code)))))
+                                        ((sexy-compile nucode) env top-cont top-err)
+                                        nucode)))
+                            (exit)))
+                    ((seq)
+                        (if (check-sexy-seq code)
+                            (let ((expanded (map expand code)))
+                                (prep-defs (cdr expanded) env top-cont top-err)
+                                expanded)
+                            (exit)))
+                    ((quote)
+                        (if (check-sexy-quote code)
+                            code
+                            (exit)))
+                    ((syntax)
+                        (if (check-sexy-syntax-export code)
+                            (let ((syn-fn
+                                    (lambda ()
+                                        (apply sexy-record (cdr code))))
+                                  (setter! (sexy-apply-wrapper (sexy-send-atomic env 'def!))))
+                                (setter! 'syntax syn-fn)
+                                'null)
+                            (exit)))
+                    ((fn)
+                        (let ((noob (sexy-environment env)))
+                            (cons head (sexy-expand (cdr code) noob))))
+                    ((operator)
+                        (let ((noob (sexy-environment env)))
+                            (cons head (sexy-expand (cdr code) noob))))
+                    (else 
+                        (if (symbol? head)
+                            (let ((obj (look-it-up head)))
+                                (if (sexy-macro? obj)
+                                    (sexy-expand
+                                        (apply (sexy-apply-wrapper obj) (cdr code))
+                                        env)
+                                    (map expand code)))
+                            (map expand code))))))))
 
 (define (sexy-expand-load code env)
     (define arg-pair (prepare-sexy-args (cdr code)))
@@ -1519,7 +1659,7 @@ END
     (define prog
         (if (or (symbol? path) (string? path))
             (read-expand-cache-prog path prog-env)
-            (else (sexy-error code "load: path must be a symbol or a string."))))
+            (sexy-error code "load: path must be a symbol or a string.")))
     (define load-err
         (lambda (e cont)
             (debug 'LOAD-ERROR e)
@@ -1945,6 +2085,11 @@ END
 ; setup 
 
 (define (sexy-read-file port)
+    (define one (peek-char port))
+    (define hash-bang
+        (if (eq? one #\#)
+            (read-line port)
+            #f))
     (define program
         (let loop ((noob (sexy-read port)) (code '()))
             (if (eof-object? noob)
@@ -2148,7 +2293,7 @@ END
             'hostname (get-host-name)
             'sleep (lambda (s) (sleep s))
             'pwd (lambda () (current-directory))
-            'chdir (lambda (dir) (change-working-directory dir))
+            'chdir (lambda (dir) (change-directory dir))
             'chroot (lambda (dir) (set-root-directory! dir))
             'shell (lambda (cmd)
                 (read-all (process cmd)))
@@ -2432,13 +2577,26 @@ END
 (import-default-symbols.sex)
 
 (define (add-global-prelude)
+    (define cpath "~/.sexy/global.sex")
+    (define is-cached (file-exists? cpath))
+    (define expanded-prelude
+        (if is-cached
+            (with-input-from-file
+                cpath
+                (lambda ()
+                    (read)))
+            (let ((expanded
+                    (sexy-expand
+                        (sexy-read-file
+                            (open-input-string global-prelude-text))
+                        (local-env))))
+                (with-output-to-file
+                    cpath
+                    (lambda ()
+                        (write expanded)))
+                expanded)))
     (define prelude-c
-        (sexy-seq-subcontractor
-            (sexy-expand
-                (sexy-read-file
-                    (open-input-string global-prelude-text))
-                (local-env))
-            #t))
+        (sexy-seq-subcontractor expanded-prelude #t))
     (define full
         (prelude-c
                 genv
@@ -2564,30 +2722,35 @@ END
                 (debug "Uncaught error: " ex)
                 (loop env)))
         (display "(sexy) ")
-        (let ((expr (sexy-read stdin))) 
-            (define compiled
-                (sexy-compile
-                    (sexy-expand expr (sexy-environment env))))
-            (compiled
-                env
-                (lambda (v)
-                    (define noob   (local-env))
-                    (define mom    (htr env 'mama))
-                    (define evars  (htr env 'vars))
-                    (define mvars  (htr mom 'vars))
-                    (sexy-send-record mvars 'merge
-                        (lambda (fn)
-                            (define nuvars (fn evars))
-                            (hts! mom  'vars nuvars)
-                            (hts! noob 'mama mom)
-                            (if (eof-object? v)
-                                (exit)
-                                (begin
-                                    (sexy-write v stdout)
-                                    (newline)
-                                    (loop noob))))
+        (let ((expr (sexy-read stdin)))
+            (define expanded
+                (sexy-expand expr (sexy-environment env)))
+            (define check? (check-sexy-syntax expanded))
+            (if check?
+                (let ((compiled (sexy-compile expanded)))
+                    (compiled
+                        env
+                        (lambda (v)
+                            (define noob   (local-env))
+                            (define mom    (htr env 'mama))
+                            (define evars  (htr env 'vars))
+                            (define mvars  (htr mom 'vars))
+                            (sexy-send-record mvars 'merge
+                                (lambda (fn)
+                                    (define nuvars (fn evars))
+                                    (hts! mom  'vars nuvars)
+                                    (hts! noob 'mama mom)
+                                    (if (eof-object? v)
+                                        (exit)
+                                        (begin
+                                            (sexy-write v stdout)
+                                            (newline)
+                                            (loop noob))))
+                                repl-err))
                         repl-err))
-                repl-err)))
+                (begin
+                    (display "Syntax error!\n")
+                    (loop env)))))
     (newline)
     (display "Welcome to the Sexy Read-Eval-Print Loop.  Press Ctrl-D to exit.")
     (newline)

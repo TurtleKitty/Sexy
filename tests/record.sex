@@ -3,6 +3,7 @@
 
 (def barerec (record))
 (def simp (record 'x 2 'y 3))
+(def rec-one (: foo 23))
 
 (sys.test 'record-type (= simp.type 'record))
 (sys.test 'record-true (= true simp.to-bool))
@@ -12,9 +13,7 @@
 (sys.test 'record-apply (= 2 (simp 'x)))
 
 (sys.test 'record-view
-    (seq
-        (def rec-one (: foo 23))
-        (= '(: foo 23) rec-one.view)))
+    (= (list 'record: 'foo 23) rec-one.view))
 
 ; primitive messages
 
