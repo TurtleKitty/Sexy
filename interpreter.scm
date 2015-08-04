@@ -1559,7 +1559,7 @@ END
 
 (define (sexy-send-input-port obj msg cont err)
     (case msg
-        ((read read-rune peek-rune read-line to-list to-text to-sexy)
+        ((read read-rune peek-rune read-line assert-rune to-list to-text to-sexy)
             (if (port-closed? obj)
                 (err (list 'input-port-closed obj msg) cont)
                 (cont 
@@ -1568,6 +1568,18 @@ END
                         ((read-rune) (read-char obj))
                         ((peek-rune) (peek-char obj))
                         ((read-line) (read-line obj))
+                        ((assert-rune)
+                            (sexy-proc
+                                'primitive-function
+                                'port
+                                (lambda (args opts cont err)
+                                    (if (not (= 1 (length args)))
+                                        (err '(assert-rune "requires one text argument") cont)
+                                        (let ((runes (string->list (car args))))
+                                            (define next (read-char obj))
+                                            (if (member next runes)
+                                                (cont next)
+                                                (err (list 'assert-rune next (car args) "Assertion FAIL") cont)))))))
                         ((to-list) (read-lines obj))
                         ((to-text) (read-string #f obj))
                         ((to-sexy) (sexy-read-file obj))))))
