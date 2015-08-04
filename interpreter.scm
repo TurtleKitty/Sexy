@@ -1560,7 +1560,7 @@ END
 
 (define (sexy-send-input-port obj msg cont err)
     (case msg
-        ((read read-rune peek-rune read-line assert-rune take skip to-list to-text to-sexy)
+        ((read read-rune peek-rune read-line assert-rune take skip skip-while skip-until to-list to-text to-sexy)
             (if (port-closed? obj)
                 (err (list 'input-port-closed obj msg) cont)
                 (cont 
@@ -1588,6 +1588,27 @@ END
                             (lambda (n)
                                 (read-string n obj)
                                 'null))
+                        ((skip-while)
+                            (lambda (s)
+                                (define runes (string->list s))
+                                (let loop ((tok (peek-char obj)))
+                                    (if (member tok runes)
+                                        (begin
+                                            (read-char obj)
+                                            (loop (peek-char obj)))
+                                        'null))))
+                        ((skip-until)
+                            (lambda (s)
+                                (define runes (string->list s))
+                                (let loop ((tok (peek-char obj)))
+                                    (if (member tok runes)
+                                        'null
+                                        (begin
+                                            (read-char obj)
+                                            (loop (peek-char obj)))))))
+                        ((read-token-while) "list")
+                        ((read-token-until) "list")
+                        ((read-token-if) '(fn (c) ...))
                         ((to-list) (read-lines obj))
                         ((to-text) (read-string #f obj))
                         ((to-sexy) (sexy-read-file obj))))))
