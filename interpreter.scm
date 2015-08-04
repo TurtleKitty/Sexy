@@ -416,7 +416,6 @@ END
             ((#\@) (sexy-read-unquote-splicing port))
             ((#\$) (sexy-read-rune port))
             ((#\#) (sexy-read-matrix port))
-            ((#\") (sexy-read-text port))
             ((#\;) (sexy-read-comment port))
             (else (read port)))))
 
@@ -435,12 +434,10 @@ END
             ((eq? token #\))
                 (read-char port)
                 (reverse acc))
-            ((eq? token #\;)
-                (let ((new-acc (cons (sexy-read-comment port) acc)))
-                    (loop (peek-char port) new-acc)))
             (else
-                (let ((new-acc (cons (sexy-reader port) acc)))
-                    (loop (peek-char port) new-acc))))))
+                (let ((next (if (eq? token #\;) sexy-read-comment sexy-reader)))
+                    (let ((new-acc (cons (next port) acc)))
+                        (loop (peek-char port) new-acc)))))))
 
 (define (sexy-read-vector port)
     (list->vector (sexy-read-list port)))
@@ -453,8 +450,24 @@ END
     (apply sexy-record (sexy-read-list port)))
 
 (define (sexy-read-text port)
-    (define foo (debug 'sexy-read-text))
-    (sexy-read-list port))
+    (let loop ((token (peek-char port)) (depth 0) (acc '()))
+        (cond
+            ((eof-object? token)
+                (error "read error: unexpected EOF in unterminated text literal!\n"))
+            ((eq? token #\()
+                (let ((new-acc (cons (read-char port) acc)))
+                    (loop (peek-char port) (+ depth 1) new-acc)))
+            ((eq? token #\))
+                (if (zero? depth)
+                    (begin
+                        (read-char port)
+                        (string-trim-both (list->string (reverse acc))))
+                    (begin
+                        (let ((new-acc (cons (read-char port) acc)))
+                            (loop (peek-char port) (- depth 1) new-acc)))))
+            (else
+                (let ((new-acc (cons (read-char port) acc)))
+                    (loop (peek-char port) depth new-acc))))))
 
 (define (sexy-read-regex port)
     (define foo (debug 'sexy-read-regex))
@@ -491,9 +504,6 @@ END
                             ((tab) #\tab)
                             (else (string-ref (symbol->string sym) 0))))
                     (read-char port))))))
-
-(define (sexy-read-text port)
-    (read port))
 
 (define (sexy-read-comment port)
     (read-line port)

@@ -28,3 +28,22 @@
     (= (record 'x 1 'y (list 'a 2))
        (record: x 1 y (a 2))))
 
+(sys.test 'text-literal
+    (let ()
+        (def t1 (text: Hello, world!   ))
+        (= t1 "Hello, world!")
+        (def t2
+            (text:
+Hello,
+ladies!
+
+:]
+
+            ))
+        (def t3 (text: (sub (forms (ftw)))))
+        (and
+            (= t1 "Hello, world!")
+            (= t2 "Hello,\nladies!\n\n:]")
+            (= t3 "(sub (forms (ftw)))"))))
+
+
