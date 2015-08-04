@@ -1559,39 +1559,43 @@ END
 
 (define (sexy-send-input-port obj msg cont err)
     (case msg
-        ((read read-rune peek-rune read-line to-list to-text to-sexy close)
-            (cont 
-                (case msg
-                    ((read) (sexy-read obj))
-                    ((read-rune) (read-char obj))
-                    ((peek-rune) (peek-char obj))
-                    ((read-line) (read-line obj))
-                    ((to-list) (read-lines obj))
-                    ((to-text) (read-string #f obj))
-                    ((to-sexy) (sexy-read-file obj))
-                    ((close) (begin (close-input-port obj) 'null)))))
+        ((read read-rune peek-rune read-line to-list to-text to-sexy)
+            (if (port-closed? obj)
+                (err (list 'input-port-closed obj msg) cont)
+                (cont 
+                    (case msg
+                        ((read) (sexy-read obj))
+                        ((read-rune) (read-char obj))
+                        ((peek-rune) (peek-char obj))
+                        ((read-line) (read-line obj))
+                        ((to-list) (read-lines obj))
+                        ((to-text) (read-string #f obj))
+                        ((to-sexy) (sexy-read-file obj))))))
+        ((close) (close-input-port obj) (cont 'null))
         (else (idk msg obj cont err))))
 
 (define (sexy-send-output-port obj msg cont err)
     (case msg
-        ((write print say nl close)
-            (cont 
-                (case msg
-                    ((write)
-                        (lambda (x)
-                            (sexy-write x obj)
-                            'null))
-                    ((print)
-                        (lambda (x)
-                            (sexy-print x obj)
-                            'null))
-                    ((say)
-                        (lambda (x)
-                            (sexy-print x obj)
-                            (newline obj)
-                            'null))
-                    ((nl) (newline obj) 'null)
-                    ((close) (begin (close-output-port obj) 'null)))))
+        ((write print say nl)
+            (if (port-closed? obj)
+                (err (list 'output-port-closed obj msg) cont)
+                (cont
+                    (case msg
+                        ((write)
+                            (lambda (x)
+                                (sexy-write x obj)
+                                'null))
+                        ((print)
+                            (lambda (x)
+                                (sexy-print x obj)
+                                'null))
+                        ((say)
+                            (lambda (x)
+                                (sexy-print x obj)
+                                (newline obj)
+                                'null))
+                        ((nl) (newline obj) 'null)))))
+        ((close) (close-output-port obj) (cont 'null))
         (else (idk msg obj cont err))))
 
 (define (sexy-bool obj cont err)
