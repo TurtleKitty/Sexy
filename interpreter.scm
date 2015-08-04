@@ -1551,7 +1551,8 @@ END
                     ((view) obj)
                     ((to-bool) #t)
                     ((input?) (input-port? obj))
-                    ((output?) (output-port? obj)))))
+                    ((output?) (output-port? obj))
+                    ((open?) (not (port-closed? obj))))))
         (else
             (if (input-port? obj)
                 (sexy-send-input-port obj msg cont err) 
@@ -1559,7 +1560,7 @@ END
 
 (define (sexy-send-input-port obj msg cont err)
     (case msg
-        ((read read-rune peek-rune read-line assert-rune to-list to-text to-sexy)
+        ((read read-rune peek-rune read-line assert-rune take skip to-list to-text to-sexy)
             (if (port-closed? obj)
                 (err (list 'input-port-closed obj msg) cont)
                 (cont 
@@ -1580,6 +1581,13 @@ END
                                             (if (member next runes)
                                                 (cont next)
                                                 (err (list 'assert-rune next (car args) "Assertion FAIL") cont)))))))
+                        ((take)
+                            (lambda (n)
+                                (read-string n obj)))
+                        ((skip)
+                            (lambda (n)
+                                (read-string n obj)
+                                'null))
                         ((to-list) (read-lines obj))
                         ((to-text) (read-string #f obj))
                         ((to-sexy) (sexy-read-file obj))))))
@@ -1607,6 +1615,7 @@ END
                                 (newline obj)
                                 'null))
                         ((nl) (newline obj) 'null)))))
+        ((flush) (flush-output obj) (cont 'null))
         ((close) (close-output-port obj) (cont 'null))
         (else (idk msg obj cont err))))
 
