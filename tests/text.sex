@@ -5,6 +5,7 @@
 (def pi "3.14")
 (def fbb "foo.bar.baz")
 (def wwf "wah_23_wah_42___fuh")
+(def fb "  foonballardy!!!  \n")
 (def complicated "foo: x&1 bar : y&2 baz:z&3 quux :u&4, quakz: v&5")
 
 (sys.test 'text-type (= str.type 'text))
@@ -15,6 +16,11 @@
 (sys.test 'text-to-real (= pi.to-number 3.14))
 (sys.test 'text-split (= '("foo" "bar" "baz") (fbb.split "[.]")))
 (sys.test 'text-set! (= "2" (seq (one.set! 0 $2) one)))
+(sys.test 'trim (= fb.trim "foonballardy!!!"))
+(sys.test 'ltrim (= fb.ltrim "foonballardy!!!  \n"))
+(sys.test 'rtrim (= fb.rtrim "  foonballardy!!!"))
+(sys.test 'chomp (= fb.chomp "  foonballardy!!!  "))
+(sys.test 'index (= (fb.index "!") 14))
 
 (sys.test 'text-regex-match-case-sensitive
     (and 

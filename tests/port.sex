@@ -1,4 +1,104 @@
 
+(def sexprs "(foo (bar baz)) (quux 2 3)")
+(def fb "   foonballardy!!!   ")
+(def lines "uno\ndos\ntres")
+
 (sys.test 'port-type (= sys.stdout.type 'port))
-(sys.test 'port-true (= sys.stdout.to-bool true))
+(sys.test 'port-to-bool (= sys.stdout.to-bool true))
+(sys.test 'input? (and sys.stdin.input? (not sys.stdout.input?)))
+(sys.test 'output? (and (not sys.stdin.output?) sys.stdout.output?))
+(sys.test 'open?
+    (let (p fb.to-port)
+        (def was? p.open?)
+        p.close
+        (and was? (not p.open?))))
+
+(sys.test 'port-to-list
+    (let (p lines.to-port)
+        (= '("uno" "dos" "tres") p.to-list)))
+
+(sys.test 'port-to-text
+    (= lines.to-port.to-text lines))
+
+(sys.test 'port-to-sexy
+    (= '((foo (bar baz)) (quux 2 3)) sexprs.to-port.to-sexy))
+
+(sys.test 'port-read
+    (let (p sexprs.to-port)
+        (def first p.read)
+        (def second p.read)
+        (and
+            (= first '(foo (bar baz)))
+            (= second '(quux 2 3)))))
+
+(sys.test 'port-read-rune
+    (let (p fb.trim.to-port)
+        (def r1 p.read-rune)
+        (def r2 p.read-rune)
+        (def r3 p.read-rune)
+        (and (= r1 $f) (= r2 $o) (= r3 $o))))
+
+(sys.test 'port-peek-rune
+    (let (p fb.trim.to-port)
+        (def r1 p.peek-rune)
+        (def r2 p.peek-rune)
+        (def r3 p.read-rune)
+        (def r4 p.peek-rune)
+        (and (= r1 $f) (= r2 $f) (= r3 $f) (= r4 $o))))
+
+(sys.test 'port-assert-rune
+    (let (p fb.trim.to-port)
+        (def r1 (p.assert-rune "fo"))
+        (def r2 (p.assert-rune "fo"))
+        (def r3 (p.assert-rune "fo"))
+        (def r4 
+            (guard
+                (fn (e k)
+                    'error)
+                    (p.assert-rune "fo")))
+        (and (= r1 $f) (= r2 $o) (= r3 $o) (= r4 'error))))
+
+(sys.test 'port-read-line
+    (let (p lines.to-port)
+        (def uno p.read-line)
+        (def dos p.read-line)
+        (def tres p.read-line)
+        (and (= uno "uno") (= dos "dos") (= tres "tres"))))
+
+(sys.test 'port-skip
+    (let (p fb.to-port)
+        (p.skip 5)
+        (= $o p.peek-rune)))
+
+(sys.test 'port-skip-while
+    (let (p fb.to-port)
+        (p.skip-while " ")
+        (= $f p.peek-rune)))
+
+(sys.test 'port-skip-until
+    (let (p fb.to-port)
+        (p.skip-until "b")
+        (= $b p.peek-rune)))
+
+(sys.test 'port-read-token
+    (let (p fb.trim.to-port)
+        (def token (p.read-token 4))
+        (= token "foon")))
+
+(sys.test 'port-read-token-while
+    (let (p fb.trim.to-port)
+        (def token (p.read-token-while "abdflnory"))
+        (= token "foonballardy")))
+
+(sys.test 'port-read-token-until
+    (let (p fb.trim.to-port)
+        (def token (p.read-token-until "!"))
+        (= token "foonballardy")))
+
+(sys.test 'port-read-token-if
+    (let (p fb.trim.to-port)
+        (def tokener (_ (and _.alpha? (!= _ $r))))
+        (def token
+            (p.read-token-if tokener))
+        (= token "foonballa")))
 

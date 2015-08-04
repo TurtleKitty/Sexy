@@ -1544,7 +1544,7 @@ END
 
 (define (sexy-send-port obj msg cont err)
     (case msg
-        ((type view to-bool input? output?)
+        ((type view to-bool input? output? open?)
             (cont 
                 (case msg
                     ((type) 'port)
@@ -1560,7 +1560,8 @@ END
 
 (define (sexy-send-input-port obj msg cont err)
     (case msg
-        ((read read-rune peek-rune read-line assert-rune take skip skip-while skip-until to-list to-text to-sexy)
+        ((read read-rune peek-rune read-line assert-rune skip skip-while skip-until
+          read-token read-token-while read-token-until read-token-if to-list to-text to-sexy)
             (if (port-closed? obj)
                 (err (list 'input-port-closed obj msg) cont)
                 (cont 
@@ -1581,9 +1582,6 @@ END
                                             (if (member next runes)
                                                 (cont next)
                                                 (err (list 'assert-rune next (car args) "Assertion FAIL") cont)))))))
-                        ((take)
-                            (lambda (n)
-                                (read-string n obj)))
                         ((skip)
                             (lambda (n)
                                 (read-string n obj)
@@ -1606,9 +1604,47 @@ END
                                         (begin
                                             (read-char obj)
                                             (loop (peek-char obj)))))))
-                        ((read-token-while) "list")
-                        ((read-token-until) "list")
-                        ((read-token-if) '(fn (c) ...))
+                        ((read-token)
+                            (lambda (n)
+                                (read-string n obj)))
+                        ((read-token-while)
+                            (lambda (s)
+                                (define runes (string->list s))
+                                (let loop ((tok (peek-char obj)) (acc '()))
+                                    (if (member tok runes)
+                                        (let ((t (read-char obj)))
+                                            (loop (peek-char obj) (cons t acc)))
+                                        (list->string (reverse acc))))))
+                        ((read-token-until)
+                            (lambda (s)
+                                (define runes (string->list s))
+                                (let loop ((tok (peek-char obj)) (acc '()))
+                                    (if (member tok runes)
+                                        (list->string (reverse acc))
+                                        (let ((t (read-char obj)))
+                                            (loop (peek-char obj) (cons t acc)))))))
+                        ((read-token-if)
+                            (sexy-proc
+                                'primitive-function
+                                'env
+                                (lambda (args opts cont err)
+                                    (if (not (= 1 (length args)))
+                                        (err '(read-token-if "requires one function argument.") cont)
+                                        (let ((pred (car args)))
+                                            (let loop ((tok (peek-char obj)) (acc '()))
+                                                (sexy-apply
+                                                    pred
+                                                    (list tok)
+                                                    (lambda (rv)
+                                                        (sexy-bool
+                                                            rv
+                                                            (lambda (ok)
+                                                                (if ok
+                                                                    (let ((t (read-char obj)))
+                                                                        (loop (peek-char obj) (cons t acc)))
+                                                                    (cont (list->string (reverse acc)))))
+                                                            err))
+                                                    err)))))))
                         ((to-list) (read-lines obj))
                         ((to-text) (read-string #f obj))
                         ((to-sexy) (sexy-read-file obj))))))
