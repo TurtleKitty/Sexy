@@ -292,23 +292,27 @@ END
     (eq? x 'null))
 
 (define (sexy-equal? x y)
-    (if (or (hash-table? x) (hash-table? y))
-        (let ((xt (htr x 'type)) (yt (htr y 'type)))
-            (if (not (eq? xt yt))
-                #f
-                (case xt
-                    ((env fn operator) (eq? x y))
-                    ((record)
-                        (let ((x-pairs (sort-symbol-alist (hash-table->alist (htr x 'vars))))
-                              (y-pairs (sort-symbol-alist (hash-table->alist (htr y 'vars)))))
-                            (equal? x-pairs y-pairs)))
-                    (else
-                        (sexy-send-object
-                            x
-                            '=
-                            (lambda (f) (f y))
-                            top-err)))))
-        (equal? x y)))
+    (cond
+        ((or (hash-table? x) (hash-table? y))
+            (let ((xt (htr x 'type)) (yt (htr y 'type)))
+                (if (not (eq? xt yt))
+                    #f
+                    (case xt
+                        ((env fn operator) (eq? x y))
+                        ((record)
+                            (let ((x-pairs (sort-symbol-alist (hash-table->alist (htr x 'vars))))
+                                  (y-pairs (sort-symbol-alist (hash-table->alist (htr y 'vars)))))
+                                (equal? x-pairs y-pairs)))
+                        (else
+                            (sexy-send-object
+                                x
+                                '=
+                                (lambda (f) (f y))
+                                top-err))))))
+        ((and (number? x) (number? y))
+            (= x y))
+        (else
+            (equal? x y))))
 
 (define (sexy-type-ord x)
     (cond
@@ -1008,14 +1012,13 @@ END
         ((view) (cont obj))
         (else
             (cond
-                ((integer? obj) (sexy-send-int obj msg cont err))
                 ((real? obj) (sexy-send-real obj msg cont err))
+                ((integer? obj) (sexy-send-int obj msg cont err))
                 (else (idk obj msg cont err))))))
 
 (define (sexy-send-int obj msg cont err)
     (case msg
         ((type) (cont 'int))
-        ((times) (cont 'niy))
         ((inc) (cont (+ obj 1)))
         ((dec) (cont (- obj 1)))
         ((even?) (cont (even? obj)))
