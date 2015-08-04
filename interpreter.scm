@@ -451,7 +451,7 @@ END
     (let loop ((token (peek-char port)) (depth 0) (acc '()))
         (cond
             ((eof-object? token)
-                (error "read error: unexpected EOF in unterminated text literal!\n"))
+                (error "read error: unexpected EOF in text literal!\n"))
             ((eq? token #\()
                 (let ((new-acc (cons (read-char port) acc)))
                     (loop (peek-char port) (+ depth 1) new-acc)))
@@ -468,8 +468,51 @@ END
                     (loop (peek-char port) depth new-acc))))))
 
 (define (sexy-read-template port)
-    (let loop ((token (peek-char port)))
-        token))
+    (define (get-str xs)
+        (list->string (reverse xs)))
+    (define (read-interpol port)
+        (let loop ((token (peek-char port)) (acc '()))
+            (cond
+                ((eof-object? token)
+                    (error "read error: unexpected EOF in template literal!\n"))
+                ((eq? token #\})
+                    (read-char port)
+                    (if (eq? #\} (peek-char port))
+                        (begin
+                            (read-char port)
+                            (sexy-reader (open-input-string (get-str acc))))
+                        (let ((t (read-char port)))
+                            (loop (peek-char port) (cons t (cons #\} acc))))))
+                (else
+                    (let ((t (read-char port)))
+                        (loop (peek-char port) (cons t acc)))))))
+    (let loop ((t (peek-char port)))
+        (if (char-whitespace? t)
+            (begin
+                (read-char port)
+                (loop (peek-char port)))
+            #f))
+    (let loop ((token (peek-char port)) (acc '()) (texts '()))
+        (cond
+            ((eof-object? token)
+                (error "read error: unexpected EOF in template literal!\n"))
+            ((eq? token #\{)
+                (read-char port)
+                (if (eq? #\{ (peek-char port))
+                    (begin
+                        (read-char port)
+                        (let ((txt (get-str acc))
+                              (symbol (read-interpol port)))
+                            (loop (peek-char port) '() (cons symbol (cons txt texts)))))
+                    (let ((t (read-char port)))
+                        (loop (peek-char port) (cons t (cons #\{ acc)) texts))))
+            ((eq? token #\))
+                (read-char port)
+                (cons 'cat (reverse (cons (get-str acc) texts))))
+            (else
+                (let ((t (read-char port)))
+                    (loop (peek-char port) (cons t acc) texts))))))
+        
 
 (define (sexy-read-quote port)
     (read-char port)

@@ -46,4 +46,9 @@ ladies!
             (= t2 "Hello,\nladies!\n\n:]")
             (= t3 "(sub (forms (ftw)))"))))
 
+(sys.test 'template-literal
+    (let (x 2 y 3)
+        (= 
+            (template: x: {{ x }} y: {{ y }} z: {{ (+ x y) }})
+            "x: 2 y: 3 z: 5")))
 
