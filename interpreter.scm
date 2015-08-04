@@ -486,6 +486,7 @@ END
                 (else
                     (let ((t (read-char port)))
                         (loop (peek-char port) (cons t acc)))))))
+    (define depth 0)
     (let loop ((t (peek-char port)))
         (if (char-whitespace? t)
             (begin
@@ -506,9 +507,19 @@ END
                             (loop (peek-char port) '() (cons symbol (cons txt texts)))))
                     (let ((t (read-char port)))
                         (loop (peek-char port) (cons t (cons #\{ acc)) texts))))
+            ((eq? token #\()
+                (set! depth (+ depth 1))
+                (let ((t (read-char port)))
+                    (loop (peek-char port) (cons t acc) texts)))
             ((eq? token #\))
-                (read-char port)
-                (cons 'cat (reverse (cons (get-str acc) texts))))
+                (if (= depth 0)
+                    (begin
+                        (read-char port)
+                        (cons 'cat (reverse (cons (string-trim-right (get-str acc)) texts))))
+                    (begin
+                        (set! depth (- depth 1))
+                        (let ((t (read-char port)))
+                            (loop (peek-char port) (cons t acc) texts)))))
             (else
                 (let ((t (read-char port)))
                     (loop (peek-char port) (cons t acc) texts))))))

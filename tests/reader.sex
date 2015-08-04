@@ -49,6 +49,6 @@ ladies!
 (sys.test 'template-literal
     (let (x 2 y 3)
         (= 
-            (template: x: {{ x }} y: {{ y }} z: {{ (+ x y) }})
-            "x: 2 y: 3 z: 5")))
+            (template: x: {{ x }} y: {{ y }} (z: {{ (+ x y) }})      )
+            "x: 2 y: 3 (z: 5)")))
 

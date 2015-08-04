@@ -20,6 +20,7 @@ Features:
     * lexically scoped module import via HTTP
     * parameterized, recursive modules
     * generic functions with predicate dispatch
+    * reader literals for text construction and variable interpolation
 
 ```scheme
 
