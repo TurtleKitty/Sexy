@@ -1,3 +1,5 @@
 #!/bin/sh
 
-csc -w -O2 -d0 interpreter.scm -o sexy
+cd interpreter
+csc -w -O2 -d0 main.scm -o ../sexy
+

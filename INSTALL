@@ -9,9 +9,12 @@ Once Chicken is in place, the following command should do it:
 
 chicken-install srfi-1 srfi-13 srfi-69 http-client medea numbers openssl posix symbol-utils utf8 utils uuid vector-lib
 
-./bin/compile.sh will compile sexy into an executable.
+When run from the root of the git repo:
 
-./bin/run_tests.sh will use the new binary to execute everything in ./tests.
+./bin/compile.sh will compile sexy into an executable
+./bin/profile.sh will do the same, but with profiling info attached
+./bin/interpret.sh will run the interpreter directly with csi
+./bin/run_tests.sh will use the sexy binary to execute everything in ./tests
 
 Have fun! ^_^
 
