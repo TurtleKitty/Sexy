@@ -5,9 +5,11 @@
             'stdin   (current-input-port)
             'stdout  (current-output-port)
             'stderr  (current-error-port)
+            'view 'operating-system-interface
             'env
                 (sexy-object
                     (list
+                        'view 'operating-system-environment
                         'get
                             (lambda (x)
                                 (define envt (get-environment-variables))
@@ -141,7 +143,10 @@
                         'parent-pid (lambda () (parent-process-id))
                         'process-gid (lambda (pid) (process-group-id pid))
                         'run (lambda (cmd) (process-run cmd))
-                        'fork (lambda (thunk) (process-fork thunk))
+                        'fork (lambda (thunk)
+                            (process-fork
+                                (lambda ()
+                                    (sexy-apply thunk '() top-cont top-err))))
                     )
                     '(pid uid gid parent-pid process-gid) #f #f)
             '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
