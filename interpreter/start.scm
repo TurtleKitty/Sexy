@@ -25,11 +25,11 @@
                 ((repl) (sexy-repl))
                 ((exec) 
                     (let ((code-str (fname)))
+                        (define code
+                            (sexy-read-file
+                                (open-input-string code-str)))
                         (define expanded
-                            (sexy-expand
-                                (sexy-read-file
-                                    (open-input-string code-str))
-                                (cli-env)))
+                            (sexy-expand code (cli-env)))
                         (if (check-sexy-syntax expanded)
                             (sexy-run expanded)
                             (exit))))
