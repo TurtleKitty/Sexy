@@ -21,7 +21,7 @@
                     ((fn)     (sexy-send-fn obj msg cont err))
                     ((operator)  (sexy-send-fn obj msg cont err))
                     (else (sexy-send-object obj msg cont err)))))
-        ((eof-object? obj) (cont 'EOF))
+        ((eof-object? obj) (sexy-send-eof obj msg cont err))
         (else (wtf))))
 
 (define (sexy-send-atomic obj msg)
@@ -803,6 +803,15 @@
                         ((nl) (newline obj) 'null)))))
         ((flush) (flush-output obj) (cont 'null))
         ((close) (close-output-port obj) (cont 'null))
+        (else (idk msg obj cont err))))
+
+(define (sexy-send-eof obj msg cont err)
+    (case msg
+        ((type) (cont 'EOF))
+        ((view) (cont 'EOF))
+        ((to-bool) (cont #f))
+        ((to-text) (cont "END OF LINE."))
+        ((apply) (err 'eof-is-not-applicable cont))
         (else (idk msg obj cont err))))
 
 

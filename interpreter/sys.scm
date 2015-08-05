@@ -69,32 +69,23 @@
             'file
                 (sexy-object
                     (list
-                        'open
-                            (sexy-object
-                                (list
-                                    'in open-input-file
-                                    'out open-output-file
-                                )
-                                #f #f #f)
-                        'with
-                            (sexy-object
-                                (list
-                                    'in (sexy-proc
-                                            'primitive-function
-                                            'sys
-                                            (lambda (args opts cont err)
-                                                (call-with-input-file (car args)
-                                                    (lambda (f)
-                                                        (sexy-apply (cadr args) (list f) cont err)))))
-                                    'out (sexy-proc
-                                            'primitive-function
-                                            'sys
-                                            (lambda (args opts cont err)
-                                                (call-with-output-file (car args)
-                                                    (lambda (f)
-                                                        (sexy-apply (cadr args) (list f) cont err)))))
-                                )
-                                #f #f #f)
+                        'read  open-input-file
+                        'write open-output-file
+                        'from
+                            (sexy-proc
+                                'primitive-function
+                                'sys
+                                (lambda (args opts cont err)
+                                    (call-with-input-file (car args)
+                                        (lambda (f)
+                                            (sexy-apply (cadr args) (list f) cont err)))))
+                        'to (sexy-proc
+                                'primitive-function
+                                'sys
+                                (lambda (args opts cont err)
+                                    (call-with-output-file (car args)
+                                        (lambda (f)
+                                            (sexy-apply (cadr args) (list f) cont err)))))
                         'stat
                             (lambda (f)
                                 (file-stat f))
@@ -106,7 +97,6 @@
                         'mv (lambda (old new) (file-move old new))
                         'ln (lambda (old new) (create-symbolic-link old new))
                         'tmp (lambda () (create-temporary-file))
-
                     )
                     '(tmp) #f #f)
             'dir
