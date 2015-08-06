@@ -106,7 +106,7 @@
         )
         '(read read-rune read-line nl close)
         (list
-            (list in 'read 'read-rune 'peek-rune 'assert-rune 'read-line
+            (list in 'read 'read-rune 'peek-rune 'assert-rune 'read-line 'ready?
                      'skip 'skip-while 'skip-until 'read-token 'read-token-while
                      'read-token-until 'read-token-if)
             (list out 'write 'print 'say 'nl))

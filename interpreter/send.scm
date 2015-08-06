@@ -693,12 +693,13 @@
 
 (define (sexy-send-input-port obj msg cont err)
     (case msg
-        ((read read-rune peek-rune read-line assert-rune skip skip-while skip-until
+        ((ready? read read-rune peek-rune read-line assert-rune skip skip-while skip-until
           read-token read-token-while read-token-until read-token-if to-list to-text to-sexy)
             (if (port-closed? obj)
                 (err (list 'input-port-closed obj msg) cont)
                 (cont 
                     (case msg
+                        ((ready?) (char-ready? obj))
                         ((read) (sexy-read obj))
                         ((read-rune) (read-char obj))
                         ((peek-rune) (peek-char obj))
