@@ -229,8 +229,12 @@
 (define (doterator)
     ; foo.bar.baz.bax -> (send (send (send foo 'bar) 'baz) 'bax)
     (define (match? x)
-        (and (symbol? x)
-             (string-contains (symbol->string x) ".")))
+        (and
+            (symbol? x)
+            (let ((s (symbol->string x)))
+                (and
+                    (not (string-contains s "/"))
+                    (string-contains s ".")))))
     (define (transform x)
         (define (sym-or-num x)
             (define the-num (string->number x))

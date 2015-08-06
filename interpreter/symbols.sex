@@ -5,10 +5,14 @@
 
 (fun get-latest-version (repo path version)
     (fun frac (x) (x.split "[.]"))
-    (fun filt (n)
-        (fn (x)
-            (= x.0 n)))
     (fun ton (x) (x.map (_ _.to-number)))
+    (def n (ton (frac version)))
+    (fun filt (x)
+        (def s n.size)
+        (case s
+            (1) (= x.0 n.0)
+            (2) (and (= x.0 n.0) (= x.1 n.1)) 
+            (3) (= x n)))
     (fun sorter (x y)
         (if (< x.0 y.0)
             false
@@ -28,7 +32,9 @@
                     (error (list 'not-found git-dir)))
                 (def names (git-info.map (_ _.name)))
                 (def nums (names.map (_ (ton (frac _)))))
-                (def only (nums.filter (filt version)))
+                (def only (nums.filter filt))
+                (when only.size.zero?
+                    (error (list 'symbol-uri-not-found repo path version)))
                 (def sorted (only.sort sorter))
                 (def the-one (cat.apply (pair with (pair "." sorted.0))))
                 (def the-uri (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
@@ -44,7 +50,7 @@
                 with 
                 (pair "/"
                     (xs.take xs.size.dec)))))
-    (get-latest-version "TurtleKitty/sexy-lib" path version.to-number))
+    (get-latest-version "TurtleKitty/sexy-lib" path version))
 
 (fun github (str)
     (def xs (str.split "/"))
@@ -57,11 +63,18 @@
                 (pair "/"
                     ((send (xs.drop 2) 'take) (- xs.size 3))))))
     (def version xs.reverse.head)
-    (get-latest-version (cat with: "/" user repo) repo-path version.to-number))
+    (get-latest-version (cat with: "/" user repo) repo-path version))
 
 
-; (sys.say (sexy "test/sexy-lib/0"))
-; (sys.say (sexy "test/sexy-lib/1"))
-; (sys.say (github "TurtleKitty/sexy-lib/test/sexy-lib/0"))
-; (sys.say (github "TurtleKitty/sexy-lib/test/sexy-lib/1"))
-
+(rem:
+    (sys.say (sexy "test/sexy-lib/0"))
+    (sys.say (sexy "test/sexy-lib/0.1"))
+    (sys.say (sexy "test/sexy-lib/0.1.0"))
+    (sys.say (sexy "test/sexy-lib/1"))
+    (sys.say (sexy "test/sexy-lib/1.2"))
+    (sys.say (sexy "test/sexy-lib/1.2.4"))
+    (sys.say (sexy "test/sexy-lib/1.5"))
+    (sys.say (sexy "test/sexy-lib/1.5.7"))
+    (sys.say (github "TurtleKitty/sexy-lib/test/sexy-lib/0"))
+    (sys.say (github "TurtleKitty/sexy-lib/test/sexy-lib/1"))
+)
