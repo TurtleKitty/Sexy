@@ -128,7 +128,7 @@
                     (map string->symbol (string-split flags "")))))
         (apply irregex opts))
     (case msg
-        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text to-port size chop chomp index trim ltrim rtrim)
+        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text to-port size chomp index take drop trim ltrim rtrim lpad rpad)
             (cont
                 (case msg
                     ((type) 'text)
@@ -142,9 +142,13 @@
                     ((to-vector) (list->vector (string->list obj)))
                     ((to-text) obj)
                     ((to-port) (open-input-string obj))
+                    ((take) (lambda (n) (string-take obj n)))
+                    ((drop) (lambda (n) (string-drop obj n)))
                     ((trim) (string-trim-both obj))
                     ((ltrim) (string-trim obj))
                     ((rtrim) (string-trim-right obj))
+                    ((lpad) (lambda (rune n) (string-pad obj n rune)))
+                    ((rpad) (lambda (rune n) (string-pad-right obj n rune)))
                     ((chomp) (string-chomp obj))
                     ((index) (lambda (which) (substring-index which obj)))
                     ((size) (string-length obj)))))
