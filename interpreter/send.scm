@@ -512,8 +512,8 @@
                 ((type view) (cont 'object))
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
                 ((=) (cont (lambda (other) #f)))
-                ((apply) (cont (lambda args (sexy-send obj (car args) top-cont err))))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
+                ((messages) (cont (hash-table-keys fields)))
                 (else (sexy-apply (htr obj 'default) (list msg) cont err))))))
 
 (define (sexy-send-fn obj msg cont err)
