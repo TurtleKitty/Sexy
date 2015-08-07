@@ -70,7 +70,7 @@
         (else
             (cond
                 ((integer? obj) (sexy-send-int obj msg cont err))
-                ((real? obj) (sexy-send-real obj msg cont err))
+                ((number? obj) (sexy-send-real obj msg cont err))
                 (else (idk obj msg cont err))))))
 
 (define (sexy-send-int obj msg cont err)
@@ -88,7 +88,7 @@
  
 (define (sexy-send-real obj msg cont err)
     (case msg
-        ((type) (cont 'real))
+        ((type) (cont 'number))
         ((floor) (cont (inexact->exact (floor obj))))
         ((ceil) (cont (inexact->exact (ceiling obj))))
         ((round) (cont (inexact->exact (round obj))))

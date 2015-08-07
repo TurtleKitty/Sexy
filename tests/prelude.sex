@@ -34,8 +34,8 @@
 (sys.test 'int?
     (int? 23))
 
-(sys.test 'real?
-    (real? 2.71828))
+(sys.test 'nint?
+    (nint? 2.71828))
 
 (sys.test 'rune?
     (rune? $x))

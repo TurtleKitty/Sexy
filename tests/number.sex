@@ -21,8 +21,8 @@
         (= 'int zero.type)
         (= 'int one.type)))
 
-(sys.test 'real-type
-    (= 'real pi.type))
+(sys.test 'number-type
+    (= 'number pi.type))
 
 (sys.test 'to-text
     (and

@@ -43,7 +43,9 @@
                 (cons 'mod modulo)
                 (cons 'num? number?)
                 (cons 'int? integer?)
-                (cons 'real? real?)
+                (cons 'nint?
+                    (lambda (x)
+                        (and (number? x) (not (integer? x)))))
                 (cons 'rune? char?)
                 (cons 'pair cons)
                 (cons 'pair? pair?)

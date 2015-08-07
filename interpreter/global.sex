@@ -40,9 +40,6 @@
 (fun symbol? (thing)
     (isa? thing 'symbol))
 
-(fun text? (thing)
-    (isa? thing 'text))
-
 (fun null? (thing)
     (= thing null))
 
