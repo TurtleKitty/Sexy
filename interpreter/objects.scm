@@ -73,7 +73,7 @@
     (define l (tcp-listen port 100 host))
     (sexy-object
         (list
-            'type   'listener
+            'type   'tcp-listener
             'view   (list 'listener host port)
             'to-bool #t
             'port   (tcp-listener-port l)
