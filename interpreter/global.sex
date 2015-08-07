@@ -40,6 +40,12 @@
 (fun symbol? (thing)
     (isa? thing 'symbol))
 
+(fun port? (thing)
+    (isa? thing 'port))
+
+(fun socket? (thing)
+    (isa? thing 'socket))
+
 (fun null? (thing)
     (= thing null))
 
