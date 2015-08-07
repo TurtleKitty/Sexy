@@ -106,6 +106,7 @@
                     ((#\return) '$cr)
                     ((#\tab) '$tab)
                     (else (string->symbol (list->string (list #\$ obj)))))))
+        ((code) (cont (char->integer obj)))
         ((alpha?) (cont (char-alphabetic? obj)))
         ((digit?) (cont (char-numeric? obj)))
         ((whitespace?) (cont (char-whitespace? obj)))
@@ -114,7 +115,7 @@
         ((uc) (cont (char-upcase obj)))
         ((lc) (cont (char-downcase obj)))
         ((to-bool) (cont #t))
-        ((to-number) (cont (char->integer obj)))
+        ((to-number) (cont (string->number (string obj))))
         ((to-text) (cont (string obj)))
         (else (idk obj msg cont err))))
 
