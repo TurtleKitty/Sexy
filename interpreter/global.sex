@@ -99,18 +99,19 @@
 
 (fun identity (x) x)
 
-(fun curry (f arg)
-    (fn ()
-        (apply f (pair arg rest))))
-
-(fun compose (f g)
-    (fn () (f (apply g rest))))
-
 (fun append (xs ys)
     (def rv (xs.append ys))
     (if rest
         (append.apply (pair rv rest))
         rv))
+
+(fun curry (f)
+    ((fn (cargs)
+        (fn ()
+            (f.apply (append cargs rest)))) rest))
+
+(fun compose (f g)
+    (fn () (f (apply g rest))))
 
 (fun apply (f args)
     (f.apply args))
@@ -325,11 +326,11 @@
                           _)))))))
 
 (macro gen (name body)
-    (def arity (or opt.arity 5))
+    (def opt-arity (if opt.arity opt.arity 5))
     (qq
         (def (unq name)
             (let (default (fn () (unqs (pair body rest)))
-                  clauses (vector.apply ((send (range 0 arity) 'map) (_ '())))) ; max arity of 7 for generic functions
+                  clauses (vector.apply ((send (range 0 ,opt-arity) 'map) (_ '())))) ; max arity of 7 for generic functions
                 (fun add-clause! (pred body)
                     (def idx pred.arity)
                     (clauses.set!
@@ -363,6 +364,7 @@
                     'set-default! set-default!
                     'apply gen-apply
                     'view view
+                    'arity ,opt-arity
                     (unq 'auto:) '(view)))))) ; not sure why (unq (quote keyword:)) works, but I'll take it
 
 (macro spec (name args pred body)

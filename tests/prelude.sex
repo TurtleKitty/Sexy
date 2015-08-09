@@ -58,6 +58,12 @@
 (sys.test 'append
     (= '(1 2 3 4 5) (append '(1 2) '(3) '(4 5))))
 
+(sys.test 'curry
+    (=
+        '(curried list 1 2 3)
+        (let (x (curry list 'curried 'list))
+            (x 1 2 3))))
+
 (sys.test 'let
     ((fn ()
         (def foo
@@ -208,7 +214,7 @@
     ; generic functions!
     (= '(murakami 4 -4 1 5 16 6 ("1" "2" "3" "4" "5" "6" "7"))
         (let ()
-            (gen nosuke 'murakami) ; default case
+            (gen nosuke 'murakami arity: 7) ; default case
             (spec nosuke (x)
                 x.pos?
                 (* x x))
