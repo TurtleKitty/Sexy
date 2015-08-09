@@ -246,7 +246,7 @@
 
 (define (sexy-send-pair obj msg cont err)
     (case msg
-        ((type empty? view to-bool to-list to-text to-vector head key car tail val cdr size reverse has? append take drop apply)
+        ((type empty? view to-bool to-list to-text to-vector head key car tail val cdr cons size reverse has? append take drop apply)
             (cont
                 (case msg
                     ((type) 'pair)
