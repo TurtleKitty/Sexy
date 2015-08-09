@@ -403,6 +403,9 @@
     (out.say result)
     (repl e in out err))
 
+(fun parse (s)
+    s.to-port.to-sexy)
+
 ; reserving for future use
 
 (def spawn null)

@@ -182,10 +182,6 @@
                         #f))
                 (cons 'gensym sexy-gensym)
                 (cons 'uuid uuid-v4)
-                (cons 'parse
-                    (lambda (code-str)
-                        (sexy-read-file
-                            (open-input-string code-str))))
                 (cons 'cat
                     (sexy-proc
                         'primitive-function
