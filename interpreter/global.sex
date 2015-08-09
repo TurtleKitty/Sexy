@@ -105,16 +105,24 @@
         (append.apply (pair rv rest))
         rv))
 
+(fun apply (f args)
+    (f.apply args))
+
 (fun papply (f)
     ((fn (cargs)
         (fn ()
             (f.apply (append cargs rest)))) rest))
 
-(fun compose (f g)
-    (fn () (f (apply g rest))))
-
-(fun apply (f args)
-    (f.apply args))
+(fun compose ()
+    ((fn (funz)
+        (def s funz.size)
+        (if (= s 0)
+            (error "Compose requires at least one argument.  It prefers more than one.")
+            (if (= s 1)
+                rest.head
+                (if (= s 2)
+                    (fn () (funz.head (apply funz.tail.head rest)))
+                    (compose funz.head (apply compose funz.tail)))))) rest))
 
 (fun make-env ()
     (wall ()

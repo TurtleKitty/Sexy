@@ -64,6 +64,16 @@
         (let (x (papply list 'partially 'applied 'list))
             (x 1 2 3))))
 
+(sys.test 'compose
+    (let ()
+        (fun f (xs) (xs.map (_ (* _ _))))
+        (fun g (xs) (xs.map (_ (+ _ 10))))
+        (and
+            (= '(121 144 169 196 225 256 289)
+                ((compose f g range) 1 7))
+            (= '(11 14 19 26 35 46 59)
+                ((compose g f range) 1 7)))))
+
 (sys.test 'let
     ((fn ()
         (def foo
@@ -250,4 +260,11 @@
     ((thunk
         (def roll (ndx 10 6)) ; fireball!
         (and (>= roll 10) (<= roll 60)))))
+
+(sys.test 'cat
+    (and
+        (=  "nulltrue x foobarbaz"
+            (cat null true $space $x $space 'foo "bar" '($b $a $z)))
+        (=  "null/true/x/foo/bar/baz"
+            (cat null true $x 'foo "bar" '($b $a $z) with: "/"))))
 
