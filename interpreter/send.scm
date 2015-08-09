@@ -519,7 +519,7 @@
 (define (sexy-send-fn obj msg cont err)
     (case msg
         ((type) (cont 'fn))
-        ((view) (sexy-send obj 'code cont err))
+        ((view) (cont `(fn ,(htr obj 'formals) ...)))
         ((to-bool) (cont #t))
         ((arity code env formals) (cont (htr obj msg)))
         ((apply)
@@ -533,9 +533,12 @@
 
 (define (sexy-send-env obj msg cont err)
     (case msg
-        ((get has? del! view to-bool pairs)
+        ((get has? del! to-bool pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
         ((type) (cont 'env))
+        ((view)
+            (cons (string->keyword "env")
+                  (cdr (sexy-view (htr obj 'vars)))))
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
         ((set!)
