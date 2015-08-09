@@ -58,10 +58,10 @@
 (sys.test 'append
     (= '(1 2 3 4 5) (append '(1 2) '(3) '(4 5))))
 
-(sys.test 'curry
+(sys.test 'papply
     (=
-        '(curried list 1 2 3)
-        (let (x (curry list 'curried 'list))
+        '(partially applied list 1 2 3)
+        (let (x (papply list 'partially 'applied 'list))
             (x 1 2 3))))
 
 (sys.test 'let

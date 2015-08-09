@@ -105,7 +105,7 @@
         (append.apply (pair rv rest))
         rv))
 
-(fun curry (f)
+(fun papply (f)
     ((fn (cargs)
         (fn ()
             (f.apply (append cargs rest)))) rest))
