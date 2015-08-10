@@ -68,49 +68,46 @@ For those who want examples, there are over 1500 lines of Sexy code in the tests
             1
             (+ (fibby (- x 2)) (fibby (- x 1))))))
 
-(def things (range 1 20))
+(def one-to-threen (range 1 13))
+    -> (1 2 3 4 5 6 7 8 9 10 11 12 13)
 
-(sys.say (things.map fibby))
-
-; -> (1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 6765)
+(def things (one-to-threen.map fibby))
+    -> (1 1 2 3 5 8 13 21 34 55 89 144 233)
 
 (def r (: x (+ 1 1) y (+ 1 2)))
 
-; -> (record: x 2 y 3)
+(def new-dude
+    (object
+        'type 'new-guy
+        'view (list 'new-guy things r.view)
+        'info (thunk (sys.say "Still alive!"))
+        auto:
+            '(info x y)
+        resend:
+            (list
+                (list things 'map 'filter 'sort)
+                (list r 'x 'y))
+        default:
+            (fn (msg)
+                (sys.say (cat "What means " msg $?)))))
 
-(object
-    'type 'new-guy
-    'view (list 'new-guy things r)
-    'square foo
-    'fibonacci fibby
-    'info (thunk (sys.say "Still alive!"))
-    auto:
-        '(info)
-    resend:
-        (list
-            (list things 'map 'filter 'sort)
-            (list r 'x 'y))
-    default:
-        (fn (msg)
-            (sys.say (cat "What means " msg $?))))
+    -> (new-guy (1 1 2 3 5 8 13 21 34 55 89 144 233) (record: y 3 x 2))
 
-(object
-    'type 'new-guy
-    'view (list 'new-guy things r.view)
-    'square foo
-    'fibonacci fibby
-    'info (thunk (sys.say "Still alive!"))
-    auto:
-        '(info)
-    resend:
-        (list
-            (list things 'map 'filter 'sort)
-            (list r 'x 'y))
-    default:
-        (fn (msg)
-            (sys.say (cat "What means " msg $?))))
+new-dude.info
+    -> Still alive!
+    -> null
 
-; -> (new-guy (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20) (record: y 3 x 2))
+(new-dude.filter (fn (x) (< x 10)))
+    -> (1 1 2 3 5 8)
 
+new-dude.x
+    -> 2
+
+new-dude.y
+    -> 3
+
+new-dude.foonballardy
+    -> What means foonballardy?
+    -> null
 ```
 
