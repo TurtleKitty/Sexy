@@ -1,13 +1,13 @@
 
 (fun p ()
     (sys.say 1)
-    (sys.sleep (ndx 1 3))
+    (sys.proc.sleep (ndx 1 3))
     (sys.say 2)
-    (sys.sleep (ndx 1 3))
+    (sys.proc.sleep (ndx 1 3))
     (sys.say 3)
-    (sys.sleep (ndx 1 3))
+    (sys.proc.sleep (ndx 1 3))
     (sys.say "Gone!")
-    (sys.exit))
+    (sys.proc.exit))
 
 (each n (range 1 7)
     (sys.proc.fork p))

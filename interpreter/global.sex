@@ -398,13 +398,13 @@
 
 (fun repl (e in out err)
     (out.print "(sexy) ")
-    (def input (in.read))
+    (def input in.read)
     (def result (e.eval input))
     (out.say result)
     (repl e in out err))
 
 (fun parse (s)
-    s.to-port.to-sexy)
+    s.to-port.read)
 
 ; reserving for future use
 
