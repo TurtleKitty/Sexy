@@ -24,8 +24,7 @@
                 `(lambda (,(inject 'env) ,(inject 'cont) ,(inject 'err)) ,@body)))))
 
 (define (sexy-compile code)
-    (if (atom? code)
-        (sexy-compile-atom code)
+    (if (and (pair? code) (list? code))
         (case (car code)
             ((def)      (sexy-compile-def code))
             ((quote)    (sexy-compile-quote code))
@@ -41,7 +40,8 @@
             ((error)    (sexy-compile-error code))
             ((ensure)   (sexy-compile-ensure code))
             ((load)     (sexy-compile-load code))
-            (else       (sexy-compile-application code)))))
+            (else       (sexy-compile-application code)))
+        (sexy-compile-atom code)))
 
 (define (sexy-compile-atom code)
     (define pass (frag (cont code)))

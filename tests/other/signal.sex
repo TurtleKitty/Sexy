@@ -6,7 +6,6 @@
         (sys.proc.sleep 1)
         (greeter))
     (fun sulker ()
-        (sys.say "Hi, buddy!")
         (sys.proc.sleep 5)
         (sulker))
     (sys.signal.handle
