@@ -118,7 +118,7 @@
             'ready? (lambda () (tcp-accept-ready? l))
             'accept (lambda ()
                         (let-values (((in out) (tcp-accept l)))
-                            (sexy-socket in out)))
+                            (sexy-tcp-socket in out)))
             'close  (lambda () (tcp-close l) 'null)
         )
         '(ready? accept close)

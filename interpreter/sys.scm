@@ -159,9 +159,10 @@
                                     (sexy-apply thunk '() top-cont top-err))))
                         'exit exit
                     )
-                    '(pid uid gid parent-pid process-gid) #f #f)
+                    '(pid uid gid parent-pid) #f #f)
             '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
             'time (lambda () (inexact->exact (current-seconds)))
+            'ts (lambda () (inexact->exact (current-seconds)))
             'uname (system-information)
             'hostname (get-host-name)
             'shell (lambda (cmd)
@@ -223,7 +224,7 @@
                 (lambda (tname ok)
                     (debug tname (if ok 'ok 'FAIL))
                     'null))
-        '(64764 launch-the-missile)
+        '(ts 64764 launch-the-missile)
         #f
         #f))
 
