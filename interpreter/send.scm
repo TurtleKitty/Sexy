@@ -9,6 +9,7 @@
         ((char? obj) (sexy-send-rune obj msg cont err))
         ((string? obj) (sexy-send-text obj msg cont err))
         ((null? obj) (sexy-send-empty obj msg cont err))
+        ((list? obj) (sexy-send-list obj msg cont err))
         ((pair? obj) (sexy-send-pair obj msg cont err))
         ((procedure? obj) (sexy-send-primitive obj msg cont err))
         ((vector? obj) (sexy-send-vector obj msg cont err))
@@ -251,20 +252,6 @@
                     (err (list 'out-of-bounds obj msg) cont))
                 (idk obj msg cont err)))))
 
-(define (sexy-send-empty obj msg cont err)
-    (case msg
-        ((type empty? view to-bool to-list head tail key val car cdr size)
-            (cont
-                (case msg
-                    ((type) 'empty)
-                    ((empty?) #t)
-                    ((view) '())
-                    ((to-bool) #f)
-                    ((to-list) '())
-                    ((head tail key val car cdr) 'null)
-                    ((size) 0))))
-        (else (sexy-send-pair obj msg cont err))))
-
 (define (sexy-ho code obj cont err)
     (sexy-apply
         (sexy-compile-method code)
@@ -272,7 +259,21 @@
         cont
         err))
 
-(define (sexy-send-pair obj msg cont err)
+(define (sexy-send-empty obj msg cont err)
+    (case msg
+        ((type empty? view to-bool to-list head tail key val car cdr size)
+            (cont
+                (case msg
+                    ((type) 'list)
+                    ((empty?) #t)
+                    ((view) '())
+                    ((to-bool) #f)
+                    ((to-list) '())
+                    ((head tail key val car cdr) 'null)
+                    ((size) 0))))
+        (else (sexy-send-list obj msg cont err))))
+
+(define (sexy-send-list obj msg cont err)
     (define msgs
         '(type empty? view to-bool to-list to-text to-vector to-record head key car tail val cdr cons
           size reverse has? append take drop apply fold reduce each map filter sort))
@@ -280,12 +281,9 @@
         ((type empty? view to-bool to-list to-text to-vector head key car tail val cdr cons size reverse has? append take drop apply messages responds?)
             (cont
                 (case msg
-                    ((type) 'pair)
+                    ((type) 'list)
                     ((empty?) #f)
-                    ((view)
-                        (if (list? obj)
-                            (map sexy-view obj)
-                            (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj)))))
+                    ((view) (map sexy-view obj))
                     ((to-bool) #t)
                     ((to-list) obj)
                     ((to-text) (list->string obj))
@@ -401,13 +399,37 @@
                     (err (list 'out-of-bounds obj msg) cont))
                 (idk obj msg cont err)))))
 
+(define (sexy-send-pair obj msg cont err)
+    (define msgs
+        '(type empty? view to-bool to-list to-record head key car 0 tail val cdr 1 cons size clone))
+    (define msgs+ (append msgs '(messages responds?)))
+    (if (member msg msgs+)
+        (cont 
+            (case msg
+                ((type) 'pair)
+                ((view) 
+                    (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
+                ((to-bool) #t)
+                ((to-list) (list (car obj) (cdr obj)))
+                ((to-record) (sexy-record (car obj) (cdr obj)))
+                ((head key car 0) (car obj))
+                ((tail val cdr 1) (cdr obj))
+                ((cons) (lambda (v) (cons v obj)))
+                ((size) 2)
+                ((clone) (cons (car obj) (cdr obj)))
+                ((messages) msgs)
+                ((responds?)
+                    (lambda (msg)
+                        (if (member msg msgs) #t #f)))))
+        (idk obj msg cont err)))
+
 (define (sexy-send-primitive obj msg cont err)
     (define msgs '(type view code to-bool env arity apply))
     (define msgs+ (append msgs '(messages responds?)))
     (if (member msg msgs+)
         (cont 
             (case msg
-                ((type) (cont 'fn))
+                ((type) 'fn)
                 ((view) 'primitive-function)
                 ((code) '0xDEADBEEF)
                 ((to-bool) #t)
