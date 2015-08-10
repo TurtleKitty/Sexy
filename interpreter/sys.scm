@@ -131,16 +131,27 @@
             'signal
                 (sexy-object
                     (list
+                        'hup 1
+                        'int 2
+                        'quit 3
+                        'abrt 6
+                        'kill 9
+                        'alrm 14
+                        'term 15
+                        'chld 17
+                        'cont 18
+                        'stop 19
                         'send (lambda (pid sig) (process-signal pid sig))
-                        'mask (lambda (sig) (signal-mask! sig))
+                        'mask (lambda (sig) (signal-mask! sig) 'null)
                         'masked? (lambda (sig) (signal-masked? sig))
-                        'unmask (lambda (sig) (signal-unmask! sig))
+                        'unmask (lambda (sig) (signal-unmask! sig) 'null)
                         'handler (lambda (sig) (signal-handler sig))
                         'handle (lambda (sig fn)
                                     (set-signal-handler!
                                         sig
                                         (lambda (sig)
-                                            (sexy-apply fn (list sig) top-cont top-err))))
+                                            (sexy-apply fn (list sig) top-cont top-err)))
+                                'null)
                     )
                     #f #f #f)
             'proc
