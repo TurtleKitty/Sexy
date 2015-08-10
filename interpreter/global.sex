@@ -23,7 +23,7 @@
 (macro use (name uri)
     (list 'def name
         (pair 'load
-            (pair uri (rest.append opt.to-plist)))))
+            (pair uri (rest.append opt.to-opt)))))
 
 (macro thunk ()
     (pair 'fn (pair '() rest)))

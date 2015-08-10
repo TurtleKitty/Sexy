@@ -450,10 +450,10 @@
 
 (define (sexy-send-record obj msg cont err)
     (define msgs
-        '(type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-plist merge fold reduce map filter))
+        '(type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt merge fold reduce map filter))
     (define vars (htr obj 'vars))
     (case msg
-        ((type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-plist merge messages responds?)
+        ((type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt merge messages responds?)
             (cont
                 (case msg
                     ((type) 'record)
@@ -520,7 +520,7 @@
                     ((keys) (htks vars))
                     ((values) (htvs vars))
                     ((pairs to-list) (hash-table->alist vars))
-                    ((to-plist)
+                    ((to-opt)
                         (fold
                             (lambda (p xs)
                                 (cons (symbol->keyword (car p)) (cons (cdr p) xs)))
