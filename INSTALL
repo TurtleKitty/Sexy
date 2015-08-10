@@ -17,6 +17,7 @@ When run from the root of the git repo:
 ./bin/interpret.sh will run the interpreter directly with csi
 ./bin/run_tests.sh will use the newly compiled sexy binary to execute everything in ./tests
 
-Have fun! ^_^
+If you already have Chicken and the listed eggs installed, you may be able to use the included binary.
 
+Have fun! ^_^
 
