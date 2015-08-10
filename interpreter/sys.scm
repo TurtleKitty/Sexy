@@ -9,7 +9,10 @@
             'env
                 (sexy-object
                     (list
-                        'view 'operating-system-environment
+                        'view
+                            (lambda ()
+                                (sexy-view
+                                    (sexy-send-atomic (get-environment-variables) 'to-record)))
                         'get
                             (lambda (x)
                                 (define envt (get-environment-variables))
@@ -33,8 +36,7 @@
                                 (unsetenv k))
                                 'null)
                     )
-                    #f #f #f)
-            'exit exit
+                    '(view) #f #f)
             'srand
                 (lambda (v)
                     (randomize v)
@@ -68,7 +70,7 @@
                                     (display "Wise man.")
                                     (newline)
                                     'null)))))
-            'file
+            'fs
                 (sexy-object
                     (list
                         'read  open-input-file
@@ -94,29 +96,36 @@
                         'symlink?
                             (lambda (f)
                                 (symbolic-link? f))
-                        'rm (lambda (f) (delete-file* f))
+                        'rm (lambda (f) (delete-file* f) 'null)
                         'cp (lambda (old new) (file-copy old new))
                         'mv (lambda (old new) (file-move old new))
-                        'ln (lambda (old new) (create-symbolic-link old new))
+                        'ln (lambda (old new) (create-symbolic-link old new) 'null)
                         'tmp (lambda () (create-temporary-file))
+                        'pwd (lambda () (current-directory))
+                        'ls (lambda (dir) (directory dir #t))
+                        'cd (lambda (dir) (change-directory dir) 'null)
+                        'chroot (lambda (dir) (set-root-directory! dir) 'null)
+                        'mkdir (lambda (dir) (create-directory dir #t) 'null)
+                        'rmdir (lambda (dir) (delete-directory dir #t) 'null)
+                        'tmp-dir (lambda () (create-temporary-directory))
+                        'connect (lambda (path)
+                            (define-values (in out) (unix-connect path))
+                            (sexy-fs-socket path in out))
+                        'listen (lambda (path)
+                            (sexy-fs-listener path))
+                        'socket-pair (lambda ()
+                            (define-values (in1 out1 in2 out2) (unix-pair))
+                            (cons (sexy-fs-socket '? in1 out1) (sexy-fs-socket '? in2 out2)))
                     )
-                    '(tmp) #f #f)
-            'dir
-                (sexy-object
-                    (list
-                        'mk (lambda (dir) (create-directory dir #t))
-                        'rm (lambda (dir) (delete-directory dir #t))
-                        'tmp (lambda () (create-temporary-directory))
-                    )
-                    '(tmp) #f #f)
+                    '(pwd socket-pair tmp tmp-dir) #f #f)
             'tcp
                 (sexy-object
                     (list
                         'connect (lambda (host port)
                             (define-values (in out) (tcp-connect host port))
-                            (sexy-socket in out))
+                            (sexy-tcp-socket in out))
                         'listen (lambda (host port)
-                            (sexy-listener host port))
+                            (sexy-tcp-listener host port))
                     )
                     #f #f #f)
             'signal
@@ -143,20 +152,18 @@
                         'parent-pid (lambda () (parent-process-id))
                         'process-gid (lambda (pid) (process-group-id pid))
                         'run (lambda (cmd) (process-run cmd))
+                        'sleep (lambda (s) (sleep s))
                         'fork (lambda (thunk)
                             (process-fork
                                 (lambda ()
                                     (sexy-apply thunk '() top-cont top-err))))
+                        'exit exit
                     )
                     '(pid uid gid parent-pid process-gid) #f #f)
             '64764 (lambda () (display "\n    **** COMMODORE 64 BASIC V2 ****\n\n 64K RAM SYSTEM  38911 BASIC BYTES FREE\n\n") 'READY.)
-            'ts (lambda () (inexact->exact (current-seconds)))
+            'time (lambda () (inexact->exact (current-seconds)))
             'uname (system-information)
             'hostname (get-host-name)
-            'sleep (lambda (s) (sleep s))
-            'pwd (lambda () (current-directory))
-            'chdir (lambda (dir) (change-directory dir))
-            'chroot (lambda (dir) (set-root-directory! dir))
             'shell (lambda (cmd)
                 (read-all (process cmd)))
             'read
@@ -188,17 +195,6 @@
                                 (sexy-print (car args) out)
                                 (cont 'null))
                             err)))
-            'carp
-                (sexy-proc
-                    'primitive-function
-                    'sys
-                    (lambda (args opts cont err)
-                        (sexy-send sys 'stderr
-                            (lambda (stderr)
-                                (sexy-print (car args) stderr)
-                                (newline stderr)
-                                (cont 'null))
-                            err)))
             'say
                 (sexy-proc
                     'primitive-function
@@ -212,11 +208,22 @@
                                         (cont 'null))
                                     err))
                             err)))
+            'carp
+                (sexy-proc
+                    'primitive-function
+                    'sys
+                    (lambda (args opts cont err)
+                        (sexy-send sys 'stderr
+                            (lambda (stderr)
+                                (sexy-print (car args) stderr)
+                                (newline stderr)
+                                (cont 'null))
+                            err)))
             'test
                 (lambda (tname ok)
                     (debug tname (if ok 'ok 'FAIL))
                     'null))
-        '(ts pwd exit 64764 launch-the-missile)
+        '(64764 launch-the-missile)
         #f
         #f))
 

@@ -12,6 +12,7 @@
 (use posix)
 (use symbol-utils)
 (use tcp)
+(use unix-sockets)
 (use utf8)
 (use utils)
 (use uuid)

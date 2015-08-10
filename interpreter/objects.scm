@@ -69,12 +69,50 @@
                     (idk this (car args) cont err)))))
     this)
 
-(define (sexy-listener host port)
+(define (sexy-fs-listener path)
+    (define l (unix-listen path))
+    (sexy-object
+        (list
+            'type   'fs-listener
+            'view   (list 'fs-listener path)
+            'to-bool #t
+            'path   path
+            'ready? (lambda () (unix-accept-ready? l))
+            'accept (lambda ()
+                        (let-values (((in out) (unix-accept l)))
+                            (sexy-fs-socket path in out)))
+            'close  (lambda () (unix-close l) 'null)
+        )
+        '(ready? accept close)
+        #f
+        #f))
+
+(define (sexy-fs-socket path in out)
+    (sexy-object
+        (list
+            'type   'fs-socket
+            'view   (list 'socket path)
+            'to-bool #t
+            'path path
+            'close (lambda ()
+                       (close-input-port in)
+                       (close-output-port out)
+                       'null)
+        )
+        '(read read-rune read-line nl close)
+        (list
+            (list in 'read 'read-rune 'peek-rune 'assert-rune 'read-line 'ready?
+                     'skip 'skip-while 'skip-until 'read-token 'read-token-while
+                     'read-token-until 'read-token-if)
+            (list out 'write 'print 'say 'nl))
+        #f))
+
+(define (sexy-tcp-listener host port)
     (define l (tcp-listen port 100 host))
     (sexy-object
         (list
             'type   'tcp-listener
-            'view   (list 'listener host port)
+            'view   (list 'tcp-listener host port)
             'to-bool #t
             'port   (tcp-listener-port l)
             'ready? (lambda () (tcp-accept-ready? l))
@@ -87,12 +125,12 @@
         #f
         #f))
 
-(define (sexy-socket in out)
+(define (sexy-tcp-socket in out)
     (define-values (l-addr r-addr) (tcp-addresses in))
     (define-values (l-port r-port) (tcp-port-numbers in))
     (sexy-object
         (list
-            'type   'socket
+            'type   'tcp-socket
             'view   (list 'socket l-addr l-port '-> r-addr r-port)
             'to-bool #t
             'local-addr l-addr
