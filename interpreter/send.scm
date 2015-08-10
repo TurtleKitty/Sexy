@@ -313,7 +313,7 @@
                             'primitive-function
                             'pair
                             (lambda (args opts cont err)
-                                (sexy-send-pair obj (car args) cont err)))))))
+                                (sexy-send-list obj (car args) cont err)))))))
         ((to-record)
             (if (not (every pair? obj))
                 (err (list 'not-an-associative-list! obj 'to-record) cont)
@@ -401,7 +401,7 @@
 
 (define (sexy-send-pair obj msg cont err)
     (define msgs
-        '(type empty? view to-bool to-list to-record head key car 0 tail val cdr 1 cons size clone))
+        '(type empty? view to-bool to-list to-record head key car tail val cdr cons size clone))
     (define msgs+ (append msgs '(messages responds?)))
     (if (member msg msgs+)
         (cont 
@@ -412,8 +412,8 @@
                 ((to-bool) #t)
                 ((to-list) (list (car obj) (cdr obj)))
                 ((to-record) (sexy-record (car obj) (cdr obj)))
-                ((head key car 0) (car obj))
-                ((tail val cdr 1) (cdr obj))
+                ((head key car) (car obj))
+                ((tail val cdr) (cdr obj))
                 ((cons) (lambda (v) (cons v obj)))
                 ((size) 2)
                 ((clone) (cons (car obj) (cdr obj)))
@@ -539,12 +539,12 @@
                             (hts! noob 'type 'record)
                             (hts! noob 'vars nuvars)
                             noob)))))
-            ((fold) (sexy-send-pair
+            ((fold) (sexy-send-list
                         (hash-table->alist vars)
                         'fold
                         cont
                         err))
-            ((reduce) (sexy-send-pair
+            ((reduce) (sexy-send-list
                         (hash-table->alist vars)
                         'reduce
                         cont
