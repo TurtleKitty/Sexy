@@ -189,7 +189,8 @@
                         'global
                         (lambda (args opts cont err)
                             (define l (length args))
-                            (define strings (map (lambda (x) (sexy-send-atomic x 'to-text)) args))
+                            (define texts (map (lambda (x) (sexy-send-atomic x 'to-text)) args))
+                            (define strings (map (lambda (t) (if (string? t) t "???")) texts))
                             (define joiner
                                 (let ((j (sexy-send-atomic opts 'with)))
                                     (if (string? j)

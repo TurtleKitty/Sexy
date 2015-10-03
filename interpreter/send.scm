@@ -424,7 +424,7 @@
         (idk obj msg cont err)))
 
 (define (sexy-send-primitive obj msg cont err)
-    (define msgs '(type view code to-bool env arity apply))
+    (define msgs '(type view code to-bool to-text env arity apply))
     (define msgs+ (append msgs '(messages responds?)))
     (if (member msg msgs+)
         (cont 
@@ -433,6 +433,7 @@
                 ((view) 'primitive-function)
                 ((code) '0xDEADBEEF)
                 ((to-bool) #t)
+                ((to-text) "0xDEADBEEF")
                 ((env) 'global)
                 ((arity)
                     (let ((pinfo (procedure-information obj)))
