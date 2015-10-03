@@ -36,11 +36,13 @@
             (cont 
                 (handle-exceptions exn
                     (err
-                        (list
-                            'exn
-                            (list 'location  ((condition-property-accessor 'exn 'location) exn))
-                            (list 'arguments ((condition-property-accessor 'exn 'arguments) exn))
-                            (list 'message   ((condition-property-accessor 'exn 'message) exn)))
+                        (handle-exceptions exn
+                            (err "Something went seriously wrong in the Sexy interpreter." identity)
+                            (list
+                                'exn
+                                (list 'location  ((condition-property-accessor 'exn 'location) exn))
+                                (list 'arguments ((condition-property-accessor 'exn 'arguments) exn))
+                                (list 'message   ((condition-property-accessor 'exn 'message) exn))))
                         (lambda (ys) (cont (apply obj ys))))
                     (apply obj xs))))
         ((hash-table? obj)
