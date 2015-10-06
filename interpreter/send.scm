@@ -587,7 +587,6 @@
             (case msg
                 ((type view) (cont 'object))
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
-                ((=) (cont (lambda (other) #f)))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
                 ((messages) (cont (hash-table-keys fields)))
                 (else (sexy-apply (htr obj 'default) (list msg) cont err))))))

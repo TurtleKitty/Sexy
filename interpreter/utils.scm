@@ -56,7 +56,12 @@
     (eq? x 'null))
 
 (define (sexy-equal? x y)
+    (define (no-way)
+        (sexy-error "= cannot compare objects " x " and " y "!")
+        #f)
     (cond
+        ((and (number? x) (number? y))
+            (= x y))
         ((and (hash-table? x) (hash-table? y))
             (let ((xt (htr x 'type)) (yt (htr y 'type)))
                 (if (not (eq? xt yt))
@@ -67,14 +72,7 @@
                             (let ((x-pairs (sort-symbol-alist (hash-table->alist (htr x 'vars))))
                                   (y-pairs (sort-symbol-alist (hash-table->alist (htr y 'vars)))))
                                 (equal? x-pairs y-pairs)))
-                        (else
-                            (sexy-send-object
-                                x
-                                '=
-                                (lambda (f) (f y))
-                                top-err))))))
-        ((and (number? x) (number? y))
-            (= x y))
+                        (else (no-way))))))
         (else
             (equal? x y))))
 
