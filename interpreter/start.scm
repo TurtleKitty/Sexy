@@ -14,7 +14,7 @@
     (if (not (file-exists? sexy-use-symbols))
         (with-output-to-file sexy-use-symbols
             (lambda ()
-                (write-string symbols.sex))))
+                (write-string symbols.sxy))))
     (global-env)
     (add-global-prelude)
     (symbols-env)
@@ -43,7 +43,7 @@
                         (display "Sexy syntax check complete: ")
                         (say (if its-good 'ok 'FAIL))))
                 ((clean)
-                    (let ((cached (append (glob "~/.sexy/compiled/*") (glob "~/.sexy/modules/*") (list "~/.sexy/global.sex"))))
+                    (let ((cached (append (glob "~/.sexy/compiled/*") (glob "~/.sexy/modules/*") (list "~/.sexy/global.sxy"))))
                         (let loop ((f (car cached)) (fs (cdr cached)))
                             (delete-file* f)
                             (if (eq? fs '())

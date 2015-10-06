@@ -46,7 +46,7 @@ END
 
 (define *cwd* (current-directory))
 (define *use-cache* #t)
-(define sexy-use-symbols "~/.sexy/symbols.sex")
+(define sexy-use-symbols "~/.sexy/symbols.sxy")
 (define sexy-mod-dir     "~/.sexy/modules")
 (define sexy-cache-dir   "~/.sexy/compiled")
 

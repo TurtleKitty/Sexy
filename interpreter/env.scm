@@ -215,25 +215,25 @@
 (define-syntax import-global-prelude
     (ir-macro-transformer
          (lambda (expr inject compare)
-            (define global-prelude-file "global.sex")
+            (define global-prelude-file "global.sxy")
             (define text
                 (with-input-from-file global-prelude-file read-string))
             `(define ,(inject 'global-prelude-text) ,text))))
 
 (import-global-prelude)
 
-(define-syntax import-default-symbols.sex
+(define-syntax import-default-symbols.sxy
     (ir-macro-transformer
          (lambda (expr inject compare)
-            (define symbols-file "symbols.sex")
+            (define symbols-file "symbols.sxy")
             (define text
                 (with-input-from-file symbols-file read-string))
-            `(define ,(inject 'symbols.sex) ,text))))
+            `(define ,(inject 'symbols.sxy) ,text))))
 
-(import-default-symbols.sex)
+(import-default-symbols.sxy)
 
 (define (add-global-prelude)
-    (define cpath "~/.sexy/global.sex")
+    (define cpath "~/.sexy/global.sxy")
     (define is-cached (file-exists? cpath))
     (define expanded-prelude
         (if is-cached

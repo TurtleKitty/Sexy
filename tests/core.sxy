@@ -276,19 +276,19 @@
 
 (sys.test 'use-fn-file
     (seq
-        (use foreigner "modules/fn.sex")
+        (use foreigner "modules/fn.sxy")
         (= (foreigner 1 2) '(foreigner 1 2))))
 
 (sys.test 'use-fn-https
     (seq 
-        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/fn.sex")
+        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/fn.sxy")
         (= (foreigner 1 2) '(foreigner 1 2))))
 
 (sys.test 'use-parameters-file
     ((fn ()
-        (use one   "modules/param.sex" 1 2)
-        (use two   "modules/param.sex" 'a 'b 'c 'd)
-        (use three "modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
+        (use one   "modules/param.sxy" 1 2)
+        (use two   "modules/param.sxy" 'a 'b 'c 'd)
+        (use three "modules/param.sxy" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
         (and
             (= one   '(1 2 null null ()))
             (= two   '(a b null null (c d)))
@@ -296,9 +296,9 @@
 
 (sys.test 'use-parameters-https
     ((fn ()
-        (use one   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sex" 1 2)
-        (use two   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sex" 'a 'b 'c 'd)
-        (use three "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sex" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
+        (use one   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sxy" 1 2)
+        (use two   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sxy" 'a 'b 'c 'd)
+        (use three "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sxy" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
         (and
             (= one   '(1 2 null null ()))
             (= two   '(a b null null (c d)))
@@ -306,17 +306,17 @@
 
 (sys.test 'use-other-file
     (seq
-        (use other "modules/use_other.sex" foon-type: 'adler)
+        (use other "modules/use_other.sxy" foon-type: 'adler)
         (= other '(foonballardy 5 7 adler))))
 
 (sys.test 'use-other-https
     (seq
-        (use other "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/use_other.sex" foon-type: 'bobkin)
+        (use other "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/use_other.sxy" foon-type: 'bobkin)
         (= other '(foonballardy 5 7 bobkin))))
 
 (sys.test 'use-macro-file
     ((fn ()
-        (load "modules/macro.sex")
+        (load "modules/macro.sxy")
         (and
             (= (quote-xyz 1 2 3) '(1 2 3))
             (= (send (calc-xyz 1 2 3) 'code) '(fn (v) (* v 17)))
@@ -324,7 +324,7 @@
 
 (sys.test 'use-macro-https
     ((fn ()
-        (load "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/macro.sex")
+        (load "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/macro.sxy")
         (and
             (= (quote-xyz 1 2 3) '(1 2 3))
             (= (send (calc-xyz 1 2 3) 'code) '(fn (v) (* v 17)))
@@ -332,15 +332,15 @@
 
 (sys.test 'use-recursive
     ((fn ()
-        (= 120 (load "modules/recursive.sex" 5)))))
+        (= 120 (load "modules/recursive.sxy" 5)))))
 
 (sys.test 'use-mutually-recursive
     (let ()
         (and
-            (= 'x (load "modules/x.sex" 4))
-            (= 'y (load "modules/x.sex" 5))
-            (= 'y (load "modules/y.sex" 4))
-            (= 'x (load "modules/y.sex" 5)))))
+            (= 'x (load "modules/x.sxy" 4))
+            (= 'y (load "modules/x.sxy" 5))
+            (= 'y (load "modules/y.sxy" 4))
+            (= 'x (load "modules/y.sxy" 5)))))
 
 (sys.test 'use-symbol
     (let ()
