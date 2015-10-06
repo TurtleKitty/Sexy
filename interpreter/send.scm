@@ -617,8 +617,9 @@
             (sexy-send-record (htr obj 'vars) msg cont err))
         ((type) (cont 'env))
         ((view)
-            (cons (string->keyword "env")
-                  (cdr (sexy-view (htr obj 'vars)))))
+            (cont
+                (cons (string->keyword "env")
+                      (cdr (sexy-view (htr obj 'vars))))))
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
         ((set!)

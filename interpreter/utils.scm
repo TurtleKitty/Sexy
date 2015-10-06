@@ -57,7 +57,7 @@
 
 (define (sexy-equal? x y)
     (cond
-        ((or (hash-table? x) (hash-table? y))
+        ((and (hash-table? x) (hash-table? y))
             (let ((xt (htr x 'type)) (yt (htr y 'type)))
                 (if (not (eq? xt yt))
                     #f
