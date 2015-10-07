@@ -11,14 +11,14 @@
 (define will-exist 'this-sexy-name-is-about-to-be-defined)
 
 (define (idk obj msg cont err)
-    (err (list 'message-not-understood (to-sexy obj) msg) cont))
+    (err (list 'message-not-understood (sexy-view obj) msg) cont))
 
 (define (debug . xs)
     (display xs (current-error-port))
     (newline (current-error-port)))
 
 (define (debug-obj x)
-    (define ps (to-sexy x))
+    (define ps (sexy-view x))
     (map debug ps))
 
 (define (for-pairs fn args)
@@ -33,8 +33,8 @@
 (define (sexy-error form . args)
     (newline)
     (display "ERRORED!!") (newline)
-    (display (to-sexy form)) (newline)
-    (display (to-sexy args)) (newline)
+    (display (sexy-view form)) (newline)
+    (display (sexy-view args)) (newline)
     (newline)
     (exit))
 
@@ -44,8 +44,8 @@
 (define (sexy-view obj)
     (sexy-send-atomic obj 'view))
 
-(define (to-sexy obj)
-    (sexy-send-atomic obj 'to-sexpr))
+(define (sexy-text obj)
+    (sexy-send-atomic obj 'to-text))
 
 (define (sort-symbol-alist ps)
     (sort ps

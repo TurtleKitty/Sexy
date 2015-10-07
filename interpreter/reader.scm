@@ -1,12 +1,9 @@
 
 (define (sexy-write obj port)
-    (define view (to-sexy obj))
-    (if (char? obj)
-        (display view port)
-        (write view port)))
+    (display (sexy-view obj) port))
 
 (define (sexy-print obj port)
-    (display (sexy-view obj) port))
+    (display (sexy-text obj) port))
 
 (define (sexy-read port)
     (define first-rune (peek-char port))

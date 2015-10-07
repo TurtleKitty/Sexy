@@ -17,11 +17,11 @@
     (let (p lines.to-port)
         (= '("uno" "dos" "tres") p.to-list)))
 
-(sys.test 'port-to-text
-    (= lines.to-port.to-text lines))
+(sys.test 'port-read-text
+    (= lines.to-port.read-text lines))
 
-(sys.test 'port-to-sexy
-    (= '((foo (bar baz)) (quux 2 3)) sexprs.to-port.to-sexy))
+(sys.test 'port-read-sexy
+    (= '((foo (bar baz)) (quux 2 3)) sexprs.to-port.read-sexy))
 
 (sys.test 'port-read
     (let (p sexprs.to-port)

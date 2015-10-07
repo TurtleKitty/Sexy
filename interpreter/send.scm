@@ -29,9 +29,9 @@
     (sexy-send obj msg top-cont top-err))
 
 (define (sexy-send-symbol obj msg cont err)
-    (define msgs '(type view to-text to-bool to-sexpr))
+    (define msgs '(type view to-text to-bool))
     (case msg
-        ((view to-sexpr to-symbol) (cont obj))
+        ((view to-symbol) (cont obj))
         ((to-text) (cont (symbol->string obj)))
         (else
             (case obj
@@ -47,11 +47,11 @@
                         (else (idk obj msg cont err))))))))
 
 (define (sexy-send-bool obj msg cont err)
-    (define msgs '(type view to-text to-bool to-symbol to-sexpr not))
+    (define msgs '(type view to-text to-bool to-symbol not))
     (case msg
         ((type) (cont 'bool))
         ((to-bool) (cont obj))
-        ((view to-sexpr to-symbol) (cont (if obj 'true 'false)))
+        ((view to-symbol) (cont (if obj 'true 'false)))
         ((to-text) (cont (if obj "true" "false")))
         ((not) (cont (not obj)))
         ((messages) (cont msgs))
@@ -59,7 +59,7 @@
         (else (idk obj msg cont err))))
 
 (define (sexy-send-null obj msg cont err)
-    (define msgs '(type view to-text to-bool to-symbol to-sexpr))
+    (define msgs '(type view to-text to-bool to-symbol))
     (case msg
         ((to-bool) (cont #f))
         ((apply) (err 'null-is-not-applicable cont))
@@ -75,7 +75,7 @@
         ((abs) (cont (abs obj)))
         ((to-bool) (cont (not (= obj 0))))
         ((to-text) (cont (number->string obj)))
-        ((view to-sexpr) (cont obj))
+        ((view) (cont obj))
         (else
             (cond
                 ((integer? obj) (sexy-send-int obj msg cont err))
@@ -83,7 +83,7 @@
                 (else (idk obj msg cont err))))))
 
 (define (sexy-send-int obj msg cont err)
-    (define msgs '(type view to-text to-bool to-sexpr zero? pos? neg? abs floor ceil round truncate inc dec even? odd?))
+    (define msgs '(type view to-text to-bool zero? pos? neg? abs floor ceil round truncate inc dec even? odd?))
     (case msg
         ((type) (cont 'int))
         ((inc) (cont (+ obj 1)))
@@ -99,7 +99,7 @@
         (else (idk obj msg cont err))))
  
 (define (sexy-send-real obj msg cont err)
-    (define msgs '(type view to-text to-bool to-sexpr zero? pos? neg? abs floor ceil round truncate))
+    (define msgs '(type view to-text to-bool zero? pos? neg? abs floor ceil round truncate))
     (case msg
         ((type) (cont 'number))
         ((floor) (cont (inexact->exact (floor obj))))
@@ -111,10 +111,17 @@
         (else (idk obj msg cont err))))
 
 (define (sexy-send-rune obj msg cont err)
-    (define msgs '(type view code to-text to-bool to-number to-sexpr alpha? digit? whitespace? uc? lc? uc lc))
+    (define msgs '(type view code to-text to-bool to-number alpha? digit? whitespace? uc? lc? uc lc))
     (case msg
         ((type) (cont 'rune))
-        ((view) (cont (string obj)))
+        ((view)
+            (cont
+                (case obj
+                    ((#\space) '$space)
+                    ((#\newline) '$lf)
+                    ((#\return) '$cr)
+                    ((#\tab) '$tab)
+                    (else (string #\$ obj)))))
         ((code) (cont (char->integer obj)))
         ((alpha?) (cont (char-alphabetic? obj)))
         ((digit?) (cont (char-numeric? obj)))
@@ -126,14 +133,6 @@
         ((to-bool) (cont #t))
         ((to-number) (cont (string->number (string obj))))
         ((to-text) (cont (string obj)))
-        ((to-sexpr)
-            (cont
-                (case obj
-                    ((#\space) '$space)
-                    ((#\newline) '$lf)
-                    ((#\return) '$cr)
-                    ((#\tab) '$tab)
-                    (else (string->symbol (list->string (list #\$ obj)))))))
         ((messages) (cont msgs))
         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
         (else (idk obj msg cont err))))
@@ -141,7 +140,7 @@
 (define (sexy-send-text obj msg cont err)
     (define msgs
         '(type view clone to-bool to-symbol to-keyword to-number
-          to-list to-text to-sexpr to-port size chomp index take drop
+          to-list to-text to-port size chomp index take drop
           trim ltrim rtrim lpad rpad set! split match capture replace))
     (define (build-regex re flags)
         (define opts
@@ -152,11 +151,11 @@
                     (map string->symbol (string-split flags "")))))
         (apply irregex opts))
     (case msg
-        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text to-sexpr to-port size chomp index take drop trim ltrim rtrim lpad rpad messages responds?)
+        ((type view clone to-bool to-symbol to-keyword to-number to-list to-text to-port size chomp index take drop trim ltrim rtrim lpad rpad messages responds?)
             (cont
                 (case msg
                     ((type) 'text)
-                    ((view) obj)
+                    ((view) (string-join (list "\"" obj "\"") ""))
                     ((clone) (string-copy obj))
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
@@ -164,7 +163,7 @@
                     ((to-number) (string->number obj))
                     ((to-list) (string->list obj))
                     ((to-vector) (list->vector (string->list obj)))
-                    ((to-text to-sexpr) obj)
+                    ((to-text) obj)
                     ((to-port) (open-input-string obj))
                     ((take) (lambda (n) (string-take obj n)))
                     ((drop) (lambda (n) (string-drop obj n)))
@@ -261,32 +260,32 @@
 
 (define (sexy-send-empty obj msg cont err)
     (case msg
-        ((type empty? view to-bool to-list to-sexpr head tail key val car cdr size)
+        ((type empty? view to-bool to-list head tail key val car cdr size)
             (cont
                 (case msg
                     ((type) 'list)
                     ((empty?) #t)
                     ((to-bool) #f)
-                    ((view to-sexpr to-list) '())
+                    ((view to-list) '())
+                    ((to-text) "()")
                     ((head tail key val car cdr) 'null)
                     ((size) 0))))
         (else (sexy-send-list obj msg cont err))))
 
 (define (sexy-send-list obj msg cont err)
     (define msgs
-        '(type empty? view to-bool to-list to-text to-vector to-record to-sexpr head key car tail val cdr cons
+        '(type empty? view to-bool to-list to-text to-vector to-record head key car tail val cdr cons
           size reverse has? append take drop apply fold reduce each map filter sort))
     (case msg
-        ((type empty? view to-bool to-list to-text to-vector to-sexpr head key car tail val cdr cons size reverse has? append take drop apply messages responds?)
+        ((type empty? view to-bool to-list to-text to-vector head key car tail val cdr cons size reverse has? append take drop apply messages responds?)
             (cont
                 (case msg
                     ((type) 'list)
                     ((empty?) #f)
                     ((view) (map sexy-view obj))
-                    ((to-sexpr) (map to-sexy obj))
+                    ((to-text) (string-join (list "(" (string-join (map sexy-text obj) " ") ")") ""))
                     ((to-bool) #t)
                     ((to-list) obj)
-                    ((to-text) (list->string obj))
                     ((to-vector) (list->vector obj))
                     ((head key car) (car obj))
                     ((tail val cdr) (cdr obj))
@@ -401,14 +400,16 @@
 
 (define (sexy-send-pair obj msg cont err)
     (define msgs
-        '(type empty? view to-bool to-list to-record to-sexpr head key car tail val cdr cons size clone))
+        '(type empty? view to-text to-bool to-list to-record head key car tail val cdr cons size clone))
     (define msgs+ (append msgs '(messages responds?)))
     (if (member msg msgs+)
         (cont 
             (case msg
                 ((type) 'pair)
-                ((view to-sexpr) 
-                    (list (string->keyword "pair") (to-sexy (car obj)) (to-sexy (cdr obj))))
+                ((view) 
+                    (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
+                ((to-text) 
+                    (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
                 ((to-bool) #t)
                 ((to-list) (list (car obj) (cdr obj)))
                 ((to-record) (sexy-record (car obj) (cdr obj)))
@@ -424,13 +425,13 @@
         (idk obj msg cont err)))
 
 (define (sexy-send-primitive obj msg cont err)
-    (define msgs '(type view to-sexpr code to-bool to-text env arity apply))
+    (define msgs '(type view code to-bool to-text env arity apply))
     (define msgs+ (append msgs '(messages responds?)))
     (if (member msg msgs+)
         (cont 
             (case msg
                 ((type) 'fn)
-                ((view to-sexpr) 'primitive-function)
+                ((view) 'primitive-function)
                 ((code) '0xDEADBEEF)
                 ((to-bool) #t)
                 ((to-text) "0xDEADBEEF")
@@ -451,14 +452,14 @@
 
 (define (sexy-send-record obj msg cont err)
     (define msgs
-        '(type view size clone to-bool to-sexpr get put set! rm del! has? apply keys values pairs to-list to-opt merge fold reduce map filter))
+        '(type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt to-text merge fold reduce map filter))
     (define vars (htr obj 'vars))
     (case msg
-        ((type view size clone to-bool to-sexpr get put set! rm del! has? apply keys values pairs to-list to-opt merge messages responds?)
+        ((type view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt to-text merge messages responds?)
             (cont
                 (case msg
                     ((type) 'record)
-                    ((view to-sexpr)
+                    ((view to-text)
                         (let ((keys (htks vars)))
                             (cons
                                 (string->keyword "record")
@@ -585,19 +586,20 @@
         (if (hte? resends msg)
             (sexy-send (htr resends msg) msg cont err)
             (case msg
-                ((type view to-sexpr) (cont 'object))
+                ((type view) (cont 'object))
+                ((to-text) (cont "object"))
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
                 ((messages) (cont (hash-table-keys fields)))
                 (else (sexy-apply (htr obj 'default) (list msg) cont err))))))
 
 (define (sexy-send-fn obj msg cont err)
-    (define msgs '(type view to-bool to-sexpr arity code env formals apply))
+    (define msgs '(type view to-bool to-text arity code env formals apply))
     (case msg
         ((type) (cont 'fn))
         ((view) (cont `(fn ,(htr obj 'formals) ...)))
         ((to-bool) (cont #t))
-        ((to-sexpr) (cont (htr obj 'code)))
+        ((to-text) (cont (htr obj 'code)))
         ((arity code env formals) (cont (htr obj msg)))
         ((apply)
             (cont 
@@ -611,12 +613,12 @@
         (else (idk obj msg cont err))))
 
 (define (sexy-send-env obj msg cont err)
-    (define msgs '(type view def! set! has? get del! pairs lookup mama extend eval expand))
+    (define msgs '(type view to-text def! set! has? get del! pairs lookup mama extend eval expand))
     (case msg
         ((get has? del! to-bool pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
         ((type) (cont 'env))
-        ((view to-sexpr)
+        ((view to-text)
             (cont
                 (cons (string->keyword "env")
                       (cdr (sexy-view (htr obj 'vars))))))
@@ -676,20 +678,20 @@
         (else (idk obj msg cont err))))
 
 (define (sexy-send-vector obj msg cont err)
-    (define msgs '(type view to-bool to-list to-sexpr pairs size clone has? set! apply fold reduce map filter sort))
+    (define msgs '(type view to-bool to-text to-list pairs size clone has? set! apply fold reduce map filter sort))
     (case msg
-        ((type view to-bool to-list to-sexpr pairs size clone has? set! apply messages responds?)
+        ((type view to-bool to-text to-list pairs size clone has? set! apply messages responds?)
             (cont 
                 (case msg
                     ((type) 'vector)
-                    ((view to-sexpr)
+                    ((view)
                         (cons (string->keyword "vector")
                             (map
                                 sexy-view
                                 (vector->list obj))))
                     ((to-bool) (not (eq? (vector-length obj) 0)))
                     ((to-list) (vector->list obj))
-                    ((to-text) (list->string (vector->list obj)))
+                    ((to-text) (string-join (list "(vector: " (string-join (map sexy-text obj) " ") ")") ""))
                     ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
                     ((size) (vector-length obj))
                     ((clone) (vector-copy obj))
@@ -771,11 +773,11 @@
 
 (define (sexy-send-port obj msg cont err)
     (case msg
-        ((type view to-sexpr to-bool input? output? open?)
+        ((type view to-text to-bool input? output? open?)
             (cont 
                 (case msg
                     ((type) 'port)
-                    ((view to-sexpr) obj)
+                    ((view to-text) obj)
                     ((to-bool) #t)
                     ((input?) (input-port? obj))
                     ((output?) (output-port? obj))
@@ -788,11 +790,11 @@
 (define (sexy-send-input-port obj msg cont err)
     (define msgs
         '(type view to-bool input? output? open? close
-          ready? read read-rune peek-rune read-line assert-rune skip skip-while skip-until
-          read-token read-token-while read-token-until read-token-if to-list to-text to-sexy to-sexpr))
+          ready? read read-rune peek-rune read-line read-text assert-rune skip skip-while skip-until
+          read-token read-token-while read-token-until read-token-if to-list to-text read-sexy))
     (case msg
-        ((ready? read read-rune peek-rune read-line assert-rune skip skip-while skip-until
-          read-token read-token-while read-token-until read-token-if to-list to-text to-sexy to-sexpr
+        ((ready? read read-rune peek-rune read-line read-text assert-rune skip skip-while skip-until
+          read-token read-token-while read-token-until read-token-if to-list to-text read-sexy
           messages responds?)
             (if (port-closed? obj)
                 (err (list 'input-port-closed obj msg) cont)
@@ -803,6 +805,8 @@
                         ((read-rune) (read-char obj))
                         ((peek-rune) (peek-char obj))
                         ((read-line) (read-line obj))
+                        ((read-text) (read-string #f obj))
+                        ((read-sexy) (sexy-read-file obj))
                         ((assert-rune)
                             (sexy-proc
                                 'primitive-function
@@ -882,15 +886,13 @@
                         ((responds?)
                             (lambda (msg)
                                 (if (member msg msgs) #t #f)))
-                        ((to-list) (read-lines obj))
-                        ((to-text) (read-string #f obj))
-                        ((to-sexy) (sexy-read-file obj))))))
+                        ((to-list) (read-lines obj))))))
         ((close) (close-input-port obj) (cont 'null))
         (else (idk msg obj cont err))))
 
 (define (sexy-send-output-port obj msg cont err)
     (define msgs
-        '(type view to-sexpr to-bool input? output? open? write print say nl flush close))
+        '(type view to-text to-bool input? output? open? write print say nl flush close))
     (case msg
         ((write print say nl)
             (if (port-closed? obj)
@@ -923,7 +925,7 @@
 (define (sexy-send-eof obj msg cont err)
     (case msg
         ((type) (cont 'EOF))
-        ((view to-sexpr) (cont 'EOF))
+        ((view) (cont 'EOF))
         ((to-bool) (cont #f))
         ((to-text) (cont "END OF LINE."))
         ((apply) (err 'eof-is-not-applicable cont))
