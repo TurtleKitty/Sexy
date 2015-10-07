@@ -1,5 +1,5 @@
 
-(def empty '())
+(def empty ())
 (def ys (list 8 6 7 5 3 0 9))
 (def alist (list (% x 1) (% y 2)))
 

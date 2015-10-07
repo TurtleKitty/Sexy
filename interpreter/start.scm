@@ -55,7 +55,7 @@
                 ((expand)
                     (begin
                         (pp
-                            (sexy-view
+                            (to-sexy
                                 (read-expand-cache-prog (fname) (cli-env))))
                         (newline)))
                 (else (printf "Unknown command: ~A~%" cmd))))))
