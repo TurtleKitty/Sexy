@@ -46,6 +46,7 @@
             ((#\$) (sexy-read-rune port))
             ((#\#) (sexy-read-matrix port))
             ((#\;) (sexy-read-comment port))
+            ((#\|) (sexy-read-funky port))
             (else (read port)))))
 
 (define (sexy-read-pair port)
@@ -195,6 +196,17 @@
 (define (sexy-read-rem port)
     (sexy-read-list port)
     (sexy-reader port))
+
+(define (sexy-read-funky port) ; hackity-hack
+    (read-char port)
+    (let ((next (peek-char port)))
+        (if (eq? next #\$)
+            (begin
+                (read-char port)
+                (let ((rune (read-char port)))
+                    (read-char port)
+                    rune))
+            (sexy-reader port))))
 
 (define (sexy-parse form)
 	(define (desc form mt)
