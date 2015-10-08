@@ -220,7 +220,7 @@
                                         (cont 'null))
                                     err))
                             err)))
-            'carp
+            'log
                 (sexy-proc
                     'primitive-function
                     'sys
