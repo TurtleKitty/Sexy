@@ -75,7 +75,7 @@
         ((abs) (cont (abs obj)))
         ((to-bool) (cont (not (= obj 0))))
         ((to-text) (cont (number->string obj)))
-        ((view) (cont obj))
+        ((view to-number) (cont obj))
         (else
             (cond
                 ((integer? obj) (sexy-send-int obj msg cont err))
