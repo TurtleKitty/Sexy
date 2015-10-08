@@ -44,9 +44,6 @@
 (define (sexy-view obj)
     (sexy-send-atomic obj 'view))
 
-(define (sexy-text obj)
-    (sexy-send-atomic obj 'to-text))
-
 (define (sort-symbol-alist ps)
     (sort ps
         (lambda (a b)

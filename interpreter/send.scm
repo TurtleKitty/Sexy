@@ -121,7 +121,7 @@
                     ((#\newline) '$lf)
                     ((#\return) '$cr)
                     ((#\tab) '$tab)
-                    (else (string #\$ obj)))))
+                    (else (string->symbol (string #\$ obj))))))
         ((code) (cont (char->integer obj)))
         ((alpha?) (cont (char-alphabetic? obj)))
         ((digit?) (cont (char-numeric? obj)))
@@ -155,7 +155,7 @@
             (cont
                 (case msg
                     ((type) 'text)
-                    ((view) (string-join (list "\"" obj "\"") ""))
+                    ((view) obj)
                     ((clone) (string-copy obj))
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
@@ -283,7 +283,7 @@
                     ((type) 'list)
                     ((empty?) #f)
                     ((view) (map sexy-view obj))
-                    ((to-text) (string-join (list "(" (string-join (map sexy-text obj) " ") ")") ""))
+                    ((to-text) (apply string obj))
                     ((to-bool) #t)
                     ((to-list) obj)
                     ((to-vector) (list->vector obj))
@@ -406,9 +406,7 @@
         (cont 
             (case msg
                 ((type) 'pair)
-                ((view) 
-                    (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
-                ((to-text) 
+                ((view to-text) 
                     (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
                 ((to-bool) #t)
                 ((to-list) (list (car obj) (cdr obj)))
@@ -684,14 +682,10 @@
             (cont 
                 (case msg
                     ((type) 'vector)
-                    ((view)
-                        (cons (string->keyword "vector")
-                            (map
-                                sexy-view
-                                (vector->list obj))))
+                    ((view) (cons (string->keyword "vector") (vector->list obj)))
                     ((to-bool) (not (eq? (vector-length obj) 0)))
                     ((to-list) (vector->list obj))
-                    ((to-text) (string-join (list "(vector: " (string-join (map sexy-text obj) " ") ")") ""))
+                    ((to-text) (apply string (vector->list obj)))
                     ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
                     ((size) (vector-length obj))
                     ((clone) (vector-copy obj))

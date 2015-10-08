@@ -1,0 +1,7 @@
+
+(def tests (list $x $X $[ ${ $" "xyz" "XYZ" "foo\n" "bar\r" "baz\t" 'EOF))
+(sys.write tests)
+sys.stdout.nl
+(sys.print tests)
+sys.stdout.nl
+

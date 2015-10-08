@@ -263,8 +263,8 @@
 
 (sys.test 'cat
     (and
-        (=  "nulltrue x foobar(b a z)"
+        (=  "nulltrue x foobarbaz"
             (cat null true $space $x $space 'foo "bar" '($b $a $z)))
-        (=  "null/true/x/foo/bar/(b a z)"
+        (=  "null/true/x/foo/bar/baz"
             (cat null true $x 'foo "bar" '($b $a $z) with: "/"))))
 

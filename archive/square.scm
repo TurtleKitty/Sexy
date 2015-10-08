@@ -80,12 +80,16 @@
     [newline]
     [repl]]
 
+[define args [command-line-arguments]]
+
+[define n [string->number [car args]]]
+
 [define [speed-test]
     [display
         [square-eval
-            '[seq
+            `[seq
                 [set! fact [fn [n acc] [if [= n 1] acc [fact [- n 1] [* n acc]]]]]
-                [fact 1000 1]]
+                [fact ,n 1]]
             world]]
     [newline]]
 
