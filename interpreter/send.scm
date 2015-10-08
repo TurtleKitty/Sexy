@@ -682,7 +682,7 @@
             (cont 
                 (case msg
                     ((type) 'vector)
-                    ((view) (cons (string->keyword "vector") (vector->list obj)))
+                    ((view) (cons (string->keyword "vector") (map sexy-view (vector->list obj))))
                     ((to-bool) (not (eq? (vector-length obj) 0)))
                     ((to-list) (vector->list obj))
                     ((to-text) (apply string (vector->list obj)))
