@@ -52,6 +52,9 @@
 (fun record? (thing)
     (isa? thing 'record))
 
+(fun eof? (x)
+    (isa? x 'EOF))
+
 (fun not (x)
     x.to-bool.not)
 
@@ -405,6 +408,93 @@
 
 (fun parse (s)
     s.to-port.read)
+
+(def json
+    (let ()
+        (def syms '(true false null))
+        (fun json-in (txt)
+            (rem: this parser is pretty good at accepting valid JSON.
+                  It's less good at rejecting invalid JSON.  Rough draft.)
+            (fun read-num (p)
+                p.read.to-number)
+            (fun read-text (p)
+                p.read)
+            (fun read-symbol (p)
+                p.read.to-symbol)
+            (fun read-array (p)
+                p.read-rune ; discard opening [
+                (let loop (next p.peek-rune items ())
+                    (when (eof? next)
+                        (error 'unexpected-EOF-in-JSON-array!))
+                    (if next.whitespace?
+                        (seq p.read-rune (loop p.peek-rune items))
+                        (case next
+                            ($])     (seq p.read-rune items.reverse)
+                            ($,)     (seq p.read-rune (loop p.peek-rune items))
+                            default:
+                                (let (item (reader p))
+                                    (loop p.peek-rune (items.cons item)))))))
+            (fun read-object (p)
+                p.read-rune ; discard opening {
+                (let loop (next p.peek-rune items (record))
+                    (when (eof? next)
+                        (error 'unexpected-EOF-in-JSON-object!))
+                    (if next.whitespace?
+                        (seq p.read-rune (loop p.peek-rune items))
+                        (case next
+                            ($})  (seq p.read-rune items)
+                            ($,)  (seq p.read-rune (loop p.peek-rune items))
+                            default:
+                                (let (key (send (reader p) 'to-symbol))
+                                    (p.skip-while " :\t\n")
+                                    (let (val (reader p))
+                                        (items.set! key val)
+                                        (loop p.peek-rune items)))))))
+            (fun reader (p)
+                (def next p.peek-rune)
+                (when (eof? next)
+                    (return next))
+                (if next.whitespace?
+                    (seq
+                        p.read-rune
+                        (reader p))
+                    (case next
+                        ($")     (read-text p)
+                        ($[)     (read-array p)
+                        ($])     (error "unexpected ] !")
+                        (${)     (read-object p)
+                        ($})     (error "unexpected } !")
+                        ($- $0 $1 $2 $3 $4 $5 $6 $7 $8 $9)
+                            (read-num p)
+                        default:
+                            (let (this-guy (read-symbol p))
+                                (if (not (syms.has? this-guy))
+                                    (error `(unquoted-string!  ,this-guy))
+                                    this-guy)))))
+            (reader txt.to-port))
+
+            (fun json-out (thing)
+                (fun comma-fy (xs)
+                    (cat.apply (pair 'with: (pair "," xs))))
+                (cond
+                    (null? thing)   thing.to-text
+                    (bool? thing)   thing.to-text
+                    (num? thing)    thing.to-text
+                    (symbol? thing) (json-out thing.to-text)
+                    (text? thing)   (cat $" thing $")
+                    (rune? thing)   (json-out (text thing))
+                    (vector? thing) (json-out thing.to-list)
+                    (record? thing) (cat ${ (comma-fy (thing.to-list.map (fn (kv) (cat (json-out kv.key.to-text) $: (json-out kv.val))))) $})
+                    (list? thing)   (cat $[ (comma-fy (thing.map json-out)) $])
+                    (pair? thing)   (cat $[ (json-out thing.head) $, (json-out thing.tail) $])
+                    default: 
+                        (if (thing.responds? 'to-json)
+                            thing.to-json
+                            (error "json.stringify - unknown-type"))))
+
+            (object
+                'parse json-in
+                'stringify json-out)))
 
 ; reserving for future use
 

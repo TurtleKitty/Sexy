@@ -135,52 +135,6 @@
                         #f
                         #f
                         #f))
-                (cons 'json
-                    (sexy-object
-                        (list
-                            'parse
-                                (lambda (json-str)
-                                    (define schemified (read-json json-str))
-                                    (define (revise obj)
-                                        (cond
-                                            ((vector? obj)
-                                                (vector-map
-                                                    (lambda (i x) (revise x))
-                                                    obj))
-                                            ((list? obj)
-                                                (let ((rec (sexy-record)))
-                                                    (hts! rec 'vars
-                                                        (alist->hash-table
-                                                            (map
-                                                                (lambda (x) (cons (car x) (revise (cdr x))))
-                                                                obj)))
-                                                    rec))
-                                            (else obj)))
-                                    (revise schemified))
-                            'stringify
-                                (lambda (obj)
-                                    (define (revise x)
-                                        (cond
-                                            ((char? x) (string x))
-                                            ((list? x) (revise (list->vector x)))
-                                            ((vector? x)
-                                                (vector-map
-                                                    (lambda (i y) (revise y))
-                                                    x))
-                                            ((hash-table? x)
-                                                (let ((t (htr x 'type)))
-                                                    (if (eq? t 'record)
-                                                        (let ((pairs (hash-table->alist (htr x 'vars))))
-                                                            (map 
-                                                                (lambda (x) (cons (revise (car x)) (revise (cdr x))))
-                                                                pairs))
-                                                        (error "json.stringify: I don't know how to stringify this object!" x))))
-                                            (else x)))
-                                    (json->string (revise obj)))
-                        )
-                        #f
-                        #f
-                        #f))
                 (cons 'gensym sexy-gensym)
                 (cons 'uuid uuid-v4)
                 (cons 'cat
