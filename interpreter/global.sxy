@@ -69,33 +69,33 @@
 
 (macro and (x)
     (if rest
-        (list 'if x (and.apply rest) 'false)
+        (list 'if x (and.apply rest null) 'false)
         (list 'send x ''to-bool)))
 
 (fun and? (x)
     (if x
         (if rest
-            (and?.apply rest)
+            (and?.apply rest null)
             true)
         false))
 
 (macro or (x)
     (if rest
-        (list 'if x 'true (or.apply rest))
+        (list 'if x 'true (or.apply rest null))
         (list 'if x x 'false)))
 
 (fun or? (x)
     (if x
         true
         (if rest
-            (or?.apply rest)
+            (or?.apply rest null)
             false)))
 
 (fun nand ()
-    (not (and?.apply rest)))
+    (not (and?.apply rest null)))
 
 (fun nor ()
-    (not (or?.apply rest)))
+    (not (or?.apply rest null)))
 
 (fun xor (x y)
     (nor (and? x y) (nor x y)))
@@ -105,16 +105,16 @@
 (fun append (xs ys)
     (def rv (xs.append ys))
     (if rest
-        (append.apply (pair rv rest))
+        (append.apply (pair rv rest) null)
         rv))
 
-(fun apply (f args)
-    (f.apply args))
+(fun apply (f args options)
+    (f.apply args options))
 
 (fun papply (f)
     ((fn (cargs)
         (fn ()
-            (f.apply (append cargs rest)))) rest))
+            (f.apply (append cargs rest) opt))) rest))
 
 (fun compose ()
     ((fn (funz)
@@ -124,8 +124,8 @@
             (if (= s 1)
                 rest.head
                 (if (= s 2)
-                    (fn () (funz.head (apply funz.tail.head rest)))
-                    (compose funz.head (apply compose funz.tail)))))) rest))
+                    (fn () (funz.head (apply funz.tail.head rest opt)))
+                    (compose funz.head (apply compose funz.tail null)))))) rest))
 
 (fun make-env ()
     (wall ()
@@ -136,7 +136,7 @@
     (def vars (if is-named rest.head name/vars))
     (fun sep (x y xs names vals)
         (if xs.empty?
-            (pair ((pair x names) 'reverse) ((pair y vals) 'reverse))
+            (pair (send (pair x names) 'reverse) (send (pair y vals) 'reverse))
             (sep xs.head xs.1 xs.tail.tail (pair x names) (pair y vals))))
     (def p
         (if vars.empty?
@@ -148,7 +148,7 @@
             (def args (gensym))
             (list 'let (list args (pair 'list p.tail))
                     (list 'def name/vars fn-form)
-                    (list 'apply name/vars args)))
+                    (list 'apply name/vars args 'null)))
         (pair fn-form p.tail)))
 
 (macro % (head tail) ; pair macro
@@ -290,7 +290,7 @@
 
 (macro with-gensyms (gs)
     (qq
-        (let (unq (apply append (gs.map (_ (list _ '(gensym))))))
+        (let (unq (apply append (gs.map (_ (list _ '(gensym)))) null))
             (unqs rest))))
 
 (macro for (init pred update body)
@@ -341,7 +341,7 @@
     (qq
         (def (unq name)
             (let (default (fn () (unqs (pair body rest)))
-                  clauses (vector.apply ((send (range 0 ,opt-arity) 'map) (_ '())))) ; max arity of 7 for generic functions
+                  clauses (vector.apply ((send (range 0 ,opt-arity) 'map) (_ ())) (:)))
                 (fun add-clause! (pred body)
                     (def idx pred.arity)
                     (clauses.set!
@@ -349,20 +349,19 @@
                         (pair (pair pred body) (clauses idx))))
                 (fun set-default! (body)
                     (set! default body))
-                (fun gen-apply ()
-                    (def arity rest.size)
-                    (def the-rest rest)
+                (fun gen-apply (args options)
+                    (def arity args.size)
                     (let loop (n arity)
                         (def cs (clauses n))
                         (fun n-zero ()
                             (if n.zero?
-                                (default.apply the-rest)
+                                (default.apply args options)
                                 (loop n.dec)))
                         (if (not (pair? cs))
                             (n-zero)
                             (let larp (x cs.head xs cs.tail)
-                                (if (x.head.apply the-rest)
-                                    (x.tail.apply the-rest)
+                                (if (x.head.apply args options)
+                                    (x.tail.apply args options)
                                     (if (pair? xs)
                                         (larp xs.head xs.tail)
                                         (n-zero)))))))
@@ -475,7 +474,7 @@
 
             (fun json-out (thing)
                 (fun comma-fy (xs)
-                    (cat.apply (pair 'with: (pair "," xs))))
+                    (cat.apply xs (: with ",")))
                 (cond
                     (null? thing)   thing.to-text
                     (bool? thing)   thing.to-text

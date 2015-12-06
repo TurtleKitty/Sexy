@@ -255,6 +255,7 @@
     (sexy-apply
         (sexy-compile-method code)
         (list obj)
+        'null
         cont
         err))
 
@@ -312,7 +313,7 @@
                             'primitive-function
                             'pair
                             (lambda (args opts cont err)
-                                (sexy-send-list obj (car args) cont err)))))))
+                                (sexy-send-list obj (caar args) cont err)))))))
         ((to-record)
             (if (not (every pair? obj))
                 (err (list 'not-an-associative-list! obj 'to-record) cont)
@@ -444,7 +445,7 @@
                     (lambda (msg)
                         (if (member msg msgs) #t #f)))
                 ((apply)
-                    (lambda (args)
+                    (lambda (args opts)
                         (apply obj args)))))
         (idk obj msg cont err)))
 
@@ -516,7 +517,7 @@
                             'primitive-function
                             'record
                             (lambda (args opts cont err)
-                                (sexy-send-record obj (car args) cont err))))
+                                (sexy-send-record obj (caar args) cont err))))
                     ((keys) (htks vars))
                     ((values) (htvs vars))
                     ((pairs to-list) (hash-table->alist vars))
@@ -579,7 +580,7 @@
     (if (hte? fields msg)
         (let ((v (htr fields msg)))
             (if (hte? autos msg)
-                (sexy-apply v '() cont err) ; exec the thunk
+                (sexy-apply v '() 'null cont err) ; exec the thunk
                 (cont v)))
         (if (hte? resends msg)
             (sexy-send (htr resends msg) msg cont err)
@@ -589,7 +590,7 @@
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
                 ((messages) (cont (hash-table-keys fields)))
-                (else (sexy-apply (htr obj 'default) (list msg) cont err))))))
+                (else (sexy-apply (htr obj 'default) (list msg) 'null cont err))))))
 
 (define (sexy-send-fn obj msg cont err)
     (define msgs '(type view to-bool to-text arity code env formals apply))
@@ -605,7 +606,9 @@
                     'primitive-function
                     'fn
                     (lambda (args opts cont err)
-                        (sexy-apply obj (car args) cont err)))))
+                        (if (< (length args) 2)
+                            (err (list "fn.apply requires 2 arguments!" obj args) cont)
+                            (sexy-apply obj (car args) (cadr args) cont err))))))
         ((messages) (cont msgs))
         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
         (else (idk obj msg cont err))))
@@ -714,7 +717,7 @@
                             'primitive-function
                             'pair
                             (lambda (args opts cont err)
-                                (sexy-send-vector obj (car args) cont err)))))))
+                                (sexy-send-vector obj (caar args) cont err)))))))
         ((fold)
             (sexy-ho
                 '(fn (vec)
@@ -866,6 +869,7 @@
                                                 (sexy-apply
                                                     pred
                                                     (list tok)
+                                                    'null
                                                     (lambda (rv)
                                                         (sexy-bool
                                                             rv

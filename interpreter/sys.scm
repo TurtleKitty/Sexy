@@ -82,14 +82,14 @@
                                 (lambda (args opts cont err)
                                     (call-with-input-file (car args)
                                         (lambda (f)
-                                            (sexy-apply (cadr args) (list f) cont err)))))
+                                            (sexy-apply (cadr args) (list f) 'null cont err)))))
                         'to (sexy-proc
                                 'primitive-function
                                 'sys
                                 (lambda (args opts cont err)
                                     (call-with-output-file (car args)
                                         (lambda (f)
-                                            (sexy-apply (cadr args) (list f) cont err)))))
+                                            (sexy-apply (cadr args) (list f) 'null cont err)))))
                         'stat
                             (lambda (f)
                                 (file-stat f))
@@ -150,7 +150,7 @@
                                     (set-signal-handler!
                                         sig
                                         (lambda (sig)
-                                            (sexy-apply fn (list sig) top-cont top-err)))
+                                            (sexy-apply fn (list sig) 'null top-cont top-err)))
                                 'null)
                     )
                     #f #f #f)
@@ -167,7 +167,7 @@
                         'fork (lambda (thunk)
                             (process-fork
                                 (lambda ()
-                                    (sexy-apply thunk '() top-cont top-err))))
+                                    (sexy-apply thunk '() 'null top-cont top-err))))
                         'exit exit
                     )
                     '(pid uid gid parent-pid) #f #f)
@@ -214,7 +214,7 @@
                     (lambda (args opts cont err)
                         (sexy-send sys 'print
                             (lambda (printer)
-                                (sexy-apply printer args
+                                (sexy-apply printer args 'null
                                     (lambda (x)
                                         (newline)
                                         (cont 'null))

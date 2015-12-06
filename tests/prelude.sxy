@@ -202,7 +202,7 @@
         (= total 15)))
 
 (sys.test 'each-vector
-    (let (items (apply vector (range 1 5)) total 0)
+    (let (items (apply vector (range 1 5) (:)) total 0)
         (each n items
             (set! total (+ total n)))
         (= total 15)))

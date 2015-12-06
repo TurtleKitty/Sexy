@@ -17,6 +17,29 @@
     (define margs (flatten (zip names (make-list (length names) will-exist))))
     (apply mutate! (cons env (cons cont (cons err margs)))))
 
+(define (prepare-sexy-args xs)
+    (define (rval args opts)
+        (cons (reverse args) (reverse opts)))
+    (if (pair? xs)
+        (let loop ((head (car xs)) (tail (cdr xs)) (args '()) (opts '()))
+            (if (keyword? head)
+                (let ((k head) (v (car tail)))
+                    (if (pair? (cdr tail))
+                        (loop (cadr tail) (cddr tail) args (cons v (cons k opts)))
+                        (rval args (cons v (cons k opts)))))
+                (if (pair? tail)
+                    (loop (car tail) (cdr tail) (cons head args) opts)
+                    (rval (cons head args) opts))))
+        (rval '() '())))
+
+(define my-empty-record (sexy-record))
+
+(define (prep-options opts)
+    (if (= 0 (length opts))
+        my-empty-record
+        (apply sexy-record
+               (map (lambda (k) (if (keyword? k) (keyword->symbol k) k)) opts))))
+
 (define-syntax frag
     (ir-macro-transformer
         (lambda (expr inject compare)
@@ -257,6 +280,7 @@
                 (sexy-apply
                     funk
                     (list (lambda (k-val) (cont k-val)))
+                    'null
                     top-cont
                     err))
             err)))
@@ -271,7 +295,7 @@
             env
             (lambda (handler-fn)
                 (define (new-err-cont e k)
-                    (sexy-apply handler-fn (list e k) cont err))
+                    (sexy-apply handler-fn (list e k) 'null cont err))
                 (expr-c env cont new-err-cont))
             err)))
 
@@ -293,10 +317,10 @@
             env
             (lambda (protector-thunk)
                 (define (p-cont v)
-                    (sexy-apply protector-thunk '() identity err)
+                    (sexy-apply protector-thunk '() 'null identity err)
                     (cont v))
                 (define (p-err e k)
-                    (sexy-apply protector-thunk '() identity err)
+                    (sexy-apply protector-thunk '() 'null identity err)
                     (err e k))
                 (p-cont (expr-c env identity p-err)))
             err)))
@@ -305,19 +329,25 @@
     (define path (cadr code))
     (define module (if (hte? sexy-modules path) (htr sexy-modules path) (lambda args 'null)))
     (define load-env (local-env))
-    (define args-c (sexy-compile-list (cddr code)))
+    (define args-opts (prepare-sexy-args (cddr code)))
+    (define args-c (sexy-compile-list (car args-opts)))
+    (define opts-c (sexy-compile-list (cdr args-opts)))
     (frag 
         (args-c
             env
             (lambda (args)
-                (module load-env top-cont top-err)
-                (lookup load-env 'sexy-library-export-function
-                    (lambda (exporter)
-                        (if (eq? exporter not-found)
-                            (cont (lambda args 'null))
-                            (cont
-                                (sexy-apply exporter args top-cont top-err))))
-                    top-err))
+                (opts-c
+                    env
+                    (lambda (opts)
+                        (module load-env top-cont top-err)
+                        (lookup load-env 'sexy-library-export-function
+                            (lambda (exporter)
+                                (if (eq? exporter not-found)
+                                    (cont (lambda args 'null))
+                                    (cont
+                                        (sexy-apply exporter args (prep-options opts) top-cont top-err))))
+                            top-err))
+                    err))
             err)))
 
 (define (sexy-compile-list xs)
@@ -336,15 +366,21 @@
 
 (define (sexy-compile-application code)
     (define fn-c (sexy-compile (car code)))
-    (define args-c (sexy-compile-list (cdr code)))
+    (define args-opts (prepare-sexy-args (cdr code)))
+    (define args-c (sexy-compile-list (car args-opts)))
+    (define opts-c (sexy-compile-list (cdr args-opts)))
     (frag
         (fn-c
             env
             (lambda (f) 
                 (args-c
                     env
-                    (lambda (args) (sexy-apply f args cont err))
+                    (lambda (args)
+                        (opts-c
+                            env
+                            (lambda (opts)
+                                (sexy-apply f args (prep-options opts) cont err))
+                            err))
                     err))
             err)))
-
 

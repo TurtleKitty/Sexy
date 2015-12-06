@@ -1,8 +1,6 @@
 
 (def cache (:))
 
-(def with (send "with" 'to-keyword))
-
 (fun get-latest-version (repo path version)
     (fun frac (x) (x.split "[.]"))
     (fun ton (x) (x.map (_ _.to-number)))
@@ -36,7 +34,7 @@
                 (when only.size.zero?
                     (error (list 'symbol-uri-not-found repo path version)))
                 (def sorted (only.sort sorter))
-                (def the-one (cat.apply (pair with (pair "." sorted.0))))
+                (def the-one (cat.apply sorted.0 (: with ".")))
                 (def the-uri (send (send (git-info.filter (_ (= _.name the-one))) 0) 'download_url))
                 (cache.set! cpath the-uri)
                 the-uri))))
@@ -45,11 +43,7 @@
     (def xs (str.split "/"))
     (def version xs.reverse.head)
     (def path
-        (cat.apply
-            (pair
-                with 
-                (pair "/"
-                    (xs.take xs.size.dec)))))
+        (cat.apply (xs.take xs.size.dec) (: with "/")))
     (get-latest-version "TurtleKitty/sexy-lib" path version))
 
 (fun github (str)
@@ -57,11 +51,7 @@
     (def user xs.0)
     (def repo xs.1)
     (def repo-path
-        (cat.apply 
-            (pair
-                with 
-                (pair "/"
-                    ((send (xs.drop 2) 'take) (- xs.size 3))))))
+        (cat.apply ((send (xs.drop 2) 'take) (- xs.size 3)) (: with "/")))
     (def version xs.reverse.head)
     (get-latest-version (cat with: "/" user repo) repo-path version))
 

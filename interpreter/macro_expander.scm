@@ -70,16 +70,18 @@
                         (if (symbol? head)
                             (let ((obj (look-it-up head)))
                                 (if (sexy-macro? obj)
-                                    (sexy-expand
-                                        (apply (sexy-apply-wrapper obj) (cdr code))
-                                        env)
+                                    (let ((arg-pair (prepare-sexy-args (cdr code))))
+                                        (define args (car arg-pair))
+                                        (define opts (prep-options (cdr arg-pair)))
+                                        (sexy-expand
+                                            (sexy-apply obj args opts top-cont top-err)
+                                            env))
                                     (map expand code)))
                             (map expand code))))))))
 
 (define (sexy-expand-load code env)
     (define arg-pair (prepare-sexy-args (cdr code)))
     (define args (car arg-pair))
-    (define opts (cdr arg-pair))
     (define path (car args))
     (define abs-path (make-module-absolute-path path))
     (define prog-env (local-env))
