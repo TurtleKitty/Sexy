@@ -154,6 +154,12 @@
                                 (if (< l 1)
                                     ""
                                     (string-join strings joiner))))))
+                (cons 'debug
+                    (lambda (crap)
+                        (define stderr (current-error-port))
+                        (sexy-write crap stderr)
+                        (newline stderr)
+                        'null))
                 (cons 'FILE_NOT_FOUND 'neither-true-nor-false)
                 (cons 'T_PAAMAYIM_NEKUDOTAYIM (quote ::))))
         (fill-prelude primitives)
