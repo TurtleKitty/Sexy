@@ -72,9 +72,6 @@ END
 (include "repl")
 (include "start")
 
-(define global-arg-pair (sexy-cli-args (command-line-arguments)))
-
-
 (start)
 
 

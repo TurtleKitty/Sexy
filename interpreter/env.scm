@@ -5,11 +5,8 @@
 (define (cli-env)
     (define lenv (local-env))
     (extend lenv
-        '(opt rest sys)
-        (list
-            (cdr global-arg-pair)
-            (car global-arg-pair)
-            sys)
+        '(sys)
+        (list sys)
         top-cont
         top-err))
 
@@ -224,6 +221,8 @@
     (not (eq? not-found (glookup x))))
 
 (define (lookup env x cont err)
+    (define (is-one z)
+        (member z '(opt rest return)))
     (sexy-send-env
         env
         'has?

@@ -1,10 +1,15 @@
 
+(define global-arg-pair
+    (sexy-cli-args (command-line-arguments)))
+
 (define sys
     (sexy-object
         (list
             'stdin   (current-input-port)
             'stdout  (current-output-port)
             'stderr  (current-error-port)
+            'opt     (cdr global-arg-pair)
+            'rest    (car global-arg-pair)
             'view 'operating-system-interface
             'env
                 (sexy-object
