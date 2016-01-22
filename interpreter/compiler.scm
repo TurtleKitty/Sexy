@@ -9,7 +9,6 @@
                     (and (pair? x)
                          (or
                             (eq? (car x) 'macro)
-                            (eq? (car x) 'operator)
                             (eq? (car x) 'fun)
                             (eq? (car x) 'def))))
                 seq)))
@@ -54,7 +53,7 @@
             ((if)       (sexy-compile-if code))
             ((seq)      (sexy-compile-seq code))
             ((set!)     (sexy-compile-set! code))
-            ((operator) (sexy-compile-operator code))
+            ((macro)    (sexy-compile-macro code))
             ((fn)       (sexy-compile-fn code))
             ((wall)     (sexy-compile-wall code))
             ((gate)     (sexy-compile-gate code))
@@ -234,13 +233,34 @@
     (frag
         (cont (make-sexy-proc code env formals bodies))))
 
-(define (sexy-compile-operator code)
-    (define formals (cadr code))
-    (define bodies (cddr code))
-    (frag
-        (define thing (make-sexy-proc code env formals bodies))
-        (hts! thing 'type 'operator)
-        (cont thing)))
+(define (sexy-compile-macro code)
+    (define name (cadr code))
+    (define formals (caddr code))
+    (define bodies (cdddr code))
+    (if (not (symbol? name))
+        (sexy-error "macro expects it's first argument to be a symbol.  Got " code)
+        (if (holy? name)
+            (blasphemy code name)
+            (frag
+                (sexy-send-env env 'has?
+                    (lambda (haz?)
+                        (sexy-send-env env 'get
+                            (lambda (getter)
+                                (if (and
+                                        (haz? name)
+                                        (not (eq? will-exist (getter name))))
+                                    (err (list 'bad-def code name " is already defined in the local environment.") cont)
+                                    (let ((thing (make-sexy-proc code env formals bodies)))
+                                        (hts! thing 'type 'operator)
+                                        (mutate!
+                                            env
+                                            (lambda (null)
+                                                (cont thing))
+                                            err
+                                            name
+                                            thing))))
+                            err))
+                    err)))))
 
 (define (sexy-compile-wall code)
     (define args (cadr code))

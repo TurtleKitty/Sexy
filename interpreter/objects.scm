@@ -26,7 +26,7 @@
     (tset! 'code code)
     (tset! 'exec compiled)
     (if (pair? code)
-        (let ((formals (cadr code)))
+        (let ((formals ((if (eq? (car code) 'macro) caddr cadr) code)))
             (tset! 'formals formals)
             (tset! 'arity (length formals)))
         (begin

@@ -23,7 +23,7 @@
         (let ((cmd (string->symbol (car args))))
             (case cmd
                 ((repl) (sexy-repl))
-                ((exec) 
+                ((eval) 
                     (let ((code-str (fname)))
                         (define code
                             (sexy-read-file

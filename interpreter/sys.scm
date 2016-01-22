@@ -237,9 +237,13 @@
                                 (cont 'null))
                             err)))
             'test
-                (lambda (tname ok)
-                    (debug tname (if ok 'ok 'FAIL))
-                    'null))
+                (lambda (test-name ok)
+                    (sexy-send sys 'stdout
+                        (lambda (out)
+                            (sexy-write (list test-name (if ok 'ok 'FAIL)) out)
+                            (newline out)
+                            'null)
+                        top-err)))
         '(ts 64764 launch-the-missile)
         #f
         #f))

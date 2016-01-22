@@ -28,20 +28,20 @@
             (= (blorg 4 5) '(4 5 meow)))))
 
 (sys.test 'macro-with-internal-function
-    ((fn ()
+    (let ()
         (macro qux (foon ball)
             (fun bar (x y)
                 (list (- x y) (* x y)))
-            (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
-        (= (qux 2 3) '((-1 6) (1 6))))))
+            `(list ',(bar foon ball) ',(bar ball foon)))
+        (= (qux 2 3) '((-1 6) (1 6)))))
 
 (sys.test 'macro-with-external-function
-    ((fn ()
-        (def bar (fn (x y)
-            (list (- x y) (* x y))))
+    (let ()
+        (mac-fun bar (x y)
+            (list (- x y) (* x y)))
         (macro quux (foon ball)
-            (list 'list (pair 'list (bar foon ball)) (pair 'list (bar ball foon))))
-        (= (quux 2 3) '((-1 6) (1 6))))))
+            `(list ',(bar foon ball) ',(bar ball foon)))
+        (= (quux 2 3) '((-1 6) (1 6)))))
 
 (sys.test 'macro-with-internal-macro
     ((fn ()

@@ -26,7 +26,7 @@
 Usage:
 
 sexy repl
-sexy exec "<code string>"
+sexy eval "<code string>"
 sexy run <filename>
 sexy check <filename>
 sexy expand <filename>

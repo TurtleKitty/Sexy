@@ -1,13 +1,6 @@
 
 ; global environment
 
-(def macro
-    (operator (name vars body)
-        (list 'def name
-            (pair
-                'operator
-                (pair vars (pair body rest))))))
-
 (macro fun (name vars body)
     (list 'def name
         (pair
@@ -26,7 +19,7 @@
             (pair uri (rest.append opt.to-opt)))))
 
 (macro thunk ()
-    (pair 'fn (pair '() rest)))
+    (pair 'fn (pair () rest)))
 
 (fun isa? (thing type)
     (= thing.type type))
@@ -131,24 +124,24 @@
     (wall ()
         env))
 
-(macro let (name/vars)
-    (def is-named (symbol? name/vars))
-    (def vars (if is-named rest.head name/vars))
+(macro let (name-or-vars)
+    (def is-named (= 'symbol name-or-vars.type))
+    (def vars (if is-named rest.head name-or-vars))
     (fun sep (x y xs names vals)
         (if xs.empty?
             (pair (send (pair x names) 'reverse) (send (pair y vals) 'reverse))
             (sep xs.head xs.1 xs.tail.tail (pair x names) (pair y vals))))
     (def p
         (if vars.empty?
-            (pair '() '())
-            (sep vars.head vars.1 vars.tail.tail '() '())))
-    (def fn-form (append (list 'fn p.head) (if is-named rest.tail rest)))
+            (pair () ())
+            (sep vars.head vars.1 vars.tail.tail () ())))
+    (def fn-form ((send (list 'fn p.head) 'append) (if is-named rest.tail rest)))
     (if is-named
         (seq
             (def args (gensym))
             (list 'let (list args (pair 'list p.tail))
-                    (list 'def name/vars fn-form)
-                    (list 'apply name/vars args 'null)))
+                    (list 'def name-or-vars fn-form)
+                    (list (list 'send name-or-vars ''apply) args 'null)))
         (pair fn-form p.tail)))
 
 (macro % (head tail) ; pair macro
@@ -157,14 +150,14 @@
 (macro : () ; record macro
     (pair 'record
         (if (pair? rest)
-            (if (!= (mod rest.size 2) 0)
-                (error (list ': "requires an even number of arguments"))
-                (let loop (k rest.head v rest.1 xs rest.tail.tail acc '())
+            (if (= (mod rest.size 2) 0)
+                (let loop (k rest.head v rest.1 xs rest.tail.tail acc ())
                     (def noob (pair (list 'quote k) (pair v acc)))
                     (if (pair? xs)
                         (loop xs.head xs.tail.head xs.tail.tail noob)
-                        noob)))
-            '())))
+                        noob))
+                (error (list ': "requires an even number of arguments")))
+            ())))
 
 (macro cond ()
     (def default
@@ -182,7 +175,7 @@
     (fun constant? (expr)
         (if (pair? expr)
             (= expr.head 'quote)
-            (not (symbol? expr))))
+            (send (= 'symbol expr.type) 'not)))
     (fun combine-skeletons (left right expr)
         (cond
             (and (constant? left) (constant? right))
@@ -190,14 +183,14 @@
                          (= (env.eval right) expr.tail))
                     (list 'quote expr)
                     (list 'quote (pair (env.eval left) (env.eval right))))
-            (= right '())
+            (= right ())
                 (list 'list left)
             (and (pair? right) (= right.head 'list))
                 (pair 'list (pair left right.tail))
             default: (list 'pair left right)))
     (fun expand-quasiquote (expr nesting)
         (cond
-            (not (pair? expr))
+            (send (pair? expr) 'not)
                 (if (constant? expr)
                     expr
                     (list 'quote expr))
@@ -215,8 +208,7 @@
                     expr)
             (and (pair? expr.head) (= expr.head.head 'unqs) (= expr.head.size 2))
                 (if (= nesting 0)
-                    (list 'append
-                          expr.head.1
+                    (list (list 'send expr.head.1 ''append)
                           (expand-quasiquote expr.tail nesting))
                     (combine-skeletons
                         (expand-quasiquote expr.head nesting.dec)
@@ -234,8 +226,9 @@
     `(macro ,name () ,x))
 
 (macro mac-fun (name args)
+    (def bodies rest)
     `(macro ,name ,args
-        ((fn ,args @rest) @args)))
+        (list '(fn ,args @bodies) @args)))
 
 (macro when (pred)
     (qq
@@ -297,9 +290,13 @@
     (pair 'list (rest.map (fn (x) x.to-text))))
 
 (macro with-gensyms (gs)
-    (qq
-        (let (unq (apply append (gs.map (_ (list _ '(gensym)))) null))
-            (unqs rest))))
+    (def pairs (gs.map (_ (list _ (gensym)))))
+    (def lets
+        (let loop (x pairs.head xs pairs.tail)
+            (if xs
+                (loop (x.append xs.head) xs.tail)
+                x)))
+    `(let ,lets @rest))
 
 (macro chain (obj)
     (let loop (init obj cmd rest.head cmds rest.tail)
@@ -336,13 +333,14 @@
 
 (fun range (start end)
     (def step (if opt.step opt.step 1))
-    (let loop (i start acc '())
+    (let loop (i start acc ())
         (if (> i end)
             acc.reverse
             (loop (+ i step) (pair i acc)))))
 
 (macro matrix ()
-    ; (matrix ((0 0 1) (0 0 2)) ((0 1 1) (0 2 1))) -> (^ (^ (^ 0 0 1) (^ 0 0 2)) (^ (^ 0 1 1) (^ 0 2 1)))
+    ; (matrix ((0 0 1) (0 0 2)) ((0 1 1) (0 2 1)))
+    ;     -> (vector: (vector: (vector: 0 0 1) (vector: 0 0 2)) (vector: (vector: 0 1 1) (vector: 0 2 1)))
     (qq
         (vector
             (unqs

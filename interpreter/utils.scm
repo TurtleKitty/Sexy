@@ -13,8 +13,8 @@
 (define (idk obj msg cont err)
     (err (list 'message-not-understood (sexy-view obj) msg) cont))
 
-(define (debug . xs)
-    (display xs (current-error-port))
+(define (debug x . xs)
+    (display (list x xs) (current-error-port))
     (newline (current-error-port)))
 
 (define (debug-obj x)
@@ -138,7 +138,7 @@
     ((sexy-compile-fn (sexy-parse code)) (local-env) identity identity))
 
 (define blessed
-    '(def quote if seq set! operator fn wall gate capture ensure guard error env opt rest return))
+    '(def quote if seq set! macro fn wall gate capture ensure guard error env opt rest return))
 
 (define (holy? name)
     (or (member name blessed)
