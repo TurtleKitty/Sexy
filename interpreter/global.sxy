@@ -229,6 +229,14 @@
                     expr)))
     (expand-quasiquote expr 0))
 
+(macro const (name value)
+    (def x (env.eval value))
+    `(macro ,name () ,x))
+
+(macro mac-fun (name args)
+    `(macro ,name ,args
+        ((fn ,args @rest) @args)))
+
 (macro when (pred)
     (qq
         (if (unq pred)
@@ -292,6 +300,13 @@
     (qq
         (let (unq (apply append (gs.map (_ (list _ '(gensym)))) null))
             (unqs rest))))
+
+(macro chain (obj)
+    (let loop (init obj cmd rest.head cmds rest.tail)
+        (def form `((send ,init (quote ,(send cmd 'head))) @(send cmd 'tail)))
+        (if cmds
+            (loop form cmds.head cmds.tail)
+            form)))
 
 (macro for (init pred update body)
     (def bodies (pair body rest))

@@ -221,8 +221,6 @@
     (not (eq? not-found (glookup x))))
 
 (define (lookup env x cont err)
-    (define (is-one z)
-        (member z '(opt rest return)))
     (sexy-send-env
         env
         'has?
