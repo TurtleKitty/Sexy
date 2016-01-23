@@ -410,7 +410,7 @@
     (repl e in out err))
 
 (fun parse (s)
-    s.to-port.read)
+    s.to-port.read-sexy)
 
 (def json
     (let ()

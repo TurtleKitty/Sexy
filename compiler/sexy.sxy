@@ -1,4 +1,6 @@
 
+(def cli-env env)
+
 (fun start ()
     (def args rest)
     (when (= args.size 0)
@@ -45,7 +47,7 @@ sexy clean))
     (sys.fs.from
         f
         (fn (p)
-            p.to-text)))
+            p.read-text)))
 
 ;(fun write-symbols-file () ; FIXME
 ;    (rem: if (not (file-exists? sexy-use-symbols))
@@ -54,11 +56,11 @@ sexy clean))
 ;                (write-string symbols.sxy)))))
 
 (fun sexy-repl ()
-    (repl env.mama sys.stdin sys.stdout sys.stderr))
+    (repl (cli-env.extend () ()) sys.stdin sys.stdout sys.stderr))
 
 (fun sexy-eval-string (str)
     (sys.say
-        (env.mama.eval (env.expand (parse str)))))
+        (cli-env.eval ((cli-env.extend () ()) 'expand) (parse str))))
 
 (fun sexy-run (filename)
     ; compile then exec
@@ -68,7 +70,8 @@ sexy clean))
 
 (fun sexy-expand (filename)
     ; expand and print - don't compile or cache
-    (sys.write (env.mama.expand (slurp-file filename))))
+    (def struct (parse (slurp-file filename)))
+    (sys.write (env.mama.expand (parse (slurp-file filename)))))
 
 (fun sexy-compile (filename)
     ; expand, compile, and cache - don't run
