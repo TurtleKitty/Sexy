@@ -1,6 +1,0 @@
-
-(sys.say
-    (guard
-        (fn (e k) (repl env sys.stdin sys.stdout sys.stderr))
-        (+ 1 2 (error 'foo))))
-
