@@ -221,15 +221,6 @@
                     expr)))
     (expand-quasiquote expr 0))
 
-(macro const (name value)
-    (def x (env.eval value))
-    `(macro ,name () ,x))
-
-(macro mac-fun (name args)
-    (def bodies rest)
-    `(macro ,name ,args
-        (list '(fn ,args @bodies) @args)))
-
 (macro when (pred)
     (qq
         (if (unq pred)
@@ -290,7 +281,7 @@
     (pair 'list (rest.map (fn (x) x.to-text))))
 
 (macro with-gensyms (gs)
-    (def pairs (gs.map (_ (list _ (gensym)))))
+    (def pairs (gs.map (_ (list _ '(gensym)))))
     (def lets
         (let loop (x pairs.head xs pairs.tail)
             (if xs

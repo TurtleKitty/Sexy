@@ -118,18 +118,6 @@
         (=  (list (foo 0) (foo 9) (foo 23) (foo 42) (foo 153))
            '(null null is-a-biggun is-a-biggun is-a-biggun))))
 
-(sys.test 'const
-    (let ()
-        (const seconds-in-a-day (* 60 60 24))
-        (= 86400 (seconds-in-a-day))))
-
-(sys.test 'mac-fun
-    (let ()
-        (mac-fun choo (x y) (+ x y))
-        (and
-            (= 7 (choo 3 4))
-            (= 9 (choo 4 5)))))
-
 (sys.test 'chain
     (let ()
         (def xs (range 0 10))

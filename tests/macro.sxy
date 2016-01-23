@@ -27,6 +27,16 @@
             (= (boo 1 2) '(1 2 3))
             (= (blorg 4 5) '(4 5 meow)))))
 
+(sys.test 'macro-eval
+    (let ()
+        (macro-eval
+            (def xyz 23) 
+            (fun bar (x) (* x x)))
+        (macro foo (v) 
+            `(list ,v ,xyz ,(bar v)))
+        (= (foo 7)
+          '(7 23 49))))
+
 (sys.test 'macro-with-internal-function
     (let ()
         (macro qux (foon ball)
@@ -34,14 +44,6 @@
                 (list (- x y) (* x y)))
             `(list ',(bar foon ball) ',(bar ball foon)))
         (= (qux 2 3) '((-1 6) (1 6)))))
-
-(sys.test 'macro-with-external-function
-    (let ()
-        (mac-fun bar (x y)
-            (list (- x y) (* x y)))
-        (macro quux (foon ball)
-            `(list ',(bar foon ball) ',(bar ball foon)))
-        (= (quux 2 3) '((-1 6) (1 6)))))
 
 (sys.test 'macro-with-internal-macro
     ((fn ()

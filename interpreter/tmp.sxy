@@ -1,9 +1,0 @@
-
-(def foo (fn ()
-    (def x opt)
-    (def y rest)
-    (def z return)
-    (sys.say (list x y z))))
-
-(foo 2 3 5 x: 1 y: 2)
-
