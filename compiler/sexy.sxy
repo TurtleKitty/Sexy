@@ -1,18 +1,33 @@
 
+(macro slurpee ()
+    '(fun slurp-file (f)
+        (sys.fs.from
+            f
+            (fn (p)
+                p.read-text))))
+
+(slurpee)
+(macro-eval (slurpee))
+
+(def home-dir "~/.sexy")
+(def sexy-module-dir   (cat home-dir "/modules"))
+(def sexy-cache-dir    (cat home-dir "/compiled"))
+(def sexy-symbols-file (cat home-dir "/symbols.sxy"))
+(def symbols-dot-sexy  (slurp-file "./symbols.sxy"))
+
 (def cli-env env)
 
 (fun start ()
     (def args rest)
     (when (= args.size 0)
         (usage))
-    ; need way to test directories
     (fun prep-dir (path)
         (when (not (sys.fs.exists? path))
             (sys.fs.mkdir path)))
     (def cmd args.head.to-symbol)
-    ;(prep-dir sexy-mod-dir)
-    ;(prep-dir sexy-cache-dir)
-    ;(write-symbols-file)
+    (prep-dir sexy-mod-dir)
+    (prep-dir sexy-cache-dir)
+    (write-symbols-file)
     ; symbols-env
     (def control (:
         repl    sexy-repl
@@ -43,17 +58,12 @@ sexy compile <filename>
 sexy clean))
     (sys.proc.exit))
 
-(fun slurp-file (f)
-    (sys.fs.from
-        f
-        (fn (p)
-            p.read-text)))
-
-;(fun write-symbols-file () ; FIXME
-;    (rem: if (not (file-exists? sexy-use-symbols))
-;        (with-output-to-file sexy-use-symbols
-;            (lambda ()
-;                (write-string symbols.sxy)))))
+(fun write-symbols-file ()
+    (if (not (sys.fs.exists? sexy-symbols-file))
+        (sys.fs.to
+            sexy-symbols-file
+            (fn (f)
+                (f.print symbols-dot-sxy)))))
 
 (fun sexy-repl ()
     (repl (cli-env.extend () ()) sys.stdin sys.stdout sys.stderr))
@@ -71,7 +81,7 @@ sexy clean))
 (fun sexy-expand (filename)
     ; expand and print - don't compile or cache
     (def struct (parse (slurp-file filename)))
-    (sys.write (env.mama.expand (parse (slurp-file filename)))))
+    (sys.write (cli-env.expand (parse (slurp-file filename)))))
 
 (fun sexy-compile (filename)
     ; expand, compile, and cache - don't run
@@ -82,60 +92,10 @@ sexy clean))
 (start.apply sys.rest sys.opt)
 
 
-;(define (start)
-;    (define args (command-line-arguments))
-;    (define (fname)
-;        (if (pair? (cdr args))
-;            (cadr args)
-;            (usage)))
-;    (define (prep-dir path)
-;        (if (not (directory? path))
-;            (create-directory path #t)
-;            #f))
-;    (prep-dir sexy-mod-dir)
-;    (prep-dir sexy-cache-dir)
-;    (global-env)
-;    (add-global-prelude)
-;    (symbols-env)
-;    (if (not (pair? args))
-;        (usage)
-;        (let ((cmd (string->symbol (car args))))
-;            (case cmd
-;                ((repl) (sexy-repl))
-;                ((exec) 
-;                    (let ((code-str (fname)))
-;                        (define code
-;                            (sexy-read-file
-;                                (open-input-string code-str)))
-;                        (define expanded
-;                            (sexy-expand code (cli-env)))
-;                        (if (check-sexy-syntax expanded)
-;                            (sexy-run expanded)
-;                            (exit))))
-;                ((run)
-;                    (let ((expanded (read-expand-cache-prog (fname) (cli-env))))
-;                        (if (check-sexy-syntax expanded)
-;                            (sexy-run expanded)
-;                            (exit))))
-;                ((check)
-;                    (let ((its-good (check-sexy-syntax (cdr (read-expand-cache-prog (fname) (cli-env))))))
-;                        (display "Sexy syntax check complete: ")
-;                        (say (if its-good 'ok 'FAIL))))
-;                ((clean)
-;                    (let ((cached (append (glob "~/.sexy/compiled/*") (glob "~/.sexy/modules/*") (list "~/.sexy/global.sxy"))))
-;                        (let loop ((f (car cached)) (fs (cdr cached)))
-;                            (delete-file* f)
-;                            (if (eq? fs '())
-;                                (display "Sexy cache cleared.\n")
-;                                (loop (car fs) (cdr fs))))))
-;                ((compile)
-;                    (let ((expanded (read-expand-cache-prog (fname) (cli-env))))
-;                        (debug "Wrote compiled file to " (get-sexy-cached-path (find-file (cadr args))))))
-;                ((expand)
-;                    (begin
-;                        (pp
-;                            (sexy-view
-;                                (read-expand-cache-prog (fname) (cli-env))))
-;                        (newline)))
-;                (else (printf "Unknown command: ~A~%" cmd))))))
+; 13 (define (symbols-env)
+; 14     (define expanded (read-expand-cache-prog sexy-use-symbols (local-env)))
+; 15     (define compiled (sexy-seq-subcontractor (cdr expanded) #t))
+; 16     (define the-env (local-env))
+; 17     (compiled the-env top-cont top-err)
+; 18     (set! load-symbols-env the-env))
 
