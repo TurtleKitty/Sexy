@@ -64,7 +64,6 @@
             ((error)    (sexy-compile-error code))
             ((ensure)   (sexy-compile-ensure code))
             ((load)     (sexy-compile-load code))
-            ((macro-eval) nop)
             (else       (sexy-compile-application code)))
         (sexy-compile-atom code)))
 
