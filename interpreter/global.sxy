@@ -280,6 +280,9 @@
 (macro qw ()
     (pair 'list (rest.map (fn (x) x.to-text))))
 
+(macro everywhere ()
+    `(seq @rest (macro-eval @rest)))
+
 (macro with-gensyms (gs)
     (def pairs (gs.map (_ (list _ '(gensym)))))
     (def lets
