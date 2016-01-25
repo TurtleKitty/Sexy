@@ -2,19 +2,19 @@
 ; macro expansion
 
 (sys.test 'simple-macro
-    (seq
+    (let ()
         (macro foo (x y) (list 'list x y))
         (= (foo 1 2) '(1 2))))
 
 (sys.test 'macro-object
-    (seq
+    (let ()
         (macro brat (x)
             (def foo (object 'a x))
             foo.a)
         (= (brat 1) 1)))
 
 (sys.test 'macro-writing-macro
-    (seq
+    (let ()
         (macro mac-on-mac (name body)
             (list 'macro name '(x y)
                 (list
