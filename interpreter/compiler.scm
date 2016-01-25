@@ -13,7 +13,9 @@
                             (eq? (car x) 'def))))
                 seq)))
     (define names (get-names seq))
-    (define margs (flatten (zip names (make-list (length names) will-exist))))
+    (define haz? (sexy-send-env env 'has? top-cont top-err))
+    (define needed (filter (lambda (n) (not (haz? n)))  names))
+    (define margs (flatten (zip needed (make-list (length needed) will-exist))))
     (apply mutate! (cons env (cons cont (cons err margs)))))
 
 (define (prepare-sexy-args xs)
