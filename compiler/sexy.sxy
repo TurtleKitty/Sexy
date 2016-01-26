@@ -1,4 +1,4 @@
-#!/usr/bin/sexy run
+#!/usr/local/bin/sexy run
 
 (use check-sexy-syntax "compiler/syntax_checker.sxy")
 (use compile "compiler/compile.sxy")
@@ -34,11 +34,11 @@
             (error 'syntax-error))))
 
 (macro import-global-prelude ()
-    (def expanded (read-expand "compiler/global.sxy"))
+    (def expanded (read-expand "compiler/prelude.sxy"))
     `(def global-prelude ,expanded))
 
 (macro import-default-load-symbols ()
-    (def contents (read-file "compiler/symbols.sxy"))
+    (def contents (read-file "compiler/default-load-symbols.sxy"))
     `(def default-load-symbols ,contents))
 
 (import-global-prelude)
