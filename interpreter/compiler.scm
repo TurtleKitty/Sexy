@@ -204,7 +204,7 @@
     (if (pair? formals)
         (let loop ((f (car formals)) (fs (cdr formals)))
             (if (holy? f)
-                (sexy-error (blasphemy code))
+                (sexy-error (blasphemy f))
                 (if (pair? fs)
                     (loop (car fs) (cdr fs))
                     #f))))
