@@ -1,0 +1,6 @@
+
+(sys.say sys.rest)
+(sys.say sys.opt)
+(sys.say sys.fs.pwd)
+(sys.say sys.proc.program-name)
+
