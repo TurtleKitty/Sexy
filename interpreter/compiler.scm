@@ -97,58 +97,54 @@
     (define val (caddr code))
     (if (not (symbol? name))
         (sexy-error "def expects it's first argument to be a symbol.  Got " code)
-        (if (holy? name)
-            (blasphemy code name)
-            (frag
-                (sexy-send-env env 'has?
-                    (lambda (haz?)
-                        (sexy-send-env env 'get
-                            (lambda (getter)
-                                (if (and
-                                        (haz? name)
-                                        (not (eq? will-exist (getter name))))
-                                    (err (list 'bad-def code name " is already defined in the local environment.") cont)
-                                    (let ((val-c (sexy-compile val)))
-                                        (val-c
-                                            env
-                                            (lambda (v)
-                                                (mutate!
-                                                    env
-                                                    (lambda (null)
-                                                        (cont v))
-                                                    err
-                                                    name
-                                                    v))
-                                            err))))
-                            err))
-                    err)))))
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (list 'bad-def code name " is already defined in the local environment.") cont)
+                                (let ((val-c (sexy-compile val)))
+                                    (val-c
+                                        env
+                                        (lambda (v)
+                                            (mutate!
+                                                env
+                                                (lambda (null)
+                                                    (cont v))
+                                                err
+                                                name
+                                                v))
+                                        err))))
+                        err))
+                err))))
 
 (define (sexy-compile-set! code)
     (define name (cadr code))
     (define val (caddr code))
     (define val-c (sexy-compile val))
     (if (symbol? name)
-        (if (holy? name)
-            (blasphemy code name)
-            (frag
-                (lookup
-                    env
-                    name
-                    (lambda (v)
-                        (if (eq? v not-found)
-                            (err (list 'symbol-not-defined name) cont)
-                            (val-c
-                                env
-                                (lambda (v)
-                                    (update!
-                                        env
-                                        name
-                                        v
-                                        (lambda (null)
-                                            (cont v))
-                                        err))
-                                err)))
-                    err)))
+        (frag
+            (lookup
+                env
+                name
+                (lambda (v)
+                    (if (eq? v not-found)
+                        (err (list 'symbol-not-defined name) cont)
+                        (val-c
+                            env
+                            (lambda (v)
+                                (update!
+                                    env
+                                    name
+                                    v
+                                    (lambda (null)
+                                        (cont v))
+                                    err))
+                            err)))
+                err))
         (sexy-error code "set! wants a symbol as its first argument!")))
 
 (define (sexy-compile-quote code)
@@ -241,28 +237,26 @@
     (define bodies (cdddr code))
     (if (not (symbol? name))
         (sexy-error "macro expects it's first argument to be a symbol.  Got " code)
-        (if (holy? name)
-            (blasphemy code name)
-            (frag
-                (sexy-send-env env 'has?
-                    (lambda (haz?)
-                        (sexy-send-env env 'get
-                            (lambda (getter)
-                                (if (and
-                                        (haz? name)
-                                        (not (eq? will-exist (getter name))))
-                                    (err (list 'bad-def code name " is already defined in the local environment.") cont)
-                                    (let ((thing (make-sexy-proc code env formals bodies)))
-                                        (hts! thing 'type 'operator)
-                                        (mutate!
-                                            env
-                                            (lambda (null)
-                                                (cont thing))
-                                            err
-                                            name
-                                            thing))))
-                            err))
-                    err)))))
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (list 'bad-def code name " is already defined in the local environment.") cont)
+                                (let ((thing (make-sexy-proc code env formals bodies)))
+                                    (hts! thing 'type 'operator)
+                                    (mutate!
+                                        env
+                                        (lambda (null)
+                                            (cont thing))
+                                        err
+                                        name
+                                        thing))))
+                        err))
+                err))))
 
 (define (sexy-compile-wall code)
     (define args (cadr code))

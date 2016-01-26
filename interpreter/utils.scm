@@ -148,14 +148,13 @@
                     (eq? x not-found)
                     (eq? x will-exist))))))
 
-(define (blasphemy code name)
-    (sexy-error code
-        (string-join
-            (list
-                "The name \""
-                (symbol->string name)
-                "\" is sacred.  It cannot be redefined.")
-            "")))
+(define (blasphemy name)
+    (string-join
+        (list
+            "The name \""
+            (symbol->string name)
+            "\" is sacred.  It cannot be redefined.")
+        ""))
 
 (define (sexy-read-file port)
     (define one (peek-char port))
