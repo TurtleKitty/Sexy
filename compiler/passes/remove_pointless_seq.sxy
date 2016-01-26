@@ -1,0 +1,12 @@
+
+(lib () pass)
+
+; (seq expr) -> expr
+
+(fun pass (form)
+    (if (pair? form)
+        (if (and (= form.head 'seq) (= form.size 2))
+            (pass form.1)
+            (pair (pass form.head) (pass form.tail)))
+        form))
+

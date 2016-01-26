@@ -1,0 +1,19 @@
+
+(use remove-pointless-seq "passes/remove_pointless_seq.sxy")
+(use simplify-seq "passes/simplify_seq.sxy")
+
+(lib () compile)
+
+(def order (list
+    remove-pointless-seq
+    simplify-seq
+))
+
+(fun compile (form)
+    (let loop (p order.head ps order.tail noob form)
+        (if ps
+            (loop ps.head ps.tail (p noob))
+            (p noob))))
+        
+(debug remove-pointless-seq.code)    
+(debug simplify-seq.code)    
