@@ -134,6 +134,7 @@
             'gid (lambda () (current-group-id))
             'parent-pid (lambda () (parent-process-id))
             'process-gid (lambda (pid) (process-group-id pid))
+            'program-name (lambda () (program-name))
             'run (lambda (cmd) (process-run cmd))
             'sleep (lambda (s) (sleep s))
             'fork (lambda (thunk)
@@ -142,7 +143,7 @@
                         (sexy-apply thunk '() 'null top-cont top-err))))
             'exit exit
         )
-        '(pid uid gid parent-pid) #f #f))
+        '(pid uid gid parent-pid program-name) #f #f))
 
 (define (norris-day)
     (inexact->exact (current-seconds)))
