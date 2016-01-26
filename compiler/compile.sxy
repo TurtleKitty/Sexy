@@ -1,19 +1,22 @@
 
 (use remove-pointless-seq "passes/remove_pointless_seq.sxy")
 (use simplify-seq "passes/simplify_seq.sxy")
+(use flatten-seq "passes/flatten_seq.sxy")
 
 (lib () compile)
 
 (def order (list
     remove-pointless-seq
     simplify-seq
+    flatten-seq
+    simplify-seq ; resimplify after flattening
 ))
 
 (fun compile (form)
     (let loop (p order.head ps order.tail noob form)
+        (def transformed (p noob))
+        (debug transformed)
         (if ps
-            (loop ps.head ps.tail (p noob))
-            (p noob))))
-        
-(debug remove-pointless-seq.code)    
-(debug simplify-seq.code)    
+            (loop ps.head ps.tail transformed)
+            transformed)))
+
