@@ -11,9 +11,9 @@
         top-err))
 
 (define (symbols-env)
-    (define expanded (read-expand-cache-prog sexy-use-symbols (local-env)))
+    (define expanded (read-expand-cache-prog sexy-use-symbols (cli-env)))
     (define compiled (sexy-seq-subcontractor (cdr expanded) #t))
-    (define the-env (local-env))
+    (define the-env (cli-env))
     (compiled the-env top-cont top-err)
     (set! load-symbols-env the-env))
 
@@ -27,6 +27,7 @@
             (map setem! fs))
         (define primitives
             (list
+                (cons 'global? holy?)
                 (cons 'is? eq?)
                 (cons '+ +)
                 (cons '- -)
