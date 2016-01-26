@@ -4,13 +4,13 @@
 
 
 (fun check-sexy-syntax (prog)
-    (fun checky (form rest)
+    (fun checky (form forms)
         (fun go-on (ok)
             (if (not ok)
                 false
-                (if (= rest ())
+                (if (= forms ())
                     ok
-                    (checky rest.head rest.tail))))
+                    (checky forms.head forms.tail))))
         (if (list? form)
             (if (= form ())
                 (go-on true)
@@ -31,8 +31,8 @@
                             (ensure)   (check-sexy-ensure form)
                             (load)     (check-sexy-load form)
                             (syntax)   (check-sexy-syntax-export form)
-                            default:   true)))))
-            (go-on true))
+                            default:   true))))
+            (go-on true)))
     (if (and (pair? prog) (list? prog))
         (let (first prog.head)
             (if (and (pair? first) (= 'modules first.head))

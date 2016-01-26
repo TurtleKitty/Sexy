@@ -1,8 +1,8 @@
 #!/usr/local/bin/sexy run
 
-(use check-sexy-syntax "compiler/syntax_checker.sxy" sys.log)
-(use compile "compiler/compile.sxy")
-(use cache-file "compiler/cache.sxy")
+(use check-sexy-syntax "syntax_checker.sxy" sys.log)
+;(use compile "compile.sxy")
+;(use cache-file "cache.sxy")
 
 (everywhere
     (fun slurp-file (f)
@@ -112,8 +112,9 @@ sexy clean))
     (repl (cli-env.extend () ()) sys.stdin sys.stdout sys.stderr))
 
 (fun sexy-eval-string (str)
+    (def expanded (expand (parse str)))
     (sys.say
-        (cli-env.eval (expand (parse str)))))
+        (cli-env.eval (pair 'seq expanded))))
 
 (fun sexy-run (filename)
     ; compile then exec
