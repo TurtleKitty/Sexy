@@ -1,17 +1,53 @@
+#!/usr/bin/sexy run
+
+(use check-sexy-syntax "compiler/syntax_checker.sxy")
+(use compile "compiler/compile.sxy")
+(use cache-file "compiler/cache.sxy")
 
 (everywhere
     (fun slurp-file (f)
         (sys.fs.from
             f
             (fn (p)
-                p.read-text))))
+                p.read-text)))
+
+    (fun read-file (fname)
+        (parse (slurp-file fname)))
+
+    (def macro-env (env.extend () ()))
+
+    (fun expand (sexpr)
+        (macro-env.expand sexpr))
+
+    (fun read-expand (fname)
+        (def struct (read-file fname))
+        (expand struct))
+
+    (fun compile-file (fname)
+        (def expanded (read-expand fname))
+        (def ok (check-sexy-syntax expanded))
+        (if ok
+            (let (compiled (compile expanded))
+                (def cached-fname (cache-file fname compiled))
+                (rem: compile go here?)
+                cached-fname)
+            (error 'syntax-error))))
+
+(macro import-global-prelude ()
+    (def expanded (read-expand "compiler/global.sxy"))
+    `(def global-prelude ,expanded))
+
+(macro import-default-load-symbols ()
+    (def contents (read-file "compiler/symbols.sxy"))
+    `(def default-load-symbols ,contents))
+
+(import-global-prelude)
+(import-default-load-symbols)
 
 (def home-dir "~/.sexy")
 (def sexy-module-dir   (cat home-dir "/modules"))
 (def sexy-cache-dir    (cat home-dir "/compiled"))
 (def sexy-symbols-file (cat home-dir "/symbols.sxy"))
-(def global-prelude    (slurp-file "global.sxy"))   ; FIXME - precompile global prelude into binary
-(def symbols-dot-sexy  (slurp-file "symbols.sxy"))
 (def sexy-load-symbol-env null)
 (def cli-env env)
 
@@ -23,9 +59,9 @@
         (when (not (sys.fs.exists? path))
             (sys.fs.mkdir path)))
     (def cmd args.head.to-symbol)
-    (prep-dir sexy-mod-dir)
+    (prep-dir sexy-module-dir)
     (prep-dir sexy-cache-dir)
-    (write-symbols-file)
+    (default-symbols-file)
     (load-symbols-env)
     (def control (:
         repl    sexy-repl
@@ -55,36 +91,12 @@ sexy compile <filename>
 sexy clean))
     (sys.proc.exit))
 
-(everywhere 
-    (fun read-file (fname)
-        (parse (slurp-file filename)))
-
-    (fun expand (sexpr)
-        (def macro-env (cli-env.extend () ()))
-        (macro-env.expand sexpr))
-
-    (fun read-expand (fname)
-        (def struct (read-file fname))
-        (expand struct))
-
-    (fun compile-file (fname)
-        (def expanded (read-expand filename))
-        (def ok (check-sexy-syntax expanded))
-        (if ok
-            (let (compiled (compile expanded))
-                (def cached-fname (cache-file filename compiled))
-                (rem: compile go here?)
-                cached-fname)
-            (error 'syntax-error))))
-
-(fun cache-file (origin data) null)
-
-(fun write-symbols-file ()
-    (if (not (sys.fs.exists? sexy-symbols-file))
+(fun default-symbols-file ()
+    (when (not (sys.fs.exists? sexy-symbols-file))
         (sys.fs.to
             sexy-symbols-file
             (fn (f)
-                (f.print symbols-dot-sxy)))))
+                (f.print default-load-symbols)))))
 
 (fun load-symbols-env ()
     (def symbol-env (make-env))
