@@ -82,6 +82,16 @@
         )
         '(pwd socket-pair tmp tmp-dir) #f #f))
 
+(define sys-http
+    (sexy-object
+        (list
+            'get (lambda (uri)
+                     (define got (get-uri uri))
+                     (if (eq? got not-found)
+                         'null
+                         got)))
+        #f #f #f))
+
 (define sys-tcp
     (sexy-object
         (list
@@ -188,9 +198,9 @@
             'view     'operating-system-interface
             'env      sys-env
             'fs       sys-fs
-            'tcp      sys-tcp
             'signal   sys-signal
             'proc     sys-proc
+            'net      (sexy-object (list 'http sys-http 'tcp sys-tcp) #f #f #f)
             'time     norris-day
             'ts       norris-day
             'uname    (system-information)

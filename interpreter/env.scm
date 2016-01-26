@@ -104,12 +104,6 @@
                             (if (< l 2)
                                 (err (list 'arity "send requires two arguments: an object and a message.") cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
-                (cons 'fetch
-                    (lambda (uri)
-                        (define got (get-uri uri))
-                        (if (eq? got not-found)
-                            'null
-                            got)))
                 (cons 'math
                     (sexy-object
                         (list
