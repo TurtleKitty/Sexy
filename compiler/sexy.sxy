@@ -1,6 +1,6 @@
 #!/usr/local/bin/sexy run
 
-(use check-sexy-syntax "compiler/syntax_checker.sxy")
+(use check-sexy-syntax "compiler/syntax_checker.sxy" sys.log)
 (use compile "compiler/compile.sxy")
 (use cache-file "compiler/cache.sxy")
 
