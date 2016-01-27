@@ -30,6 +30,9 @@
 (fun fn? (thing)
     (isa? thing 'fn))
 
+(fun operator? (thing)
+    (isa? thing 'operator))
+
 (fun symbol? (thing)
     (isa? thing 'symbol))
 
@@ -65,6 +68,11 @@
         (list 'if x (and.apply rest null) 'false)
         (list 'send x ''to-bool)))
 
+(macro or (x)
+    (def stub (gensym))
+    (list 'let (list stub x)
+        (list 'if stub stub (if rest (or.apply rest null) 'false))))
+
 (fun and? (x)
     (if x
         (if rest
@@ -72,14 +80,9 @@
             true)
         false))
 
-(macro or (x)
-    (if rest
-        (list 'if x 'true (or.apply rest null))
-        (list 'if x x 'false)))
-
 (fun or? (x)
     (if x
-        true
+        x
         (if rest
             (or?.apply rest null)
             false)))
@@ -522,8 +525,6 @@ $"
     (if (= 'promise promise.type)
         (promise) ; force the promise
         promise)) ; return non-promises unharmed
-
-
 
 ; reserving for future use
 
