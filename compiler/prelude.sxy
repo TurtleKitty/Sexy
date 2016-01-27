@@ -415,6 +415,9 @@
 (fun parse (s)
     s.to-port.read-sexy)
 
+(fun resend (msg)
+    (fn (obj) (send obj msg)))
+
 (def json
     (let ()
         (def syms '(true false null))
@@ -501,6 +504,26 @@
             (object
                 'parse json-in
                 'stringify json-out)))
+
+$"
+
+(macro delay (expr) ; lazy evaluation
+    (def result (gensym))
+    `(let (,result false)
+        (fun d-apply ()
+            (if ,result
+                ,result
+                (seq
+                    (set! ,result ,expr)
+                    ,result)))
+        (object 'type 'promise 'apply d-apply)))
+
+(fun force (promise)
+    (if (= 'promise promise.type)
+        (promise) ; force the promise
+        promise)) ; return non-promises unharmed
+
+
 
 ; reserving for future use
 

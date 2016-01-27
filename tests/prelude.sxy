@@ -231,6 +231,25 @@
             ((_ (* 2 _)) 2)
             ((_ (* _ _)) 3))))
 
+(sys.test 'resend
+    (=
+        '(int rune text symbol number number)
+        (let (xs (list 1 $2 "3" 'four 1/5 6.4))
+            (xs.map (resend 'type)))))
+
+(sys.test 'delay-force
+    (let (count 0)
+        (def promise
+            (delay
+                (seq
+                    (set! count (+ 1 count))
+                    (* 3 4))))
+        (and
+            (= 12 (force promise))
+            (= 12 (force promise))
+            (= 1 count)
+            (= 1 (force count)))))
+
 (sys.test 'everywhere
     (= '(50 50)
         (let ()
