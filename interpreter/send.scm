@@ -485,8 +485,8 @@
     (define vars (htr obj 'vars))
     (define (rdefault msg)
         (if (hte? vars msg)
-            (cont (htr vars msg))
-            (cont 'null)))
+            (htr vars msg)
+            'null))
     (if (hte? vars msg)
         (cont (htr vars msg))
         (case msg
@@ -607,8 +607,7 @@
                         obj
                         cont
                         err))
-                (else
-                    (rdefault msg)))))
+                (else (cont (rdefault msg))))))
 
 (define (sexy-send-object obj msg cont err)
     (define fields (htr obj 'fields))
