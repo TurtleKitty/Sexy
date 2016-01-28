@@ -506,21 +506,18 @@
                 'parse json-in
                 'stringify json-out)))
 
-(macro delay (expr) ; lazy evaluation
+(macro promise (expr) ; lazy evaluation
     (def result (gensym))
     %(let ($result false)
-        (fun d-apply ()
-            (if $result
-                $result
-                (seq
-                    (set! $result $expr)
-                    $result)))
-        (object 'type 'promise 'apply d-apply)))
-
-(fun force (promise)
-    (if (= 'promise promise.type)
-        (promise) ; force the promise
-        promise)) ; return non-promises unharmed
+        (object
+            auto: '(value)
+            'type 'promise
+            'value (fn ()
+                        (if $result
+                            $result
+                            (seq
+                                (set! $result $expr)
+                                $result))))))
 
 (fun seal (obj) 
     (def hidden (if opt.hide opt.hide ()))
