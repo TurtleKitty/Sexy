@@ -70,7 +70,8 @@
 
 (macro or (x)
     (def stub (gensym))
-    (list 'let (list stub x)
+    (list 'wall ()
+        (list 'def stub x)
         (list 'if stub stub (if rest (or.apply rest null) 'false))))
 
 (fun and? (x)
