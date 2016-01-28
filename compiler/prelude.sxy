@@ -512,6 +512,7 @@
         (object
             auto: '(value)
             'type 'promise
+            'view '(promise $expr)
             'value (fn ()
                         (if $result
                             $result
