@@ -89,7 +89,7 @@ For those who want examples, there are over 1500 lines of Sexy code in the tests
                 (list r 'x 'y))
         default:
             (fn (msg)
-                (sys.say (cat "What means " msg $?)))))
+                (sys.say (cat "What means " msg \?)))))
 
     -> (new-guy (1 1 2 3 5 8 13 21 34 55 89 144 233) (record: y 3 x 2))
 
