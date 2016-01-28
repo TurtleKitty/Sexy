@@ -11,7 +11,7 @@
 (sys.test 'vector-false       (= empty.to-bool false))
 (sys.test 'vector-true        (= vick.to-bool true))
 (sys.test 'vector-to-list     (= vick.to-list '(8 6 7 5 3 0 9)))
-(sys.test 'vector-pairs       (= veck.pairs (list (% 0 3) (% 1 2) (% 2 1))))
+(sys.test 'vector-pairs       (= veck.pairs (list (pair: 0 3) (pair: 1 2) (pair: 2 1))))
 (sys.test 'vector-size        (= vick.size 7))
 (sys.test 'vector-has?        (= (vick.has? 7) true))
 (sys.test 'vector-has?-not    (= (vick.has? 4) false))

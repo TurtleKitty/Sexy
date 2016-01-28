@@ -47,11 +47,11 @@
         (simp.values.sort <)))
 
 (sys.test 'record-pairs
-    (= (list (% x 2) (% y 3))
+    (= (list (pair: x 2) (pair: y 3))
        (simp.pairs.sort (fn (a b) (< a.tail b.tail)))))
 
 (sys.test 'record-to-list
-    (= (list (% x 2) (% y 3))
+    (= (list (pair: x 2) (pair: y 3))
        (simp.to-list.sort (fn (a b) (< a.tail b.tail)))))
 
 (sys.test 'record-merge ; record equality is broken...
@@ -69,9 +69,9 @@
        (yor.fold 0 (fn (total kv) (+ total kv.val)))))
 
 (sys.test 'record-reduce
-    (= (% total 120)
+    (= (pair: total 120)
        (yor.reduce
-            (% total 1)
+            (pair: total 1)
             (fn (total kv) (pair 'total (* total.val kv.val))))))
 
 (sys.test 'record-map

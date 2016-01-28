@@ -6,11 +6,14 @@
 
 (sys.test 'quasiquote
     (let (foo 1 bar '(1 2) baz '(3 4 5))
-        (= (list 'foo bar 3 4 5)
-          `(foo ,bar @baz))))
+        (and
+            (= (list 'foo bar 3 4 5)
+              %(foo $bar @baz))
+            (= (list 'foo bar 3 4 5)
+              `(foo ,bar @baz)))))
 
 (sys.test 'rune-literal
-    (= $f (send "foo" 0)))
+    (= \f (send "foo" 0)))
 
 (sys.test 'pair-literal
     (= (pair 'x 'y)

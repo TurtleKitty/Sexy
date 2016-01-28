@@ -40,10 +40,10 @@
                                     (cons head (sexy-read-list port))))))))
             ((#\)) (error "read error: unexpected \")\"!\n"))
             ((#\') (sexy-read-quote port))
-            ((#\`) (sexy-read-quasiquote port))
-            ((#\,) (sexy-read-unquote port))
+            ((#\` #\%) (sexy-read-quasiquote port))
+            ((#\, #\$) (sexy-read-unquote port))
             ((#\@) (sexy-read-unquote-splicing port))
-            ((#\$) (sexy-read-rune port))
+            ((#\\) (sexy-read-rune port))
             ((#\#) (sexy-read-matrix port))
             ((#\;) (sexy-read-comment port))
             ((#\|) (sexy-read-funky port))
@@ -200,7 +200,7 @@
 (define (sexy-read-funky port) ; hackity-hack
     (read-char port)
     (let ((next (peek-char port)))
-        (if (eq? next #\$)
+        (if (eq? next #\\)
             (begin
                 (read-char port)
                 (let ((rune (read-char port)))

@@ -36,7 +36,7 @@
         (def r1 p.read-rune)
         (def r2 p.read-rune)
         (def r3 p.read-rune)
-        (and (= r1 $f) (= r2 $o) (= r3 $o))))
+        (and (= r1 \f) (= r2 \o) (= r3 \o))))
 
 (sys.test 'port-peek-rune
     (let (p fb.trim.to-port)
@@ -44,7 +44,7 @@
         (def r2 p.peek-rune)
         (def r3 p.read-rune)
         (def r4 p.peek-rune)
-        (and (= r1 $f) (= r2 $f) (= r3 $f) (= r4 $o))))
+        (and (= r1 \f) (= r2 \f) (= r3 \f) (= r4 \o))))
 
 (sys.test 'port-assert-rune
     (let (p fb.trim.to-port)
@@ -56,7 +56,7 @@
                 (fn (e k)
                     'error)
                     (p.assert-rune "fo")))
-        (and (= r1 $f) (= r2 $o) (= r3 $o) (= r4 'error))))
+        (and (= r1 \f) (= r2 \o) (= r3 \o) (= r4 'error))))
 
 (sys.test 'port-read-line
     (let (p lines.to-port)
@@ -68,17 +68,17 @@
 (sys.test 'port-skip
     (let (p fb.to-port)
         (p.skip 5)
-        (= $o p.peek-rune)))
+        (= \o p.peek-rune)))
 
 (sys.test 'port-skip-while
     (let (p fb.to-port)
         (p.skip-while " ")
-        (= $f p.peek-rune)))
+        (= \f p.peek-rune)))
 
 (sys.test 'port-skip-until
     (let (p fb.to-port)
         (p.skip-until "b")
-        (= $b p.peek-rune)))
+        (= \b p.peek-rune)))
 
 (sys.test 'port-read-token
     (let (p fb.trim.to-port)
@@ -97,7 +97,7 @@
 
 (sys.test 'port-read-token-if
     (let (p fb.trim.to-port)
-        (def tokener (_ (and _.alpha? (!= _ $r))))
+        (def tokener (_ (and _.alpha? (!= _ \r))))
         (def token
             (p.read-token-if tokener))
         (= token "foonballa")))

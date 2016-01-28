@@ -33,7 +33,7 @@
             (def xyz 23) 
             (fun bar (x) (* x x)))
         (macro foo (v) 
-            `(list ,v ,xyz ,(bar v)))
+            %(list $v $xyz $(bar v)))
         (= (foo 7)
           '(7 23 49))))
 
@@ -42,7 +42,7 @@
         (macro qux (foon ball)
             (fun bar (x y)
                 (list (- x y) (* x y)))
-            `(list ',(bar foon ball) ',(bar ball foon)))
+            %(list '$(bar foon ball) '$(bar ball foon)))
         (= (qux 2 3) '((-1 6) (1 6)))))
 
 (sys.test 'macro-with-internal-macro

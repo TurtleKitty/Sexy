@@ -1,8 +1,8 @@
 
-(def r1 $x)
-(def r2 $3)
-(def r3 $lf)
-(def R1 $X)
+(def r1 \x)
+(def r2 \3)
+(def r3 \lf)
+(def R1 \X)
 
 (sys.test 'type (= 'rune r1.type))
 (sys.test 'alpha? (and r1.alpha? r2.alpha?.not r3.alpha?.not))

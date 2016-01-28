@@ -7,9 +7,6 @@
 (sys.test 'fun
     (= 120 (mahfun 3 4)))
 
-(sys.test '%
-    (= (% x 1) (pair 'x 1)))
-
 (sys.test ':
     (= (record 'x 1 'y 2) (: x 1 y 2)))
 
@@ -38,13 +35,13 @@
     (nint? 2.71828))
 
 (sys.test 'rune?
-    (rune? $x))
+    (rune? \x))
 
 (sys.test 'text?
     (text? "foo"))
 
 (sys.test 'pair?
-    (pair? (% 1 2)))
+    (pair? (pair: 1 2)))
 
 (sys.test 'list?
     (list? (list 1)))
@@ -234,7 +231,7 @@
 (sys.test 'resend
     (=
         '(int rune text symbol number number)
-        (let (xs (list 1 $2 "3" 'four 1/5 6.4))
+        (let (xs (list 1 \2 "3" 'four 1/5 6.4))
             (xs.map (resend 'type)))))
 
 (sys.test 'delay-force
@@ -293,7 +290,7 @@
                 (fun sq (x) (* x x)))
 
             (macro foo ()
-                `(def bar ,(+ x (sq 7))))
+                %(def bar $(+ x (sq 7))))
 
             (foo)
 
@@ -345,7 +342,7 @@
 (sys.test 'cat
     (and
         (=  "nulltrue x foobarbaz"
-            (cat null true $space $x $space 'foo "bar" '($b $a $z)))
+            (cat null true \space \x \space 'foo "bar" '(\b \a \z)))
         (=  "null/true/x/foo/bar/baz"
-            (cat null true $x 'foo "bar" '($b $a $z) with: "/"))))
+            (cat null true \x 'foo "bar" '(\b \a \z) with: "/"))))
 

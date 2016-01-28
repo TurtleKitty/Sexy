@@ -148,9 +148,6 @@
                     (list (list 'send name-or-vars ''apply) args 'null)))
         (pair fn-form p.tail)))
 
-(macro % (head tail) ; pair macro
-    (list 'pair (list 'quote head) tail))
-
 (macro : () ; record macro
     (pair 'record
         (if (pair? rest)
@@ -285,7 +282,7 @@
     (pair 'list (rest.map (fn (x) x.to-text))))
 
 (macro everywhere ()
-    `(seq @rest (macro-eval @rest)))
+    %(seq @rest (macro-eval @rest)))
 
 (macro with-gensyms (gs)
     (def pairs (gs.map (_ (list _ '(gensym)))))
@@ -294,11 +291,11 @@
             (if xs
                 (loop (x.append xs.head) xs.tail)
                 x)))
-    `(let ,lets @rest))
+    %(let $lets @rest))
 
 (macro chain (obj)
     (let loop (init obj cmd rest.head cmds rest.tail)
-        (def form `((send ,init (quote ,(send cmd 'head))) @(send cmd 'tail)))
+        (def form %((send $init (quote $(send cmd 'head))) @(send cmd 'tail)))
         (if cmds
             (loop form cmds.head cmds.tail)
             form)))
@@ -352,7 +349,7 @@
     (qq
         (def (unq name)
             (let (default (fn () (unqs (pair body rest)))
-                  clauses (vector.apply ((send (range 0 ,opt-arity) 'map) (_ ())) (:)))
+                  clauses (vector.apply ((send (range 0 $opt-arity) 'map) (_ ())) (:)))
                 (fun add-clause! (pred body)
                     (def idx pred.arity)
                     (clauses.set!
@@ -385,7 +382,7 @@
                     'set-default! set-default!
                     'apply gen-apply
                     'view view
-                    'arity ,opt-arity
+                    'arity $opt-arity
                     (unq 'auto:) '(view)))))) ; not sure why (unq (quote keyword:)) works, but I'll take it
 
 (macro spec (name args pred body)
@@ -442,8 +439,8 @@
                     (if next.whitespace?
                         (seq p.read-rune (loop p.peek-rune items))
                         (case next
-                            ($])     (seq p.read-rune items.reverse)
-                            ($,)     (seq p.read-rune (loop p.peek-rune items))
+                            (\])     (seq p.read-rune items.reverse)
+                            (\,)     (seq p.read-rune (loop p.peek-rune items))
                             default:
                                 (let (item (reader p))
                                     (loop p.peek-rune (items.cons item)))))))
@@ -455,8 +452,8 @@
                     (if next.whitespace?
                         (seq p.read-rune (loop p.peek-rune items))
                         (case next
-                            ($})  (seq p.read-rune items)
-                            ($,)  (seq p.read-rune (loop p.peek-rune items))
+                            (\})  (seq p.read-rune items)
+                            (\,)  (seq p.read-rune (loop p.peek-rune items))
                             default:
                                 (let (key (send (reader p) 'to-symbol))
                                     (p.skip-while " :\t\n")
@@ -472,17 +469,17 @@
                         p.read-rune
                         (reader p))
                     (case next
-                        ($")     (read-text p)
-                        ($[)     (read-array p)
-                        ($])     (error "unexpected ] !")
-                        (${)     (read-object p)
-                        ($})     (error "unexpected } !")
-                        ($- $0 $1 $2 $3 $4 $5 $6 $7 $8 $9)
+                        (\")     (read-text p)
+                        (\[)     (read-array p)
+                        (\])     (error "unexpected ] !")
+                        (\{)     (read-object p)
+                        (\})     (error "unexpected } !")
+                        (\- \0 \1 \2 \3 \4 \5 \6 \7 \8 \9)
                             (read-num p)
                         default:
                             (let (this-guy (read-symbol p))
                                 (if (not (syms.has? this-guy))
-                                    (error `(unquoted-string!  ,this-guy))
+                                    (error %(unquoted-string! $this-guy))
                                     this-guy)))))
             (reader txt.to-port))
 
@@ -494,12 +491,12 @@
                     (bool? thing)   thing.to-text
                     (num? thing)    thing.to-text
                     (symbol? thing) (json-out thing.to-text)
-                    (text? thing)   (cat $" thing $")
+                    (text? thing)   (cat \" thing \")
                     (rune? thing)   (json-out (text thing))
                     (vector? thing) (json-out thing.to-list)
-                    (record? thing) (cat ${ (comma-fy (thing.to-list.map (fn (kv) (cat (json-out kv.key.to-text) $: (json-out kv.val))))) $})
-                    (list? thing)   (cat $[ (comma-fy (thing.map json-out)) $])
-                    (pair? thing)   (cat $[ (json-out thing.head) $, (json-out thing.tail) $])
+                    (record? thing) (cat \{ (comma-fy (thing.to-list.map (fn (kv) (cat (json-out kv.key.to-text) \: (json-out kv.val))))) \})
+                    (list? thing)   (cat \[ (comma-fy (thing.map json-out)) \])
+                    (pair? thing)   (cat \[ (json-out thing.head) \, (json-out thing.tail) \])
                     default: 
                         (if (thing.responds? 'to-json)
                             thing.to-json
@@ -509,17 +506,15 @@
                 'parse json-in
                 'stringify json-out)))
 
-$"
-
 (macro delay (expr) ; lazy evaluation
     (def result (gensym))
-    `(let (,result false)
+    %(let ($result false)
         (fun d-apply ()
-            (if ,result
-                ,result
+            (if $result
+                $result
                 (seq
-                    (set! ,result ,expr)
-                    ,result)))
+                    (set! $result $expr)
+                    $result)))
         (object 'type 'promise 'apply d-apply)))
 
 (fun force (promise)
@@ -543,7 +538,7 @@ $"
             (if (= xyzzy secret)
                 obj
                 (error 'ACCESS-DENIED))))
-    (object 'type type 'unseal unseal resend: `((,obj @forward)) default: obj.default))
+    (object 'type type 'unseal unseal resend: %(($obj @forward)) default: obj.default))
 
 
 ; reserving for future use

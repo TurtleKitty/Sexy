@@ -20,7 +20,7 @@
             (+ x y))))
 
 (sys.test 'sexy-fn-type (= foo.type 'fn))
-(sys.test 'sexy-fn-view (= foo.view `(fn (x y) ,(send "..." 'to-symbol))))
+(sys.test 'sexy-fn-view (= foo.view %(fn (x y) $(send "..." 'to-symbol))))
 (sys.test 'sexy-fn-code (= foo.code '(fn (x y) (if opt.z (+ x y opt.z) (+ x y)))))
 (sys.test 'sexy-fn-true (= foo.to-bool true))
 (sys.test 'sexy-fn-env (is? foo.env env))

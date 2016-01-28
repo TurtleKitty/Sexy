@@ -27,10 +27,10 @@
         (def expanded (read-expand fname))
         (def ok (check-sexy-syntax expanded))
         (when ok 
-            (sys.say `(expanded ,expanded)))
+            (sys.say %(expanded $expanded)))
         (if ok
             (let (compiled (compile (pair 'seq expanded)))
-                (sys.say `(compiled ,compiled))
+                (sys.say %(compiled $compiled))
                 (def cached-fname null) ;(cache-file fname compiled)
                 (rem: compile golang from here?)
                 cached-fname)
@@ -38,11 +38,11 @@
 
 (macro import-global-prelude ()
     (def expanded (read-expand "compiler/prelude.sxy"))
-    `(def global-prelude ,expanded))
+    %(def global-prelude $expanded))
 
 (macro import-default-load-symbols ()
     (def contents (read-file "compiler/default-load-symbols.sxy"))
-    `(def default-load-symbols ,contents))
+    %(def default-load-symbols $contents))
 
 (import-global-prelude)
 (import-default-load-symbols)
