@@ -70,7 +70,7 @@
 
 (macro or (x)
     (def stub (gensym))
-    (list 'wall ()
+    (list 'seq
         (list 'def stub x)
         (list 'if stub stub (if rest (or.apply rest null) 'false))))
 
@@ -526,6 +526,25 @@ $"
     (if (= 'promise promise.type)
         (promise) ; force the promise
         promise)) ; return non-promises unharmed
+
+(fun seal (obj) 
+    (def hidden (if opt.hide opt.hide ()))
+    (def type (or opt.new-type obj.type))
+    (def secret (or opt.secret null))
+    (def msgs obj.messages)
+    (fun none-shall-pass (m)
+        (nor (= m 'type)
+             (m.to-text.match "!")
+             (hidden.has? m)))
+    (def forward (msgs.filter none-shall-pass))
+    (fun unseal (xyzzy)
+        (if (null? secret)
+            (error 'not-unsealable!)
+            (if (= xyzzy secret)
+                obj
+                (error 'ACCESS-DENIED))))
+    (object 'type type 'unseal unseal resend: `((,obj @forward)) default: obj.default))
+
 
 ; reserving for future use
 

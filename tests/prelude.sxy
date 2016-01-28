@@ -250,6 +250,41 @@
             (= 1 count)
             (= 1 (force count)))))
 
+(sys.test 'seal-unseal
+    (let ()
+        (def r (: x 1 y 2))
+        (def sr (seal r))
+        (def str (seal r new-type: 'myob))
+        (def foo (let (x 10) (fn (y) (* x y))))
+        (def sfoo (seal foo new-type: 'myob hide: '(env code to-text) secret: "foonballardy")) ; You know nothing about me!
+        (fun handler (e k) true)
+        (and
+            (= sr.type r.type)
+            (and (= sr.x 1) (= sr.y 2))
+            (= str.type 'myob)
+            (= sfoo.type 'myob)
+            (= 30 (foo 3))
+            (= 30 (sfoo 3))
+            (guard
+                handler
+                (sr.set! 0 2)
+                false)
+            (guard
+                handler
+                sfoo.env
+                false)
+            (seq (r.set! 'x 2) true)
+            (= sr.x 2)
+            (= str.x 2)
+            (seq (foo.env.set! 'x 2) true)
+            (= 6 (foo 3))
+            (= 6 (sfoo 3))
+            (guard
+                handler
+                (sfoo.unseal "password?")
+                false)
+            (send (sfoo.unseal "foonballardy") 'code))))
+
 (sys.test 'everywhere
     (= '(50 50)
         (let ()

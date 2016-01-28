@@ -1,4 +1,11 @@
 
+(define default-default
+    (sexy-proc
+        'primitive-function
+        'fn
+        (lambda (args opts cont err)
+             (err 'message-not-understood cont))))
+
 (define (sexy-send obj msg cont err)
     (define (wtf)
         (error (list "WTF kind of object was THAT?" obj msg)))
@@ -33,7 +40,7 @@
     (case msg
         ((autos) (cont '(view to-bool to-text)))
         ((resends) (cont '()))
-        ((default) (cont (lambda (msg) 'error)))
+        ((default) (cont default-default))
         ((view to-symbol) (cont obj))
         ((to-text) (cont (symbol->string obj)))
         (else
@@ -55,7 +62,7 @@
         ((type) (cont 'bool))
         ((autos) (cont '(view to-bool to-text to-symbol)))
         ((resends) (cont '()))
-        ((default) (cont (lambda (msg) 'error)))
+        ((default) (cont default-default))
         ((to-bool) (cont obj))
         ((view to-symbol) (cont (if obj 'true 'false)))
         ((to-text) (cont (if obj "true" "false")))
@@ -83,7 +90,7 @@
         ((to-text) (cont (number->string obj)))
         ((view to-number) (cont obj))
         ((resends) (cont '()))
-        ((default) (cont (lambda (msg) 'error)))
+        ((default) (cont default-default))
         (else
             (cond
                 ((integer? obj) (sexy-send-int obj msg cont err))
@@ -126,7 +133,7 @@
         ((type) (cont 'rune))
         ((autos) (cont '(view code to-bool to-rune to-text to-number alpha? digit? whitespace? uc? lc? uc lc)))
         ((resends) (cont '()))
-        ((default) (cont (lambda (msg) 'error)))
+        ((default) (cont default-default))
         ((view)
             (cont
                 (case obj
@@ -172,7 +179,7 @@
                     ((view) obj)
                     ((autos) '(view to-bool to-symbol to-text to-keyword to-number to-list to-port size chomp ltrim rtrim trim))
                     ((resends) '())
-                    ((default) (lambda (msg) 'error))
+                    ((default) default-default)
                     ((clone) (string-copy obj))
                     ((to-bool) (not (eq? (string-length obj) 0)))
                     ((to-symbol) (string->symbol obj))
@@ -284,7 +291,7 @@
                     ((type) 'list)
                     ((autos) '(view empty? to-bool to-text to-list head tail key val size))
                     ((resends) '())
-                    ((default) (lambda (msg) 'error))
+                    ((default) default-default)
                     ((empty?) #t)
                     ((to-bool) #f)
                     ((view to-list) '())
@@ -435,7 +442,7 @@
                     (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
                 ((autos) '(view empty? to-bool to-text to-list to-record head tail key val size))
                 ((resends) '())
-                ((default) (lambda (msg) 'error))
+                ((default) default-default)
                 ((to-bool) #t)
                 ((to-list) (list (car obj) (cdr obj)))
                 ((to-record) (sexy-record (car obj) (cdr obj)))
@@ -463,7 +470,7 @@
                 ((to-text) "0xDEADBEEF")
                 ((autos) '(view code to-bool to-text env arity))
                 ((resends) '())
-                ((default) (lambda (msg) 'error))
+                ((default) default-default)
                 ((env) 'global)
                 ((arity)
                     (let ((pinfo (procedure-information obj)))
@@ -652,7 +659,7 @@
         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
         ((autos) (cont '(view to-bool to-text arity code env formals)))
         ((resends) (cont '()))
-        ((default) (cont (lambda (msg) 'error)))
+        ((default) (cont default-default))
         (else (idk obj msg cont err))))
 
 (define (sexy-send-env obj msg cont err)
@@ -667,7 +674,7 @@
                       (cdr (sexy-view (htr obj 'vars))))))
         ((autos) (cont '(view to-text to-bool keys values pairs)))
         ((resends) (cont '()))
-        ((default) (cont (lambda (msg) 'error)))
+        ((default) (cont default-default))
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
         ((set!)
@@ -827,7 +834,7 @@
                     ((view to-text) obj)
                     ((to-bool) #t)
                     ((resends) '())
-                    ((default) (lambda (msg) 'error))
+                    ((default) (cont default-default))
                     ((input?) (input-port? obj))
                     ((output?) (output-port? obj))
                     ((open?) (not (port-closed? obj))))))
@@ -982,7 +989,7 @@
         ((to-text) (cont "END OF LINE."))
         ((autos) '(view to-text to-bool))
         ((resends) '())
-        ((default) (lambda (msg) 'error))
+        ((default) (cont default-default))
         ((apply) (err 'eof-is-not-applicable cont))
         (else (idk msg obj cont err))))
 
