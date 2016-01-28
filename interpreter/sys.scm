@@ -6,9 +6,9 @@
     (sexy-object
         (list
             'view
-                (lambda ()
-                    (sexy-view
-                        (sexy-send-atomic (get-environment-variables) 'to-record)))
+                (lambda () (sexy-view (get-environment-variables)))
+            'uname    (system-information)
+            'hostname (get-host-name)
             'get
                 (lambda (x)
                     (define envt (get-environment-variables))
@@ -203,8 +203,6 @@
             'net      (sexy-object (list 'http sys-http 'tcp sys-tcp) #f #f #f)
             'time     norris-day
             'ts       norris-day
-            'uname    (system-information)
-            'hostname (get-host-name)
             'srand
                 (lambda (v)
                     (randomize v)
