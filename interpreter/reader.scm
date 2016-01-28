@@ -30,6 +30,7 @@
                                 (if (keyword? head)
                                     (let ((kw (keyword->symbol head)))
                                         (case kw
+                                            ((rune)     (sexy-rune-literal port))
                                             ((pair)     (sexy-read-pair port))
                                             ((vector)   (sexy-read-vector port))
                                             ((record)   (sexy-read-record port))
@@ -188,6 +189,10 @@
                             ((tab) #\tab)
                             (else (string-ref (symbol->string sym) 0))))
                     (read-char port))))))
+
+(define (sexy-rune-literal port)
+    (define xs (sexy-read-list port))
+    (string-ref (symbol->string (car xs)) 0))
 
 (define (sexy-read-comment port)
     (read-line port)

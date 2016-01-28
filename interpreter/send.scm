@@ -20,7 +20,7 @@
         ((pair? obj) (sexy-send-pair obj msg cont err))
         ((procedure? obj) (sexy-send-primitive obj msg cont err))
         ((vector? obj) (sexy-send-vector obj msg cont err))
-        ((port? obj) (sexy-send-port obj msg cont err))
+        ((port? obj) (sexy-send-stream obj msg cont err))
         ((hash-table? obj)
             (let ((t (htr obj 'type)))
                 (case t
@@ -136,12 +136,13 @@
         ((default) (cont default-default))
         ((view)
             (cont
-                (case obj
-                    ((#\space) '\space)
-                    ((#\newline) '\lf)
-                    ((#\return) '\cr)
-                    ((#\tab) '\tab)
-                    (else (string->symbol (string #\\ obj))))))
+                (list 'rune: 
+                    (case obj
+                        ((#\space) 'space)
+                        ((#\newline) 'lf)
+                        ((#\return) 'cr)
+                        ((#\tab) 'tab)
+                        (else (string->symbol (string obj)))))))
         ((code) (cont (char->integer obj)))
         ((alpha?) (cont (char-alphabetic? obj)))
         ((digit?) (cont (char-numeric? obj)))
@@ -161,7 +162,7 @@
 (define (sexy-send-text obj msg cont err)
     (define msgs
         '(view clone to-bool to-symbol to-keyword to-number
-          to-list to-text to-port size chomp index take drop
+          to-list to-text to-stream size chomp index take drop
           trim ltrim rtrim lpad rpad set! split match capture replace))
     (define (build-regex re flags)
         (define opts
@@ -172,12 +173,12 @@
                     (map string->symbol (string-split flags "")))))
         (apply irregex opts))
     (case msg
-        ((type view autos resends default clone to-bool to-symbol to-keyword to-number to-list to-text to-port size chomp index take drop trim ltrim rtrim lpad rpad messages responds?)
+        ((type view autos resends default clone to-bool to-symbol to-keyword to-number to-list to-text to-stream size chomp index take drop trim ltrim rtrim lpad rpad messages responds?)
             (cont
                 (case msg
                     ((type) 'text)
                     ((view) obj)
-                    ((autos) '(view to-bool to-symbol to-text to-keyword to-number to-list to-port size chomp ltrim rtrim trim))
+                    ((autos) '(view to-bool to-symbol to-text to-keyword to-number to-list to-stream size chomp ltrim rtrim trim))
                     ((resends) '())
                     ((default) default-default)
                     ((clone) (string-copy obj))
@@ -188,7 +189,7 @@
                     ((to-list) (string->list obj))
                     ((to-vector) (list->vector (string->list obj)))
                     ((to-text) obj)
-                    ((to-port) (open-input-string obj))
+                    ((to-stream) (open-input-string obj))
                     ((take) (lambda (n) (string-take obj n)))
                     ((drop) (lambda (n) (string-drop obj n)))
                     ((trim) (string-trim-both obj))
@@ -825,14 +826,15 @@
         (else
             (vdefault msg))))
 
-(define (sexy-send-port obj msg cont err)
+(define (sexy-send-stream obj msg cont err)
     (case msg
-        ((type view resends default to-text to-bool input? output? open? resends default)
+        ((type view resends default to-text to-bool to-stream input? output? open? resends default)
             (cont 
                 (case msg
-                    ((type) 'port)
+                    ((type) 'stream)
                     ((view to-text) obj)
                     ((to-bool) #t)
+                    ((to-stream) obj)
                     ((resends) '())
                     ((default) (cont default-default))
                     ((input?) (input-port? obj))
@@ -840,10 +842,10 @@
                     ((open?) (not (port-closed? obj))))))
         (else
             (if (input-port? obj)
-                (sexy-send-input-port obj msg cont err) 
-                (sexy-send-output-port obj msg cont err)))))
+                (sexy-send-input-stream obj msg cont err) 
+                (sexy-send-output-stream obj msg cont err)))))
 
-(define (sexy-send-input-port obj msg cont err)
+(define (sexy-send-input-stream obj msg cont err)
     (define msgs
         '(view to-bool input? output? open? close
           ready? read read-rune peek-rune read-line read-text assert-rune skip skip-while skip-until
@@ -853,7 +855,7 @@
           read-token read-token-while read-token-until read-token-if to-list to-text read-sexy
           messages responds?)
             (if (port-closed? obj)
-                (err (list 'input-port-closed obj msg) cont)
+                (err (list 'input-stream-closed obj msg) cont)
                 (cont 
                     (case msg
                         ((autos) '(view to-text to-bool to-list ready? input? output? open? read read-rune peek-rune read-line read-text read-sexy)) 
@@ -867,7 +869,7 @@
                         ((assert-rune)
                             (sexy-proc
                                 'primitive-function
-                                'port
+                                'stream
                                 (lambda (args opts cont err)
                                     (if (not (= 1 (length args)))
                                         (err '(assert-rune "requires one text argument") cont)
@@ -948,13 +950,13 @@
         ((close) (close-input-port obj) (cont 'null))
         (else (idk msg obj cont err))))
 
-(define (sexy-send-output-port obj msg cont err)
+(define (sexy-send-output-stream obj msg cont err)
     (define msgs
         '(view to-text to-bool input? output? open? write print say nl flush close))
     (case msg
         ((write print say nl autos)
             (if (port-closed? obj)
-                (err (list 'output-port-closed obj msg) cont)
+                (err (list 'output-stream-closed obj msg) cont)
                 (cont
                     (case msg
                         ((autos) '(view to-text to-bool ready? input? output? open? nl close)) 
