@@ -138,11 +138,11 @@
             (cont
                 (list 'rune: 
                     (case obj
-                        ((#\space) 'space)
-                        ((#\newline) 'lf)
-                        ((#\return) 'cr)
-                        ((#\tab) 'tab)
-                        (else (string->symbol (string obj)))))))
+                        ((#\space) "space")
+                        ((#\newline) "lf")
+                        ((#\return) "cr")
+                        ((#\tab) "tab")
+                        (else (string obj))))))
         ((code) (cont (char->integer obj)))
         ((alpha?) (cont (char-alphabetic? obj)))
         ((digit?) (cont (char-numeric? obj)))

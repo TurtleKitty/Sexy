@@ -192,7 +192,14 @@
 
 (define (sexy-rune-literal port)
     (define xs (sexy-read-list port))
-    (string-ref (symbol->string (car xs)) 0))
+    (define rune (car xs))
+    (if (= 1 (string-length rune))
+        (string-ref rune 0)
+        (cond
+            ((equal? rune "space") #\space)
+            ((equal? rune "tab") #\tab)
+            ((equal? rune "lf") #\newline)
+            ((equal? rune "cr") #\return))))
 
 (define (sexy-read-comment port)
     (read-line port)
