@@ -1,5 +1,8 @@
 
+(def log null)
+
 (lib (sys-log)
+    (set! log sys-log)
     check-sexy-syntax)
 
 
@@ -42,11 +45,11 @@
         true))
 
 (proc syntax-error (code e usage)
-    (sys-log "Syntax error:")
-    (sys-log code)
-    (sys-log e)
-    (sys-log usage)
-    (sys-log "") ; newline
+    (log "Syntax error:")
+    (log code)
+    (log e)
+    (log usage)
+    (log "") ; newline
     false)
 
 (proc blasphemy (name)

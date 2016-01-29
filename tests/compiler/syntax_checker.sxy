@@ -1,0 +1,10 @@
+
+(use checker "../../compiler/syntax_checker.sxy" sys.log)
+
+(def code (sys.fs.from "tests/bool.sxy" (proc (f) f.read-sexy)))
+
+(def macro-env (make-env))
+(def expanded (macro-env.expand code))
+
+(sys.test 'syntax-checker (checker expanded))
+
