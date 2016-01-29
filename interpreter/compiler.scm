@@ -55,6 +55,7 @@
             ((if)       (sexy-compile-if code))
             ((seq)      (sexy-compile-seq code))
             ((set!)     (sexy-compile-set! code))
+            ((del!)     (sexy-compile-del! code))
             ((macro)    (sexy-compile-macro code))
             ((λ)        (sexy-compile-lambda code))
             ((proc)     (sexy-compile-proc code))
@@ -147,6 +148,24 @@
                             err)))
                 err))
         (sexy-error code "set! wants a symbol as its first argument!")))
+
+(define (sexy-compile-del! code)
+    (define name (cadr code))
+    (if (symbol? name)
+        (frag
+            (lookup
+                env
+                name
+                (lambda (v)
+                    (if (eq? v not-found)
+                        (err (list 'symbol-not-defined name) cont)
+                        (delete!
+                            env
+                            name
+                            (lambda (null) (cont null))
+                            err)))
+                err))
+        (sexy-error code "del! wants a symbol as its first argument!")))
 
 (define (sexy-compile-quote code)
     (frag

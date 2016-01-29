@@ -285,6 +285,28 @@
                     err)))
         err))
 
+(define (delete! env k cont err)
+    (sexy-send-env
+        env
+        'has?
+        (lambda (has?)
+            (if (has? k)
+                (sexy-send-env
+                    env
+                    'del!
+                    (lambda (del!)
+                        (cont (del! k)))
+                    err)
+                (sexy-send-env
+                    env
+                    'mama
+                    (lambda (mom)
+                        (if (and mom (not (eq? mom 'null)))
+                            (delete! mom k cont err)
+                            (cont not-found)))
+                    err)))
+        err))
+
 (define (glookup x)
     (if (g-has? x)
         (g-get x)
