@@ -39,7 +39,7 @@
                                             ((rem)      (sexy-read-rem port) (sexy-reader port))
                                             (else       (cons head (sexy-read-list port)))))
                                     (cons head (sexy-read-list port))))))))
-            ((#\)) (error "read error: unexpected \")\"!\n"))
+            ((#\)) (sexy-error "read error: unexpected \")\"!\n"))
             ((#\') (sexy-read-quote port))
             ((#\` #\%) (sexy-read-quasiquote port))
             ((#\, #\$) (sexy-read-unquote port))
@@ -58,7 +58,7 @@
     (let loop ((token (peek-char port)) (acc '()))
         (cond
             ((eof-object? token)
-                (error "read error: unexpected EOF in unterminated list!\n"))
+                (sexy-error "read error: unexpected EOF in unterminated list!\n"))
             ((char-whitespace? token)
                 (read-char port)
                 (loop (peek-char port) acc))
@@ -86,7 +86,7 @@
     (let loop ((token (peek-char port)) (depth 0) (acc '()))
         (cond
             ((eof-object? token)
-                (error "read error: unexpected EOF in text literal!\n"))
+                (sexy-error "read error: unexpected EOF in text literal!\n"))
             ((eq? token #\()
                 (let ((new-acc (cons (read-char port) acc)))
                     (loop (peek-char port) (+ depth 1) new-acc)))
@@ -109,7 +109,7 @@
         (let loop ((token (peek-char port)) (acc '()))
             (cond
                 ((eof-object? token)
-                    (error "read error: unexpected EOF in template literal!\n"))
+                    (sexy-error "read error: unexpected EOF in template literal!\n"))
                 ((eq? token #\})
                     (read-char port)
                     (if (eq? #\} (peek-char port))
@@ -131,7 +131,7 @@
     (let loop ((token (peek-char port)) (acc '()) (texts '()))
         (cond
             ((eof-object? token)
-                (error "read error: unexpected EOF in template literal!\n"))
+                (sexy-error "read error: unexpected EOF in template literal!\n"))
             ((eq? token #\{)
                 (read-char port)
                 (if (eq? #\{ (peek-char port))
