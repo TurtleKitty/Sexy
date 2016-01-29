@@ -3,7 +3,7 @@
 
 ; (seq (seq x y) z) -> (seq x y z)
 
-(fun pass (form)
+(proc pass (form)
     (if (pair? form)
         (if (and (= form.head 'seq) (pair? form.1) (= form.1.head 'seq))
             (pass %(seq @form.1.tail @form.tail.tail))

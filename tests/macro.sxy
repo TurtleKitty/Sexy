@@ -31,39 +31,39 @@
     (let ()
         (macro-eval
             (def xyz 23) 
-            (fun bar (x) (* x x)))
+            (proc bar (x) (* x x)))
         (macro foo (v) 
             %(list $v $xyz $(bar v)))
         (= (foo 7)
           '(7 23 49))))
 
-(sys.test 'macro-with-internal-function
+(sys.test 'macro-with-internal-procedure
     (let ()
         (macro qux (foon ball)
-            (fun bar (x y)
+            (proc bar (x y)
                 (list (- x y) (* x y)))
             %(list '$(bar foon ball) '$(bar ball foon)))
         (= (qux 2 3) '((-1 6) (1 6)))))
 
 (sys.test 'macro-with-internal-macro
-    ((fn ()
+    (let ()
         (macro bob (n)
             (let loop (x n totes 0)
                 (if x.zero?
                     totes
                     (loop x.dec (+ x totes)))))
-        (= (bob 5) 15))))
+        (= (bob 5) 15)))
 
 (sys.test 'runtime-macro ; muhahahaha
     (wall ()
-        (macro screw-with-fn (f) 
-            (list (list 'fn '(x) (list '* 10 f.code.tail.tail.head)) 3)) 
-        (fun foo (x) (* x x)) 
-        (fun bar (x) (+ x x)) 
+        (macro screw-with-proc (f) 
+            (list (list 'proc '(x) (list '* 10 f.code.tail.tail.head)) 3)) 
+        (proc foo (x) (* x x)) 
+        (proc bar (x) (+ x x)) 
         (def fs (list foo bar))
         (= '(9 6 (90 60))
             (list
                 (foo 3)
                 (bar 3)
-                (env.eval (pair 'list (fs.map screw-with-fn)))))))
+                (env.eval (pair 'list (fs.map screw-with-proc)))))))
 

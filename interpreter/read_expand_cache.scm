@@ -30,8 +30,7 @@
         (debug "File not found!" f)
         (exit))
     (cond
-        ((symbol? path)
-            (niy))
+        ((symbol? path) #f)
         ((uri? path)
             (let ((module-path (get-sexy-module-path path)))
                 (if (file-exists? module-path)
@@ -59,7 +58,7 @@
                 (define name (string->symbol (car xs)))
                 (define the-rest (string-join (cdr xs) "/"))
                 (define the-fun (lookup load-symbols-env name top-cont top-err))
-                (if (not (and (hash-table? the-fun) (eq? (htr the-fun 'type) 'fn)))
+                (if (not (and (hash-table? the-fun) (eq? (htr the-fun 'type) 'proc)))
                     (sexy-error path "No entry found in symbols.sxy for " name)
                     (sexy-apply the-fun (list the-rest) 'null top-cont top-err))))
         ((or (uri? path) (absolute-path? path)) path)

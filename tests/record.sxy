@@ -48,11 +48,11 @@
 
 (sys.test 'record-pairs
     (= (list (pair: x 2) (pair: y 3))
-       (simp.pairs.sort (fn (a b) (< a.tail b.tail)))))
+       (simp.pairs.sort (λ (a b) (< a.tail b.tail)))))
 
 (sys.test 'record-to-list
     (= (list (pair: x 2) (pair: y 3))
-       (simp.to-list.sort (fn (a b) (< a.tail b.tail)))))
+       (simp.to-list.sort (λ (a b) (< a.tail b.tail)))))
 
 (sys.test 'record-merge ; record equality is broken...
     (seq
@@ -66,25 +66,25 @@
 
 (sys.test 'record-fold
     (= 15
-       (yor.fold 0 (fn (total kv) (+ total kv.val)))))
+       (yor.fold 0 (λ (total kv) (+ total kv.val)))))
 
 (sys.test 'record-reduce
     (= (pair: total 120)
        (yor.reduce
             (pair: total 1)
-            (fn (total kv) (pair 'total (* total.val kv.val))))))
+            (λ (total kv) (pair 'total (* total.val kv.val))))))
 
 (sys.test 'record-map
-    ((fn ()
-        (fun square-pair (p)
+    (let ()
+        (proc square-pair (p)
             (pair p.key (* p.val p.val)))
         (def noob (yor.map square-pair))
-        (= '(1 4 9 16 25) (noob.values.sort <)))))
+        (= '(1 4 9 16 25) (noob.values.sort <))))
 
 (sys.test 'record-filter
-    ((fn ()
-        (fun kill4 (p)
+    (let ()
+        (proc kill4 (p)
             (!= p.val 4))
         (def noob (yor.filter kill4))
-        (= '(1 2 3 5) (noob.values.sort <)))))
+        (= '(1 2 3 5) (noob.values.sort <))))
 

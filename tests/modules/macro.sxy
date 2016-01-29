@@ -7,6 +7,6 @@
     calc-xyz  m2)
 
 (macro m2 (x y z)
-    (list 'fn (list 'v)
+    (list 'proc (list 'v)
         (list '* 'v (+ x (* 2 y) (* 4 z)))))
 

@@ -1,8 +1,8 @@
 
 (define default-default
     (sexy-proc
-        'primitive-function
-        'fn
+        primitive-type
+        'proc
         (lambda (args opts cont err)
              (err 'message-not-understood cont))))
 
@@ -26,8 +26,7 @@
                 (case t
                     ((env)    (sexy-send-env obj msg cont err))
                     ((record) (sexy-send-record obj msg cont err))
-                    ((fn)     (sexy-send-fn obj msg cont err))
-                    ((operator)  (sexy-send-fn obj msg cont err))
+                    ((λ proc operator) (sexy-send-proc obj msg cont err))
                     (else (sexy-send-object obj msg cont err)))))
         ((eof-object? obj) (sexy-send-eof obj msg cont err))
         (else (wtf))))
@@ -209,7 +208,7 @@
         ((split)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'text
                     (lambda (args opts cont err)
                         (define flags (sexy-send-atomic opts 'flags))
@@ -218,7 +217,7 @@
         ((match)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'text
                     (lambda (args opts cont err)
                         (define flags (sexy-send-atomic opts 'flags))
@@ -231,7 +230,7 @@
         ((capture)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'text
                     (lambda (args opts cont err)
                         (define flags (sexy-send-atomic opts 'flags))
@@ -251,7 +250,7 @@
         ((replace)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'text
                     (lambda (args opts cont err)
                         (define fopt (sexy-send-atomic opts 'flags))
@@ -347,10 +346,12 @@
                                 (if (member msg msgs) #t #f))))
                     ((apply)
                         (sexy-proc
-                            'primitive-function
+                            primitive-type
                             'pair
                             (lambda (args opts cont err)
-                                (sexy-send-list obj (caar args) cont err)))))))
+                                (if (pair? (car args))
+                                    (sexy-send-list obj (caar args) cont err)
+                                    (err (sexy-view (sexy-record 'error 'bad-message! 'obj obj 'args args)) cont))))))))
         ((to-record)
             (if (not (every pair? obj))
                 (err (list 'not-an-associative-list! obj 'to-record) cont)
@@ -360,8 +361,8 @@
                     (cont r))))
         ((fold)
             (sexy-ho
-                '(fn (xs)
-                    (fn (acc funk)
+                '(λ (xs)
+                    (λ (acc funk)
                         (if xs.empty?
                             acc
                             (xs.tail.fold (funk acc xs.head) funk))))
@@ -370,8 +371,8 @@
                 err))
         ((reduce)
             (sexy-ho
-                '(fn (xs)
-                    (fn (acc funk)
+                '(λ (xs)
+                    (λ (acc funk)
                         (if xs.empty?
                             acc
                             (funk xs.head (xs.tail.reduce acc funk)))))
@@ -380,8 +381,8 @@
                 err))
         ((each)
             (sexy-ho
-                '(fn (xs)
-                    (fn (funk)
+                '(λ (xs)
+                    (λ (funk)
                         (if xs.empty?
                             null
                             (seq
@@ -392,25 +393,25 @@
                 err))
         ((map)
             (sexy-ho
-                '(fn (xs)
-                    (fn (funk)
-                        (xs.reduce '() (fn (x y) (pair (funk x) y)))))
+                '(λ (xs)
+                    (λ (funk)
+                        (xs.reduce '() (λ (x y) (pair (funk x) y)))))
                 obj
                 cont
                 err))
         ((filter)
             (sexy-ho
-                '(fn (xs)
-                    (fn (funk)
-                        (xs.reduce '() (fn (x y) (if (funk x) (pair x y) y)))))
+                '(λ (xs)
+                    (λ (funk)
+                        (xs.reduce '() (λ (x y) (if (funk x) (pair x y) y)))))
                 obj
                 cont
                 err))
         ((sort)
             (sexy-ho
-                '(fn (xs)
-                    (fn (funk)
-                        (def merge (fn (a b)
+                '(λ (xs)
+                    (λ (funk)
+                        (def merge (λ (a b)
                             (if a.size.zero?
                                 b
                                 (if b.size.zero?
@@ -418,7 +419,7 @@
                                     (if (funk a.head b.head)
                                         (pair a.0 (merge a.tail b))
                                         (pair b.0 (merge a b.tail)))))))
-                        (def sort (fn (yarr)
+                        (def sort (λ (yarr)
                             (def len yarr.size)
                             (if (< len 2)
                                 yarr
@@ -464,8 +465,8 @@
     (if (member msg msgs+)
         (cont 
             (case msg
-                ((type) 'fn)
-                ((view) 'primitive-function)
+                ((type) 'proc)
+                ((view) primitive-type)
                 ((code) '0xDEADBEEF)
                 ((to-bool) #t)
                 ((to-text) "0xDEADBEEF")
@@ -561,7 +562,7 @@
                                 (hte? vars x)))
                         ((apply)
                             (sexy-proc
-                                'primitive-function
+                                primitive-type
                                 'record
                                 (lambda (args opts cont err)
                                     (sexy-send-record obj (caar args) cont err))))
@@ -599,8 +600,8 @@
                             err))
                 ((map)
                     (sexy-ho
-                        '(fn (rec)
-                            (fn (funk)
+                        '(λ (rec)
+                            (λ (funk)
                                 (def mapped (rec.to-list.map funk))
                                 mapped.to-record))
                         obj
@@ -608,8 +609,8 @@
                         err))
                 ((filter) 
                     (sexy-ho
-                        '(fn (rec)
-                            (fn (funk)
+                        '(λ (rec)
+                            (λ (funk)
                                 (def mapped (rec.to-list.filter funk))
                                 mapped.to-record))
                         obj
@@ -639,22 +640,22 @@
                 ((default) (cont (htr obj 'default)))
                 (else (sexy-apply (htr obj 'default) (list msg) 'null cont err))))))
 
-(define (sexy-send-fn obj msg cont err)
+(define (sexy-send-proc obj msg cont err)
     (define msgs '(type view to-bool to-text arity code env formals apply))
     (case msg
-        ((type) (cont 'fn))
-        ((view) (cont `(fn ,(htr obj 'formals) ...)))
+        ((type) (cont (htr obj 'type)))
+        ((view) (cont `(,(htr obj 'type) ,(htr obj 'formals) ...)))
         ((to-bool) (cont #t))
         ((to-text) (cont (htr obj 'code)))
         ((arity code env formals) (cont (htr obj msg)))
         ((apply)
             (cont 
                 (sexy-proc
-                    'primitive-function
-                    'fn
+                    primitive-type
+                    'proc
                     (lambda (args opts cont err)
                         (if (< (length args) 2)
-                            (err (list "fn.apply requires 2 arguments!" obj args) cont)
+                            (err (list "proc.apply requires 2 arguments!" obj args) cont)
                             (sexy-apply obj (car args) (cadr args) cont err))))))
         ((messages) (cont msgs))
         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
@@ -681,7 +682,7 @@
         ((set!)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'env
                     (lambda (args opts cont err)
                         (if (not (eq? (length args) 2))
@@ -696,7 +697,7 @@
         ((lookup)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'env
                     (lambda (args opts cont err)
                         (lookup
@@ -711,7 +712,7 @@
         ((extend)
             (cont
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'env
                     (lambda (args opts cont err)
                         (let loop ((names '()) (vals '()) (left args))
@@ -776,30 +777,30 @@
                                 (if (member msg msgs) #t #f))))
                     ((apply)
                         (sexy-proc
-                            'primitive-function
+                            primitive-type
                             'pair
                             (lambda (args opts cont err)
                                 (sexy-send-vector obj (caar args) cont err)))))))
         ((fold)
             (sexy-ho
-                '(fn (vec)
-                    (fn (acc funk)
+                '(λ (vec)
+                    (λ (acc funk)
                         (vec.to-list.fold acc funk)))
                 obj
                 cont
                 err))
         ((reduce)
             (sexy-ho
-                '(fn (vec)
-                    (fn (acc funk)
+                '(λ (vec)
+                    (λ (acc funk)
                         (vec.to-list.reduce acc funk)))
                 obj
                 cont
                 err))
         ((map)
             (sexy-ho
-                '(fn (vec)
-                    (fn (funk)
+                '(λ (vec)
+                    (λ (funk)
                         (def mapped (vec.to-list.map funk))
                         mapped.to-vector))
                 obj
@@ -807,8 +808,8 @@
                 err))
         ((filter)
             (sexy-ho
-                '(fn (vec)
-                    (fn (funk)
+                '(λ (vec)
+                    (λ (funk)
                         (def mapped (vec.to-list.filter funk))
                         mapped.to-vector))
                 obj
@@ -816,8 +817,8 @@
                 err))
         ((sort)
             (sexy-ho
-                '(fn (vec)
-                    (fn (funk)
+                '(λ (vec)
+                    (λ (funk)
                         (def sorted (vec.to-list.sort funk))
                         sorted.to-vector))
                 obj
@@ -868,7 +869,7 @@
                         ((read-sexy) (sexy-read-file obj))
                         ((assert-rune)
                             (sexy-proc
-                                'primitive-function
+                                primitive-type
                                 'stream
                                 (lambda (args opts cont err)
                                     (if (not (= 1 (length args)))
@@ -921,11 +922,11 @@
                                             (loop (peek-char obj) (cons t acc)))))))
                         ((read-token-if)
                             (sexy-proc
-                                'primitive-function
+                                primitive-type
                                 'env
                                 (lambda (args opts cont err)
                                     (if (not (= 1 (length args)))
-                                        (err '(read-token-if "requires one function argument.") cont)
+                                        (err '(read-token-if "requires one proc argument.") cont)
                                         (let ((pred (car args)))
                                             (let loop ((tok (peek-char obj)) (acc '()))
                                                 (sexy-apply

@@ -1,11 +1,11 @@
 
-; global prelude macros and fns
+; global prelude macros and procs
 
-(fun mahfun (x y)
+(proc mahproc (x y)
     (* x y 10))
 
-(sys.test 'fun
-    (= 120 (mahfun 3 4)))
+(sys.test 'proc
+    (= 120 (mahproc 3 4)))
 
 (sys.test ':
     (= (record 'x 1 'y 2) (: x 1 y 2)))
@@ -14,10 +14,10 @@
     (null? null))
 
 (sys.test 'isa?
-    (= true (isa? mahfun 'fn)))
+    (= true (isa? mahproc 'proc)))
 
-(sys.test 'fn?
-    (fn? mahfun))
+(sys.test 'proc?
+    (proc? mahproc))
 
 (sys.test 'bool?
     (bool? false))
@@ -63,8 +63,8 @@
 
 (sys.test 'compose
     (let ()
-        (fun f (xs) (xs.map (_ (* _ _))))
-        (fun g (xs) (xs.map (_ (+ _ 10))))
+        (proc f (xs) (xs.map (_ (* _ _))))
+        (proc g (xs) (xs.map (_ (+ _ 10))))
         (and
             (= '(121 144 169 196 225 256 289)
                 ((compose f g range) 1 7))
@@ -72,7 +72,7 @@
                 ((compose g f range) 1 7)))))
 
 (sys.test 'let
-    ((fn ()
+    ((λ ()
         (def foo
             (let loop (n 0)
                 (if (= n 10)
@@ -82,7 +82,7 @@
 
 (sys.test 'cond
     ((thunk
-        (fun foo (x)
+        (proc foo (x)
             (cond
                 (= x 0) 'foo
                 (= x 1) 'bar
@@ -110,7 +110,7 @@
 
 (sys.test 'when
     (let ()
-        (fun foo (x)
+        (proc foo (x)
             (when (> x 10) 'is-a-biggun))
         (=  (list (foo 0) (foo 9) (foo 23) (foo 42) (foo 153))
            '(null null is-a-biggun is-a-biggun is-a-biggun))))
@@ -118,8 +118,8 @@
 (sys.test 'chain
     (let ()
         (def xs (range 0 10))
-        (fun foo (x) (* x x))
-        (fun bar (x) (and (> x 10) (< x 100)))
+        (proc foo (x) (* x x))
+        (proc bar (x) (and (> x 10) (< x 100)))
         (= '(81 64 49 36 25 16)
             (chain xs
                 (map foo)
@@ -128,7 +128,7 @@
 
 (sys.test 'case
     (let ()
-        (fun foo (x)
+        (proc foo (x)
             (case x
                 (0) 'foo
                 (1) 'bar
@@ -252,9 +252,9 @@
         (def r (: x 1 y 2))
         (def sr (seal r))
         (def str (seal r new-type: 'myob))
-        (def foo (let (x 10) (fn (y) (* x y))))
+        (def foo (let (x 10) (λ (y) (* x y))))
         (def sfoo (seal foo new-type: 'myob hide: '(env code to-text) secret: "foonballardy")) ; You know nothing about me!
-        (fun handler (e k) true)
+        (proc handler (e k) true)
         (and
             (= sr.type r.type)
             (and (= sr.x 1) (= sr.y 2))
@@ -287,7 +287,7 @@
         (let ()
             (everywhere
                 (def x 1)
-                (fun sq (x) (* x x)))
+                (proc sq (x) (* x x)))
 
             (macro foo ()
                 %(def bar $(+ x (sq 7))))
@@ -298,8 +298,7 @@
 
             (list bar baz))))
 
-(sys.test 'generic-functions
-    ; generic functions!
+(sys.test 'generic-procedures
     (= '(murakami 4 -4 1 5 16 6 ("1" "2" "3" "4" "5" "6" "7"))
         (let ()
             (gen nosuke 'murakami arity: 7) ; default case

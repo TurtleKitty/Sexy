@@ -28,7 +28,7 @@
                     (apply obj xs))))
         ((hash-table? obj)
             (let ((type (htr obj 'type)))
-                (if (or (eq? type 'fn) (eq? type 'operator))
+                (if (or (eq? type 'λ) (eq? type 'operator) (eq? type 'proc))
                     ((htr obj 'exec) xs opts cont err)
                     (apply-or-die))))
         (else (apply-or-die))))

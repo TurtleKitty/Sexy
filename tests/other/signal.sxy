@@ -1,36 +1,36 @@
 
 
-(fun buddy ()
-    (fun greeter ()
+(proc buddy ()
+    (proc greeter ()
         (sys.say "Hi, buddy!")
         (sys.proc.sleep 1)
         (greeter))
-    (fun sulker ()
+    (proc sulker ()
         (sys.proc.sleep 5)
         (sulker))
     (sys.signal.handle
         sys.signal.hup
-        (fn (s)
+        (proc (s)
             (sys.say "HUP? Ha! I laugh at you.")
             (greeter)))
     (sys.signal.handle
         sys.signal.int
-        (fn (s)
+        (proc (s)
             (sys.say "Nyah nyah...")
             (greeter)))
     (sys.signal.handle
         sys.signal.quit
-        (fn (s)
+        (proc (s)
             (sys.say "Still here, buddy!")
             (greeter)))
     (sys.signal.handle
         sys.signal.abrt
-        (fn (s)
+        (proc (s)
             (sys.say "hehehe...")
             (greeter)))
     (sys.signal.handle
         sys.signal.term
-        (fn (s)
+        (proc (s)
             (sys.say "Aw, man... TERM? That is cold, buddy. I ain't talkin to you no more.")
             (sys.signal.mask sys.signal.hup)
             (sys.signal.mask sys.signal.int)
@@ -40,7 +40,7 @@
             (sulker)))
     (sys.signal.handle
         sys.signal.cont
-        (fn (s)
+        (proc (s)
             (sys.say "YES! I knew you loved me.")
             (sys.signal.unmask sys.signal.hup)
             (sys.signal.unmask sys.signal.int)

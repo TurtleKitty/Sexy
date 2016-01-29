@@ -3,7 +3,7 @@
 
 ; (seq expr) -> expr
 
-(fun pass (form)
+(proc pass (form)
     (if (pair? form)
         (if (and (= form.head 'seq) (= form.size 2))
             (pass form.1)

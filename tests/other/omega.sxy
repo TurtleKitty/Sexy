@@ -1,7 +1,7 @@
 
 (def runs 0)
 
-(fun omega (x)
+(proc omega (x)
     (set! runs (+ 1 runs))
     (sys.say (list 'run runs))
     (x x))

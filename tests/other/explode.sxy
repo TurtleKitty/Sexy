@@ -1,15 +1,15 @@
 #!/usr/local/bin/sexy run
 
-(def count (if rest.head rest.head.to-number 120000))
+(def count (if sys.rest.head sys.rest.head.to-number 120000))
 
 (sys.test 'start true)
 
-(sys.test 'fn-tco
+(sys.test 'proc-tco
     (seq
         (def upto
-            (fn (max)
+            (proc (max)
                 (def helper
-                    (fn (acc)
+                    (proc (acc)
                         (if (= acc max)
                             acc
                             (helper (+ acc 1)))))
@@ -19,7 +19,7 @@
 (sys.test 'no-tco 
     (seq
         (def upto
-            (fn (n)
+            (proc (n)
                 (if (= n 0)
                     0
                     (+ 1 (upto (- n 1))))))

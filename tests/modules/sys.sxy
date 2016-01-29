@@ -1,5 +1,5 @@
 
 (lib (system x y)
-    (system.show (* x y))
-    (fn (z) (system.show (+ x y z))))
+    (system.say (* x y))
+    (λ (z) (system.say (+ x y z))))
 

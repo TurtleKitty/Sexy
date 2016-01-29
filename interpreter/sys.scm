@@ -66,14 +66,14 @@
                     (cons (sexy-fs-socket '? in1 out1) (sexy-fs-socket '? in2 out2)))
             'from
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (call-with-input-file (car args)
                             (lambda (f)
                                 (sexy-apply (cadr args) (list f) 'null cont err)))))
             'to (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (call-with-output-file (car args)
@@ -211,7 +211,7 @@
                 (read-all (process cmd)))
             'read
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (sexy-send sys 'stdin
@@ -220,7 +220,7 @@
                             err)))
             'write
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (sexy-send sys 'stdout
@@ -230,7 +230,7 @@
                             err)))
             'print
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (sexy-send sys 'stdout
@@ -240,7 +240,7 @@
                             err)))
             'say
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (sexy-send sys 'print
@@ -253,7 +253,7 @@
                             err)))
             'log
                 (sexy-proc
-                    'primitive-function
+                    primitive-type
                     'sys
                     (lambda (args opts cont err)
                         (sexy-send sys 'stderr

@@ -54,7 +54,7 @@
                                 (setter! 'syntax syn-fn)
                                 'null)
                             (exit)))
-                    ((fn)
+                    ((λ proc)
                         (cons head (sexy-expand (cdr code) (noob))))
                     (else 
                         (if (symbol? head)

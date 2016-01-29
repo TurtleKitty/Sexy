@@ -16,8 +16,11 @@
             (lambda ()
                 (write-string symbols.sxy))))
     (global-env)
-    (add-global-prelude)
-    (symbols-env)
+    (if (member "--skip-prelude" args)
+        #f
+        (begin
+            (add-global-prelude)
+            (symbols-env)))
     (if (not (pair? args))
         (usage)
         (let ((cmd (string->symbol (car args))))

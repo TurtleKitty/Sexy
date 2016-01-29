@@ -53,35 +53,35 @@
 
 (sys.test 'set-higher
     (seq
-        ((fn ()
+        ((λ ()
             (set! mute 3)))
         (= mute 3)))
 
-; fn
+; proc
 
-(sys.test 'fn-identity
+(sys.test 'proc-identity
     (let ()
-        (def foo (fn (x) x))
+        (def foo (proc (x) x))
         (= 'zebra (foo 'zebra))))
 
-(sys.test 'fn-add
+(sys.test 'proc-add
     (let ()
-        (def bar (fn (x y) (+ x y)))
+        (def bar (proc (x y) (+ x y)))
         (= 5 (bar 2 3))))
 
-(sys.test 'fn-recursion
+(sys.test 'proc-recursion
     (let ()
         (def fact
-            (fn (n)
+            (proc (n)
                 (if (= n 1)
                     1
                     (* n (fact (- n 1))))))
         (= 120 (fact 5))))
 
-(sys.test 'fn-options
+(sys.test 'proc-options
     (let ()
         (def zuul
-            (fn (x)
+            (proc (x)
                 (if opt.keymaster
                     (if opt.gatekeeper
                         (list x opt.keymaster opt.gatekeeper)
@@ -92,37 +92,37 @@
             (= (zuul 'gozer keymaster: 'louis) '(gozer louis))
             (= (zuul 'gozer keymaster: 'louis gatekeeper: 'dana) '(gozer louis dana)))))
 
-(sys.test 'fn-rest
+(sys.test 'proc-rest
     (let ()
         (def embiggen
-            (fn (xs)
+            (proc (xs)
                 (if xs.empty?
                     xs
                     (pair (* 10 xs.head) (embiggen xs.tail)))))
         (def various
-            (fn (funk)
+            (proc (funk)
                 (funk rest)))
         (= (various embiggen 1 2 3) '(10 20 30))))
 
-(sys.test 'fn-mutual-recursion
+(sys.test 'proc-mutual-recursion
     (let ()
         (def F
-            (fn (n)
+            (proc (n)
                 (if (= n 0)
                     1
                     (- n (M (F (- n 1)))))))
         (def M
-            (fn (n)
+            (proc (n)
                 (if (= n 0)
                     0
                     (- n (F (M (- n 1)))))))
         (and (= (F 19) 12) (= (M 19) 12)))) 
 
-(sys.test 'fn-lexical-closure
+(sys.test 'proc-lexical-closure
     (let ()
         (def counter
-            (fn (x)
-                (fn ()
+            (proc (x)
+                (proc ()
                     (if opt.inc
                         (set! x (+ x opt.inc))
                         x))))
@@ -132,7 +132,7 @@
         (c2 inc: 7)
         (and (= (c1) 1)
              (= (c2) 30)
-             ((fn ()
+             ((proc ()
                 (def x 99)
                 (c1 inc: 7)
                 (and (= x 99)
@@ -143,15 +143,15 @@
 
 (sys.test 'return
     (= 10
-        ((fn ()
+        ((proc ()
             (return 10)
             20
             30))))
 
 (sys.test 'return-nested
     (= 5
-        ((fn ()
-            (def x ((fn () (return 10) 20)))
+        ((proc ()
+            (def x ((proc () (return 10) 20)))
             (if (= x 10)
                 (return 5)
                 6)))))
@@ -181,7 +181,7 @@
 
 ; errors - ensure, guard, and error
 
-(fun fun-handler (err kontinue)
+(proc proc-handler (err kontinue)
     (if (= err 'resume)
         (kontinue 42)
         (if (= err 'default)
@@ -192,49 +192,49 @@
     (= 6
         (+ 1
             (guard
-                fun-handler
+                proc-handler
                 (+ 2 3)))))
 
 (sys.test 'guard-default
     (= 70
         (+ 1
             (guard
-                fun-handler
+                proc-handler
                 (+ 2 (error 'default))))))
 
 (sys.test 'guard-continue
     (= 45
         (+ 1
             (guard
-                fun-handler
+                proc-handler
                 (+ 2 (error 'resume))))))
 
 (sys.test 'guard-abort
     (= 0
         (guard
-            (fn (e k) 0)
+            (proc (e k) 0)
             (+ 1
                 (guard
-                    fun-handler
+                    proc-handler
                     (+ 2 (error 'crap)))))))
 
 (sys.test 'ensure-no-jump
-    ((fn ()
+    ((proc ()
         (def x 1)
         (def y
             (ensure
-                (fn () (set! x 3))
+                (proc () (set! x 3))
                 (seq (set! x 2) (+ x 3))))
         (and (= x 3) (= y 5)))))
 
 (sys.test 'ensure-no-capture-across
-    ((fn ()
+    ((proc ()
         (def x 1)
         (def y
             (gate
                 (* 10
                     (ensure
-                        (fn () (set! x 3))
+                        (proc () (set! x 3))
                         (seq
                             (set! x 5)
                             (+ 2
@@ -242,20 +242,20 @@
         (and (= x 3) (= y 90)))))
 
 (sys.test 'ensure-error
-    ((fn ()
+    ((proc ()
         (def x 1)
         (def y
             (guard
-                (fn (e k) (+ 7 e))
+                (proc (e k) (+ 7 e))
                 (ensure
-                    (fn () (set! x 3))
+                    (proc () (set! x 3))
                     (seq
                         (set! x 5)
                         (+ 2 (error x))))))
         (and (= x 3) (= y 12)))))
                 
 (sys.test 'wall
-    ((fn ()
+    ((proc ()
         (def x 1)
         (def y 2)
         (def z 3)
@@ -268,23 +268,23 @@
 (sys.test 'unicode
     (seq
         (def λא象
-            (fn () "λא象"))
+            (proc () "λא象"))
         (= (λא象) "λא象")))
 
 ; use
 
-(sys.test 'use-fn-file
+(sys.test 'use-proc-file
     (let ()
-        (use foreigner "modules/fn.sxy")
+        (use foreigner "modules/proc.sxy")
         (= (foreigner 1 2) '(foreigner 1 2))))
 
-(sys.test 'use-fn-https
+(sys.test 'use-proc-https
     (let () 
-        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/fn.sxy")
+        (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/proc.sxy")
         (= (foreigner 1 2) '(foreigner 1 2))))
 
 (sys.test 'use-parameters-file
-    ((fn ()
+    ((proc ()
         (use one   "modules/param.sxy" 1 2)
         (use two   "modules/param.sxy" 'a 'b 'c 'd)
         (use three "modules/param.sxy" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
@@ -294,7 +294,7 @@
             (= three '(2 3 "FOO" "BAR" (4 5 6)))))))
 
 (sys.test 'use-parameters-https
-    ((fn ()
+    ((proc ()
         (use one   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sxy" 1 2)
         (use two   "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sxy" 'a 'b 'c 'd)
         (use three "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/param.sxy" 2 3 4 foo: "FOO" bar: "BAR" 5 6)
@@ -314,23 +314,23 @@
         (= other '(foonballardy 5 7 bobkin))))
 
 (sys.test 'use-macro-file
-    ((fn ()
+    ((proc ()
         (load "modules/macro.sxy")
         (and
             (= (quote-xyz 1 2 3) '(1 2 3))
-            (= (send (calc-xyz 1 2 3) 'code) '(fn (v) (* v 17)))
+            (= (send (calc-xyz 1 2 3) 'code) '(proc (v) (* v 17)))
             (= ((calc-xyz 1 2 3) 4 ) 68)))))
 
 (sys.test 'use-macro-https
-    ((fn ()
+    ((proc ()
         (load "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/macro.sxy")
         (and
             (= (quote-xyz 1 2 3) '(1 2 3))
-            (= (send (calc-xyz 1 2 3) 'code) '(fn (v) (* v 17)))
+            (= (send (calc-xyz 1 2 3) 'code) '(proc (v) (* v 17)))
             (= ((calc-xyz 1 2 3) 4 ) 68)))))
 
 (sys.test 'use-recursive
-    ((fn ()
+    ((proc ()
         (= 120 (load "modules/recursive.sxy" 5)))))
 
 (sys.test 'use-mutually-recursive

@@ -51,7 +51,7 @@
                 (cons 'list? list?)
                 (cons 'vector
                     (sexy-proc
-                        'primitive-function
+                        primitive-type
                         'global
                         (lambda (args opts cont err)
                             (define size ((sexy-send-atomic opts 'get) 'size))
@@ -65,7 +65,7 @@
                 (cons 'vector? vector?)
                 (cons 'text
                     (sexy-proc
-                        'primitive-function
+                        primitive-type
                         'global
                         (lambda (args opts cont err)
                             (define size ((sexy-send-atomic opts 'get) 'size))
@@ -80,13 +80,13 @@
                 (cons 'rand random)
                 (cons 'record
                     (sexy-proc
-                        'primitive-function
+                        primitive-type
                         'global
                         (lambda (args opts cont err)
                             (cont (apply sexy-record args)))))
                 (cons 'object
                     (sexy-proc
-                        'primitive-function
+                        primitive-type
                         'global
                         (lambda (args opts cont err)
                             (define autos (sexy-send-atomic opts 'auto))
@@ -98,7 +98,7 @@
                             (cont (sexy-object args autos rsend default)))))
                 (cons 'send
                     (sexy-proc
-                        'primitive-function
+                        primitive-type
                         'global
                         (lambda (args opts cont err)
                             (define l (length args))
@@ -131,7 +131,7 @@
                 (cons 'uuid uuid-v4)
                 (cons 'cat
                     (sexy-proc
-                        'primitive-function
+                        primitive-type
                         'global
                         (lambda (args opts cont err)
                             (define l (length args))

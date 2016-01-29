@@ -7,6 +7,7 @@
 (define hts! hash-table-set!)
 (define htd! hash-table-delete!)
 
+(define primitive-type 'primitive-procedure)
 (define not-found 'this-sexy-name-was-not-found)
 (define will-exist 'this-sexy-name-is-about-to-be-defined)
 
@@ -67,7 +68,7 @@
                 (if (not (eq? xt yt))
                     #f
                     (case xt
-                        ((env fn operator) (eq? x y))
+                        ((env λ proc operator) (eq? x y))
                         ((record)
                             (let ((x-pairs (sort-symbol-alist (hash-table->alist (htr x 'vars))))
                                   (y-pairs (sort-symbol-alist (hash-table->alist (htr y 'vars)))))
@@ -135,10 +136,10 @@
     (string->symbol (keyword->string k)))
 
 (define (sexy-compile-method code)
-    ((sexy-compile-fn (sexy-parse code)) (local-env) identity identity))
+    ((sexy-compile-lambda (sexy-parse code)) (local-env) identity identity))
 
 (define blessed
-    '(def quote if seq set! macro fn wall gate capture ensure guard error env opt rest return))
+    '(def quote if seq set! macro λ proc wall gate capture ensure guard error env opt rest return))
 
 (define (holy? name)
     (or (member name blessed)

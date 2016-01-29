@@ -21,7 +21,7 @@
 (define (sexy-proc code env compiled)
     (define this (mkht))
     (define (tset! k v) (hts! this k v))
-    (tset! 'type 'fn)
+    (tset! 'type 'proc)
     (tset! 'env env)
     (tset! 'code code)
     (tset! 'exec compiled)
@@ -63,7 +63,7 @@
     (tset! 'default
         (or initial
             (sexy-proc
-                'primitive-function
+                primitive-type
                 'object
                 (lambda (args opts cont err)
                     (idk this (car args) cont err)))))

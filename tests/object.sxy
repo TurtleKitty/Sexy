@@ -18,13 +18,13 @@
 ; autoexec
 
 (def otto
-    ((fn ()
+    (let ()
         (def c 3)
         (object
-            'var (fn () c)
-            'thunky (fn () (set! c (+ c 1)))
-            'thunkle (fn () (* otto.var 10))
-            auto: '(var thunky thunkle)))))
+            'var (λ () c)
+            'thunky (λ () (set! c (+ c 1)))
+            'thunkle (λ () (* otto.var 10))
+            auto: '(var thunky thunkle))))
 
 (sys.test 'auto-basic (= otto.var 3))
 (sys.test 'auto-set! (seq otto.thunky (= otto.var 4)))
@@ -50,7 +50,7 @@
 (def defaulter
     (object
         'e 5
-        default: (fn (msg) (send resender msg))))
+        default: (λ (msg) (send resender msg))))
 
 (sys.test 'default-basic (= defaulter.e 5))
 (sys.test 'default-parent (= defaulter.d 4))

@@ -1,12 +1,12 @@
 
-(fun meta (n rec)
+(proc meta (n rec)
     (if (= n 0)
         rec
         (seq
             (rec.set! (gensym) (record))
             (meta (- n 1) rec))))
 
-(fun meta-meta (x)
+(proc meta-meta (x)
     (meta 1000 x)
     (meta 1000 x)
     (meta 1000 x)

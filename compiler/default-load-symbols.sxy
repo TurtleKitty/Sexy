@@ -1,17 +1,17 @@
 
 (def cache (:))
 
-(fun get-latest-version (repo path version)
-    (fun frac (x) (x.split "[.]"))
-    (fun ton (x) (x.map (_ _.to-number)))
+(proc get-latest-version (repo path version)
+    (proc frac (x) (x.split "[.]"))
+    (proc ton (x) (x.map (_ _.to-number)))
     (def n (ton (frac version)))
-    (fun filt (x)
+    (proc filt (x)
         (def s n.size)
         (case s
             (1) (= x.0 n.0)
             (2) (and (= x.0 n.0) (= x.1 n.1)) 
             (3) (= x n)))
-    (fun sorter (x y)
+    (proc sorter (x y)
         (if (< x.0 y.0)
             false
             (if (< x.1 y.1)
@@ -39,14 +39,14 @@
                 (cache.set! cpath the-uri)
                 the-uri))))
 
-(fun sexy (str)
+(proc sexy (str)
     (def xs (str.split "/"))
     (def version xs.reverse.head)
     (def path
         (cat.apply (xs.take xs.size.dec) (: with "/")))
     (get-latest-version "TurtleKitty/sexy-lib" path version))
 
-(fun github (str)
+(proc github (str)
     (def xs (str.split "/"))
     (def user xs.0)
     (def repo xs.1)

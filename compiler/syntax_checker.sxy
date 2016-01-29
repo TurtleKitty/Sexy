@@ -3,9 +3,9 @@
     check-sexy-syntax)
 
 
-(fun check-sexy-syntax (prog)
-    (fun checky (form forms)
-        (fun go-on (ok)
+(proc check-sexy-syntax (prog)
+    (proc checky (form forms)
+        (proc go-on (ok)
             (if (not ok)
                 false
                 (if (= forms ())
@@ -22,7 +22,7 @@
                             (if)       (check-sexy-if form)
                             (seq)      (check-sexy-seq form)
                             (set!)     (check-sexy-set! form)
-                            (fn)       (check-sexy-fn form)
+                            (proc)     (check-sexy-proc form)
                             (wall)     (check-sexy-wall form)
                             (gate)     (check-sexy-gate form)
                             (capture)  (check-sexy-capture form)
@@ -40,7 +40,7 @@
                 (checky first prog.tail)))
         true))
 
-(fun syntax-error (code e usage)
+(proc syntax-error (code e usage)
     (sys-log "Syntax error:")
     (sys-log code)
     (sys-log e)
@@ -48,10 +48,10 @@
     (sys-log "") ; newline
     false)
 
-(fun blasphemy (name)
+(proc blasphemy (name)
     (cat with: " " "The name" $" name.to-symbol $" "is sacred.  It cannot be redefined."))
 
-(fun check-sexy-def (code)
+(proc check-sexy-def (code)
     (def usage "(def <name> <value>)")
     (def name code.1)
     (cond
@@ -65,13 +65,13 @@
             (syntax-error code (cat "def: " (blasphemy name)) usage)
         default: true))
 
-(fun check-sexy-quote (code)
+(proc check-sexy-quote (code)
     (def usage "(quote <s-expression>)")
     (if (!= 2 code.size)
         (syntax-error code "quote takes one argument." usage)
         true))
 
-(fun check-sexy-if (code)
+(proc check-sexy-if (code)
     (def usage "(if <predicate> <consequent> <alternative>)")
     (if (< code.size 4)
         (syntax-error code "if: too few arguments" usage)
@@ -79,13 +79,13 @@
             (syntax-error code "if: too many arguments" usage)
             true)))
 
-(fun check-sexy-seq (code)
+(proc check-sexy-seq (code)
     (def usage "(seq <form> ...)")
     (if (< code.size 2)
         (syntax-error code "seq: empty sequences are forbidden." usage)
         true))
 
-(fun check-sexy-set! (code)
+(proc check-sexy-set! (code)
     (def usage "(set! <name> <value>)")
     (def name code.1)
     (cond
@@ -99,7 +99,7 @@
             (syntax-error code (cat "set!: " (blasphemy name)) usage)
         default: true))
 
-(fun check-sexy-macro (code)
+(proc check-sexy-macro (code)
     (def usage "(macro <name> (<arg> ...) <body> ...)")
     (def name code.1)
     (cond
@@ -113,15 +113,23 @@
             (syntax-error code (cat "macro: " (blasphemy name)) usage)
         default: true))
 
-(fun check-sexy-fn (code)
-    (def usage "(fn (<arg> ...) <body> ...)")
+(proc check-sexy-lambda (code)
+    (def usage "(λ (<arg> ...) <body>)")
     (if (not (list? code.1))
-        (syntax-error code "fn: second argument must be a list of formals." usage)
-        (if (< code.size 3)
-            (syntax-error code "fn: at least one body form is required." usage)
+        (syntax-error code "λ: second argument must be a list of formals." usage)
+        (if (!= code.size 3)
+            (syntax-error code "λ: one body form is required; only one is allowed." usage)
             true)))
 
-(fun check-sexy-wall (code)
+(proc check-sexy-proc (code)
+    (def usage "(proc (<arg> ...) <body> ...)")
+    (if (not (list? code.1))
+        (syntax-error code "proc: second argument must be a list of formals." usage)
+        (if (< code.size 3)
+            (syntax-error code "proc: at least one body form is required." usage)
+            true)))
+
+(proc check-sexy-wall (code)
     (def usage "(wall (<arg> ...) <body> ...)")
     (if (< code.size 3)
         (syntax-error code "wall: at least one body form is required." usage)
@@ -129,13 +137,13 @@
             (syntax-error code "wall: second argument must be a list of parameters to pass." usage)
             true)))
 
-(fun check-sexy-gate (code)
+(proc check-sexy-gate (code)
     (def usage "(gate <body> ...)")
     (if (< code.size 2)
         (syntax-error code "gate: too few arguments." usage)
         true))
 
-(fun check-sexy-capture (code)
+(proc check-sexy-capture (code)
     (def usage "(capture <name> <body> ...)")
     (if (< code.size 3)
         (syntax-error code "capture: too few arguments." usage)
@@ -143,13 +151,13 @@
             (syntax-error code "capture requires a symbol as its first argument." usage)
             true)))
 
-(fun check-sexy-guard (code)
-    (def usage "(guard (fn (error restart) <body> ...) <body> ...)")
+(proc check-sexy-guard (code)
+    (def usage "(guard (proc (error restart) <body> ...) <body> ...)")
     (if (< code.size 3)
         (syntax-error code "guard: too few arguments." usage)
         true))
         
-(fun check-sexy-error (code)
+(proc check-sexy-error (code)
     (def usage "(error <object>)")
     (if (< code.size 2)
         (syntax-error code "error: too few arguments." usage)
@@ -157,13 +165,13 @@
             (syntax-error code "error: too many arguments." usage)
             true)))
 
-(fun check-sexy-ensure (code)
+(proc check-sexy-ensure (code)
     (def usage "(ensure <thunk> <body> ...)")
     (if (< code.size 3)
         (syntax-error code "ensure: too few arguments." usage)
         true))
 
-(fun check-sexy-load (code)
+(proc check-sexy-load (code)
     (def usage "(load <symbol-or-text-path> <arg> ...)")
     (if (< code.size 2)
         (syntax-error code "load: too few arguments." usage)
@@ -172,7 +180,7 @@
                 (syntax-error code "load: first argument must be a symbol or text." usage)
                 true))))
 
-(fun check-sexy-syntax-export (code)
+(proc check-sexy-syntax-export (code)
     (def usage "(syntax <name> <operator> ...)")
     (if (= (mod code.size 2) 0)
         (syntax-error code "syntax: must have an even number of arguments." usage)

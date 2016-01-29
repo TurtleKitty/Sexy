@@ -53,7 +53,7 @@
         (def r3 (p.assert-rune "fo"))
         (def r4 
             (guard
-                (fn (e k)
+                (λ (e k)
                     'error)
                     (p.assert-rune "fo")))
         (and (= r1 \f) (= r2 \o) (= r3 \o) (= r4 'error))))

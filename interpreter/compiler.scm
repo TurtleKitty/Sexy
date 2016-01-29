@@ -9,7 +9,7 @@
                     (and (pair? x)
                          (or
                             (eq? (car x) 'macro)
-                            (eq? (car x) 'fun)
+                            (eq? (car x) 'proc)
                             (eq? (car x) 'def))))
                 seq)))
     (define names (get-names seq))
@@ -56,7 +56,8 @@
             ((seq)      (sexy-compile-seq code))
             ((set!)     (sexy-compile-set! code))
             ((macro)    (sexy-compile-macro code))
-            ((fn)       (sexy-compile-fn code))
+            ((λ)        (sexy-compile-lambda code))
+            ((proc)     (sexy-compile-proc code))
             ((wall)     (sexy-compile-wall code))
             ((gate)     (sexy-compile-gate code))
             ((capture)  (sexy-compile-capture code))
@@ -198,38 +199,73 @@
                             err))))
             head-c)))
 
-(define (make-sexy-proc code env formals bodies)
-    (define arity (length formals))
-    (define bodies-c (sexy-seq-subcontractor bodies #t))
+(define (check-formals formals)
     (if (pair? formals)
         (let loop ((f (car formals)) (fs (cdr formals)))
             (if (holy? f)
-                (sexy-error (blasphemy f))
+                (begin (sexy-error (blasphemy f)) #f)
                 (if (pair? fs)
                     (loop (car fs) (cdr fs))
-                    #f))))
-    (sexy-proc
-        code
-        env 
-        (lambda (args opts cont err)
-            (if (< (length args) arity)
-                (err (list 'arity code (sprintf "Procedure requires ~A arguments. Given: " arity) args) cont)
-                (let* ((fargs (if (pair? args) (take args arity) '()))
-                       (the-rest (if (pair? args) (drop args arity) '()))
-                       (returner (lambda (v) (cont v))))
-                       (extend
-                            env 
-                            (append formals '(opt rest return))
-                            (append fargs (list opts the-rest returner))
-                            (lambda (noob)
-                                (bodies-c noob cont err))
-                            err))))))
+                    #t)))
+        #t))
 
-(define (sexy-compile-fn code)
-    (define formals (cadr code))
-    (define bodies (cddr code))
-    (frag
-        (cont (make-sexy-proc code env formals bodies))))
+(define (make-sexy-lambda code env formals body)
+    (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor body #f))
+    (if (check-formals formals)
+        (let ((p
+            (sexy-proc
+                code
+                env 
+                (lambda (args opts cont err)
+                    (if (not (= arity (length args)))
+                        (err (list 'arity code (sprintf "This lambda requires ~A arguments. Given: " arity) args) cont)
+                        (let* ((fargs (if (pair? args) (take args arity) '())))
+                               (extend
+                                    env 
+                                    formals
+                                    fargs
+                                    (lambda (noob)
+                                        (bodies-c noob cont err))
+                                    err)))))))
+            (hts! p 'type 'λ)
+            p)
+        (sexy-error 'bad-formals-in-lambda code)))
+
+(define (sexy-compile-lambda code)
+    (let ((formals (cadr code)) (bodies (cddr code)))
+        (frag
+            (cont (make-sexy-lambda code env formals bodies)))))
+
+(define (make-sexy-proc code env formals bodies)
+    (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor bodies #t))
+    (if (check-formals formals)
+        (sexy-proc
+            code
+            env 
+            (lambda (args opts cont err)
+                (if (< (length args) arity)
+                    (err (list 'arity code (sprintf "This procedure requires at least ~A arguments. Given: " arity) args) cont)
+                    (let* ((fargs (if (pair? args) (take args arity) '()))
+                           (the-rest (if (pair? args) (drop args arity) '()))
+                           (returner cont))
+                           (extend
+                                env 
+                                (append formals '(opt rest return))
+                                (append fargs (list opts the-rest returner))
+                                (lambda (noob)
+                                    (bodies-c noob cont err))
+                                err)))))
+        (sexy-error 'bad-formals-in-proc code)))
+
+(define (sexy-compile-proc code)
+    (define is-named (symbol? (cadr code)))
+    (if is-named
+        (sexy-compile `(def ,(cadr code) (proc ,(caddr code) ,@(cdddr code))))
+        (let ((formals (cadr code)) (bodies (cddr code)))
+            (frag
+                (cont (make-sexy-proc code env formals bodies))))))
 
 (define (sexy-compile-macro code)
     (define name (cadr code))
@@ -287,7 +323,7 @@
 
 (define (sexy-compile-capture code)
     (define name (cadr code))
-    (define lamb (cons 'fn (cons (list name) (cddr code))))
+    (define lamb (cons 'proc (cons (list name) (cddr code))))
     (define lamb-c (sexy-compile lamb))
     (frag
         (lamb-c
@@ -356,7 +392,7 @@
                     env
                     (lambda (opts)
                         (module load-env top-cont top-err)
-                        (lookup load-env 'sexy-library-export-function
+                        (lookup load-env 'sexy-library-export-procedure
                             (lambda (exporter)
                                 (if (eq? exporter not-found)
                                     (cont (lambda args 'null))
