@@ -21,24 +21,27 @@
 
     (proc read-expand (fname)
         (def struct (read-file fname))
-        (expand struct))
+        (expand struct)))
 
-    (proc compile-file (fname)
-        (def expanded (read-expand fname))
-        (def ok (check-sexy-syntax expanded))
-        (when ok 
-            (sys.say %(expanded $expanded)))
-        (if ok
-            (let (compiled (compile (pair 'seq expanded)))
-                (sys.say %(compiled $compiled))
-                (def cached-fname null) ;(cache-file fname compiled)
-                (rem: compile golang from here?)
-                cached-fname)
-            (error 'syntax-error))))
+(proc compile-file (fname)
+    (def expanded (read-expand fname))
+    (def ok (syntax-ok? expanded))
+    (when ok 
+        (sys.say %(expanded $expanded)))
+    (if ok
+        (let (compiled (compile (pair 'seq expanded)))
+            (sys.say %(compiled $compiled))
+            (def cached-fname null) ;(cache-file fname compiled)
+            (rem: compile golang from here?)
+            cached-fname)
+        (error 'syntax-error)))
 
 (macro import-global-prelude ()
-    (def compiled (template: {{ (read-file (compile-file "compiler/prelude.sxy"))) }})
-    %(def global-prelude $compiled))
+    (def expanded (read-expand "compiler/prelude.sxy"))
+    (when (not (syntax-ok? expanded))
+        (error "Global prelude out of whack?"))
+    ;(def compiled (template: {{ (read-file (compile-file "compiler/prelude.sxy")) }}))
+    %(def global-prelude $expanded))
 
 (macro import-default-load-symbols ()
     (def contents (read-file "compiler/default-load-symbols.sxy"))
@@ -67,13 +70,15 @@
     (default-symbols-file)
     (load-symbols-env)
     (def control (:
-        repl    sexy-repl
-        eval    sexy-eval-string
-        run     sexy-run
         check   sexy-check
-        expand  sexy-expand
+        clean   sexy-clean
         compile sexy-compile
-        clean   sexy-clean))
+        eval    sexy-eval
+        exec    sexy-eval-string
+        expand  sexy-expand
+        repl    sexy-repl
+        run     sexy-run
+    ))
     (def handler (control cmd))
     (if handler
         (handler.apply args.tail opt)
@@ -86,8 +91,9 @@
 Usage:
 
 sexy repl
-sexy eval "<code string>"
+sexy exec "<code string>"
 sexy run <filename>
+sexy eval <filename>
 sexy check <filename>
 sexy expand <filename>
 sexy compile <filename>
@@ -132,6 +138,14 @@ sexy clean))
 (proc sexy-expand (filename)
     ; expand and print - don't compile or cache
     (sys.write (read-expand filename)))
+
+(proc sexy-eval (filename)
+    (def macro-env (cli-env.extend () ()))
+    (def expanded (read-expand filename))
+    (def its-good (check-sexy-syntax expanded))
+    (if its-good
+        (cli-env.eval expanded)
+        (error 'syntax-error)))
 
 (proc sexy-compile (filename)
     ; expand, compile, and cache - don't run
