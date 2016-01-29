@@ -19,7 +19,7 @@ Features:
     * dirty Common-Lisp-style macros
     * lexically scoped module import via HTTP
     * parameterized, recursive modules
-    * generic functions with predicate dispatch
+    * generic procedures with predicate dispatch
     * reader literals for text construction and variable interpolation
 
 Detailed documentation lives in the [wiki](https://github.com/TurtleKitty/Sexy/wiki).
@@ -31,14 +31,14 @@ For those who want examples, there are over 1500 lines of Sexy code in the tests
 ```scheme
 
 (def foo
-    (fn (x y)
+    (proc (x y)
         (* x y)))
 
 (sys.stdout.say (foo 3 4))
 
 ; -> 12
 
-(fun bar (x y) 
+(proc bar (x y) 
     (if opt.snazz
         (list x y opt.snazz opt.snarf rest)
         (list x y rest)))
@@ -63,7 +63,7 @@ For those who want examples, there are over 1500 lines of Sexy code in the tests
 ; (2 3 true Yarr! (4 5))
 
 (def fibby
-    (fn (x)
+    (proc (x)
         (if (< x 3)
             1
             (+ (fibby (- x 2)) (fibby (- x 1))))))
@@ -88,7 +88,7 @@ For those who want examples, there are over 1500 lines of Sexy code in the tests
                 (list things 'map 'filter 'sort)
                 (list r 'x 'y))
         default:
-            (fn (msg)
+            (proc (msg)
                 (sys.say (cat "What means " msg \?)))))
 
     -> (new-guy (1 1 2 3 5 8 13 21 34 55 89 144 233) (record: y 3 x 2))
@@ -97,7 +97,7 @@ new-dude.info
     -> Still alive!
     -> null
 
-(new-dude.filter (fn (x) (< x 10)))
+(new-dude.filter (proc (x) (< x 10)))
     -> (1 1 2 3 5 8)
 
 new-dude.x
