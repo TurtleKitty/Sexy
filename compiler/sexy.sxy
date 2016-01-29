@@ -37,8 +37,8 @@
             (error 'syntax-error))))
 
 (macro import-global-prelude ()
-    (def expanded (read-expand "compiler/prelude.sxy"))
-    %(def global-prelude $expanded))
+    (def compiled (template: {{ (read-file (compile-file "compiler/prelude.sxy"))) }})
+    %(def global-prelude $compiled))
 
 (macro import-default-load-symbols ()
     (def contents (read-file "compiler/default-load-symbols.sxy"))

@@ -1,5 +1,5 @@
 
-(use remove-pointless-seq "passes/remove_pointless_seq.sxy")
+(use remove-pointless-seq "passes/remove_pointless_seq.sxy") 
 (use simplify-seq "passes/simplify_seq.sxy")
 (use flatten-seq "passes/flatten_seq.sxy")
 
@@ -12,7 +12,7 @@
     simplify-seq ; resimplify after flattening
 ))
 
-(fun compile (form)
+(proc compile (form)
     (let loop (p order.head ps order.tail noob form)
         (def transformed (p noob))
         (debug transformed)
