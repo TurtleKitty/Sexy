@@ -1,0 +1,14 @@
+
+(lib () pass)
+
+; (proc (x) expr1 expr2 ...) -> (proc (x) (seq expr1 expr2 ...))
+; ditto for (macro wall gate capture guard ensure)
+
+(proc pass (form)
+    (if (pair? form)
+        (case form.head
+            (proc) form
+            (macro) form
+            (wall capture guard ensure) form)
+        form))
+

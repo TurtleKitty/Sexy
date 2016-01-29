@@ -1,0 +1,19 @@
+
+(lib () pass)
+
+; (seq 1 \F foo "foo" (vector: 1 2 3))
+; -> (seq (quote 1) (quote \F) foo (quote "foo") (quote (vector: 1 2 3)))
+
+(proc pass (form)
+    (if (pair? form)
+        (cond
+            (= form.head 'quote)
+                form
+            (option? form.head)
+                %(quote $form)
+            default:
+                (pair (pass form.head) (pass form.tail)))
+        (if (symbol? form)
+            form
+            %(quote $form))))
+

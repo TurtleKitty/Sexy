@@ -1,4 +1,6 @@
 
+(use quote-all-literals "passes/quote_literals.sxy")
+(use specify-implied-seq "passes/make_implied_seq_explicit.sxy")
 (use remove-pointless-seq "passes/remove_pointless_seq.sxy") 
 (use simplify-seq "passes/simplify_seq.sxy")
 (use flatten-seq "passes/flatten_seq.sxy")
@@ -6,14 +8,19 @@
 (lib () compile)
 
 (def order (list
+    quote-all-literals
+    specify-implied-seq
     remove-pointless-seq
     simplify-seq
     flatten-seq
     simplify-seq ; resimplify after flattening
 ))
 
+(def i 0)
+
 (proc compile (form)
     (let loop (p order.head ps order.tail noob form)
+        (debug (set! i i.inc))
         (def transformed (p noob))
         (debug transformed)
         (if ps
