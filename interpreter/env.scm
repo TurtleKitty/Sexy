@@ -49,6 +49,7 @@
                 (cons 'pair? pair?)
                 (cons 'list list)
                 (cons 'list? list?)
+                (cons 'option? keyword?)
                 (cons 'syntax-ok? (lambda (form) (check-sexy-syntax (list form))))
                 (cons 'vector
                     (sexy-proc
