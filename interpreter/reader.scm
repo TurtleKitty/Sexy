@@ -36,7 +36,7 @@
                                             ((record)   (sexy-read-record port))
                                             ((text)     (sexy-read-text port))
                                             ((template) (sexy-read-template port))
-                                            ((rem)      (sexy-read-rem port))
+                                            ((rem)      (sexy-read-rem port) (sexy-reader port))
                                             (else       (cons head (sexy-read-list port)))))
                                     (cons head (sexy-read-list port))))))))
             ((#\)) (error "read error: unexpected \")\"!\n"))
@@ -46,7 +46,7 @@
             ((#\@) (sexy-read-unquote-splicing port))
             ((#\\) (sexy-read-rune port))
             ((#\#) (sexy-read-matrix port))
-            ((#\;) (sexy-read-comment port))
+            ((#\;) (sexy-read-comment port) (sexy-read port))
             ((#\|) (sexy-read-funky port))
             (else (read port)))))
 
@@ -65,10 +65,12 @@
             ((eq? token #\))
                 (read-char port)
                 (reverse acc))
+            ((eq? token #\;)
+                (sexy-read-comment port)
+                (loop (peek-char port) acc))
             (else
-                (let ((next (if (eq? token #\;) sexy-read-comment sexy-reader)))
-                    (let ((new-acc (cons (next port) acc)))
-                        (loop (peek-char port) new-acc)))))))
+                (let ((new-acc (cons (sexy-reader port) acc)))
+                    (loop (peek-char port) new-acc))))))
 
 (define (sexy-read-vector port)
     (list->vector (sexy-read-list port)))
@@ -203,11 +205,11 @@
 
 (define (sexy-read-comment port)
     (read-line port)
-    (sexy-reader port))
+    'null)
 
 (define (sexy-read-rem port)
     (sexy-read-list port)
-    (sexy-reader port))
+    'null)
 
 (define (sexy-read-funky port) ; hackity-hack
     (read-char port)

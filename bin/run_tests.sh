@@ -1,5 +1,7 @@
 #!/bin/sh
 
+./sexy clean
+
 for i in tests/*.sxy; do
     echo $i
     echo
