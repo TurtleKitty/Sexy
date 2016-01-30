@@ -29,7 +29,7 @@
     (meow 'remove-dumb-seqs rps)
     (def ss  (simplify-seq rps))
     (meow 'simplify-seq ss)
-    (def fs  (flatten-seq (ss)))
+    (def fs  (flatten-seq ss))
     (meow 'flat-seq fs)
     (def ss2  (simplify-seq fs)) ; resimplify after flattening
     (meow 'simplify-seq2 ss2)
