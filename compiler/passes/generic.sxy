@@ -1,0 +1,27 @@
+
+(lib () generic-pass-factory)
+
+(proc generic-pass-factory (kmap)
+    (proc pass (form)
+        (if (pair? form)
+            (let (key form.head)
+                (if (and (symbol? key) (kmap key))
+                    ((kmap key) form)
+                    (if (and kmap.spec? (kmap.spec? form))
+                        (kmap.spec form)
+                        (generic-pass form pass))))
+            (if kmap.atom
+                (kmap.atom form)
+                form))))
+
+(proc generic-pass (form pass)
+    (case form.head
+        (def set! del! proc wall capture guard ensure)
+            %($form.head $form.1 @(pass form.tail.tail))
+        (quote)
+            form
+        (gate)
+            %(gate @(pass form.tail))
+        default:
+            (pair (pass form.head) (pass form.tail))))
+
