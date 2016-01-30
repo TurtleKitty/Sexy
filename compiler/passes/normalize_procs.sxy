@@ -1,0 +1,25 @@
+
+(lib () pass)
+
+; (proc name (args) bodies ...) -> (def name (proc (args) bodies ...))
+
+(proc pass (form)
+    (proc default (form)
+        (pair (pass form.head) (pass form.tail)))
+    (if (pair? form)
+        (case form.head
+            (def set! del! wall capture guard ensure)
+                %($form.head $form.1 @(pass form.tail.tail))
+            (quote)
+                form
+            (proc)
+                (if (symbol? form.1)
+                    %(def $form.1 (proc $form.2 @(pass form.tail.tail.tail)))
+                    %(proc $form.1 @(pass form.tail.tail)))
+            (macro)
+                %(def $form.1 (proc $form.2 @(pass form.tail.tail.tail))) ; macros might as well become procs after compile time
+            (gate)
+                %(gate @(pass form.tail))
+            default: (default form))
+        form))
+

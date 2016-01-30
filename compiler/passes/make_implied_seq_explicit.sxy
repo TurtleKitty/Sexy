@@ -7,8 +7,12 @@
 (proc pass (form)
     (if (pair? form)
         (case form.head
-            (proc) form
-            (macro) form
-            (wall capture guard ensure) form)
+            (quote) form
+            (proc) (if (symbol? form.1)
+                       %(proc form.1 form.2 (seq @form.tail.tail.tail))
+                       %(proc form.1 (seq @form.tail.tail))) 
+            (macro) %(macro $form.1 $form.2 (seq @form.tail.tail.tail))
+            (gate) %(gate (seq @form.tail)) 
+            (wall capture guard ensure) %($form.head $form.1 (seq @form.tail.tail)))
         form))
 

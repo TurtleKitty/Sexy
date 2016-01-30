@@ -5,8 +5,11 @@
 
 (proc pass (form)
     (if (pair? form)
-        (if (and (= form.head 'seq) (> form.size 3))
-            %(seq $(pass form.1) $(pass (pair 'seq form.tail.tail)))
-            (pair (pass form.head) (pass form.tail)))
+        (cond
+            (= form.head 'quote)
+                form
+            (and (= form.head 'seq) (> form.size 3))
+                %(seq $(pass form.1) $(pass (pair 'seq form.tail.tail)))
+            default: (pair (pass form.head) (pass form.tail)))
         form))
 

@@ -1,4 +1,6 @@
 
+(use normalize-procs "passes/normalize_procs.sxy")
+(use identify-procs "passes/identify_procs.sxy")
 (use quote-all-literals "passes/quote_literals.sxy")
 (use specify-implied-seq "passes/make_implied_seq_explicit.sxy")
 (use remove-pointless-seq "passes/remove_pointless_seq.sxy") 
@@ -7,23 +9,33 @@
 
 (lib () compile)
 
-(def order (list
-    quote-all-literals
-    specify-implied-seq
-    remove-pointless-seq
-    simplify-seq
-    flatten-seq
-    simplify-seq ; resimplify after flattening
-))
-
 (def i 0)
+(def proc-db (:))
 
 (proc compile (form)
-    (let loop (p order.head ps order.tail noob form)
-        (debug (set! i i.inc))
-        (def transformed (p noob))
-        (debug transformed)
-        (if ps
-            (loop ps.head ps.tail transformed)
-            transformed)))
-
+    (debug (set! i i.inc))
+    (def np (normalize-procs form))
+    (debug np)
+    (debug (set! i i.inc))
+    (def ip (identify-procs np proc-db)) ; mutate!
+    (debug ip)
+    (debug proc-db)
+    (debug (set! i i.inc))
+    (def qal (quote-all-literals ip))
+    (debug qal)
+    (debug (set! i i.inc))
+    (def siq (specify-implied-seq qal))
+    (debug siq)
+    (debug (set! i i.inc))
+    (def rps (remove-pointless-seq siq))
+    (debug rps)
+    (debug (set! i i.inc))
+    (def ss  (simplify-seq rps))
+    (debug ss)
+    (debug (set! i i.inc))
+    (def fs  (flatten-seq (ss)))
+    (debug fs)
+    (debug (set! i i.inc))
+    (def ss2  (simplify-seq fs)) ; resimplify after flattening
+    (debug ss2)
+    ss2)

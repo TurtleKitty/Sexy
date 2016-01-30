@@ -5,8 +5,12 @@
 
 (proc pass (form)
     (if (pair? form)
-        (if (and (= form.head 'seq) (= form.size 2))
-            (pass form.1)
-            (pair (pass form.head) (pass form.tail)))
+        (cond
+            (= form.head 'quote)
+                form
+            (and (= form.head 'seq) (= form.size 2))
+                (pass form.1)
+            default:
+                (pair (pass form.head) (pass form.tail)))
         form))
 

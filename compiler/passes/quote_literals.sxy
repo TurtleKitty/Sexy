@@ -13,7 +13,7 @@
                 %(quote $form)
             default:
                 (pair (pass form.head) (pass form.tail)))
-        (if (symbol? form)
+        (if (or (symbol? form) (= form ()))
             form
             %(quote $form))))
 

@@ -1,0 +1,18 @@
+
+(lib () pass)
+
+; (λ (args) bodies...)    -> (λ $id (args) bodies...)
+; (proc (args) bodies...) -> (proc $id (args) bodies...)
+
+(proc pass (form db)
+    (if (pair? form)
+        (cond
+            (= form.head 'quote)
+                form
+            (or (= form.head 'λ)  (= form.head 'proc))
+                (let (id (uuid))
+                    (db.set! id form)
+                    %($form.head $id $form.1 @(pass form.tail.tail db)))
+            default: (pair (pass form.head db) (pass form.tail db)))
+        form))
+
