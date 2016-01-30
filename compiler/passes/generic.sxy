@@ -20,8 +20,8 @@
             %($form.head $form.1 @(pass form.tail.tail))
         (quote)
             form
-        (gate)
-            %(gate @(pass form.tail))
+        (gate seq)
+            %($form.head @(pass form.tail))
         default:
             (pair (pass form.head) (pass form.tail))))
 

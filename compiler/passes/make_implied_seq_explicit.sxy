@@ -1,18 +1,20 @@
 
+(use gen-pass "generic.sxy")
+
 (lib () pass)
 
-; (proc (x) expr1 expr2 ...) -> (proc (x) (seq expr1 expr2 ...))
-; ditto for (macro wall gate capture guard ensure)
+; (proc id (x) expr1 expr2 ...) -> (proc id (x) (seq expr1 expr2 ...))
+; ditto for (wall gate capture guard ensure)
 
-(proc pass (form)
-    (if (pair? form)
-        (case form.head
-            (quote) form
-            (proc) (if (symbol? form.1)
-                       %(proc form.1 form.2 (seq @form.tail.tail.tail))
-                       %(proc form.1 (seq @form.tail.tail))) 
-            (macro) %(macro $form.1 $form.2 (seq @form.tail.tail.tail))
-            (gate) %(gate (seq @form.tail)) 
-            (wall capture guard ensure) %($form.head $form.1 (seq @form.tail.tail)))
-        form))
+(def pass
+    (let ()
+        (proc wcge (form)
+            %($form.head $form.1 (seq @(pass form.tail.tail))))
+        (gen-pass (:
+            proc    (proc (form) %(proc $form.1 $form.2 (seq @(pass form.tail.tail.tail))))
+            wall    wcge
+            capture wcge
+            guard   wcge
+            ensure  wcge
+            gate    (proc (form) %(gate (seq @(pass form.tail))))))))
 

@@ -1,16 +1,14 @@
 
+(use gen-pass "generic.sxy")
+
 (lib () pass)
 
 ; (seq expr) -> expr
 
-(proc pass (form)
-    (if (pair? form)
-        (cond
-            (= form.head 'quote)
-                form
-            (and (= form.head 'seq) (= form.size 2))
-                (pass form.1)
-            default:
-                (pair (pass form.head) (pass form.tail)))
-        form))
+(def pass
+    (gen-pass (:
+        'seq (proc (form)
+                (if (= form.size 2)
+                    (pass form.1)
+                    %(seq @(pass form.tail)))))))
 
