@@ -347,3 +347,10 @@
         (=  "null/true/x/foo/bar/baz"
             (cat null true \x 'foo "bar" '(\b \a \z) with: "/"))))
 
+(sys.test 'alias
+    (= 100
+        (let ()
+            (alias λ lambda)
+            (def f (lambda (x) (* 10 x)))
+            (f 10))))
+
