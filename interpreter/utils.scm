@@ -15,8 +15,10 @@
     (err (list 'message-not-understood (sexy-view obj) msg) cont))
 
 (define (debug x . xs)
-    (display (list x xs) (current-error-port))
-    (newline (current-error-port)))
+    (define e (current-error-port))
+    (if (null? xs)
+        (begin (write x e) (newline e))
+        (begin (write (cons x xs) e) (newline e))))
 
 (define (debug-obj x)
     (define ps (sexy-view x))

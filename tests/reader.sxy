@@ -1,4 +1,15 @@
 
+(sys.test 'dotted-pairs
+    (= 
+        (quote ((1 . 2) (1 2 3) (1 2 3) (1 2 3 . 4) (1 2 3 . 4) (1 2 3 4 5)))
+        (list
+            (quote (1 . 2))
+            (quote (1 . (2 . (3 . ()))))
+            (quote (1 2 3))
+            (quote (1 2 3 . 4))
+            (quote (1 . (2 . (3 . 4))))
+            (quote (1 2 3 . (4 5))))))
+
 (sys.test 'quote
     (and
         (= 'foo (quote foo))

@@ -440,8 +440,7 @@
         (cont 
             (case msg
                 ((type) 'pair)
-                ((view to-text) 
-                    (list (string->keyword "pair") (sexy-view (car obj)) (sexy-view (cdr obj))))
+                ((view to-text) obj)
                 ((autos) '(view empty? to-bool to-text to-list to-record head tail key val size))
                 ((resends) '())
                 ((default) default-default)
