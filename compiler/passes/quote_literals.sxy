@@ -12,6 +12,6 @@
                   (if (or (symbol? form) (= form ()))
                   form
                   %(quote $form)))
-        spec? (proc (form) (debug (list 'spec? form.head)) (option? form.head))
-        spec  (proc (form) (debug (list 'spec! form.head))  %(quote $form)))))
+        spec? (proc (form) (option? form.head))
+        spec  (proc (form) %(quote $form)))))
 
