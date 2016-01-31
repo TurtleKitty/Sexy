@@ -666,7 +666,7 @@
 (define (sexy-send-env obj msg cont err)
     (define msgs '(view to-text def! set! has? get del! pairs lookup mama extend eval expand))
     (case msg
-        ((get has? del! to-bool keys values pairs)
+        ((get has? set! del! to-bool keys values pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
         ((type) (cont 'env))
         ((view to-text)
@@ -678,21 +678,6 @@
         ((default) (cont default-default))
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
-        ((set!)
-            (cont
-                (sexy-proc
-                    primitive-type
-                    'env
-                    (lambda (args opts cont err)
-                        (if (not (eq? (length args) 2))
-                            (err (list "set! requires 2 arguments!" args) cont)
-                            (let ((name (car args)) (val (cadr args)))
-                                (update!
-                                    obj
-                                    name
-                                    val
-                                    (lambda (v) (cont v))
-                                    err)))))))
         ((lookup)
             (cont
                 (sexy-proc
