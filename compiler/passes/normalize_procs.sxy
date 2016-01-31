@@ -5,14 +5,19 @@
 
 ; (proc name (args) bodies ...) -> (def name (proc (args) bodies ...))
 ; (macro name (args) bodies ...) -> (def name (proc (args) bodies ...))
-; macros might as well become procs after compile time
+; (macros might as well become procs after compile time)
 
-(def pass
-    (gen-pass (:
-        proc (proc (form)
+(proc pass (form)
+    (if (pair? form)
+        (case form.head
+            (def set! del! seq wall gate capture guard ensure)
+                ((gen-pass form.head) pass form)
+            (proc)
                 (if (symbol? form.1)
                     %(def $form.1 (proc $form.2 @(pass form.tail.tail.tail)))
-                    %(proc $form.1 @(pass form.tail.tail))))
-        macro (proc (form)
-                %(def $form.1 (proc $form.2 @(pass form.tail.tail.tail)))))))
+                    %(proc $form.1 @(pass form.tail.tail)))
+            (macro)
+                %(def $form.1 (proc $form.2 @(pass form.tail.tail.tail)))
+            default: ((gen-pass 'application) pass form))
+        form))
 

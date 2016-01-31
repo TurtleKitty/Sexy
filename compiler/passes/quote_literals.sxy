@@ -6,12 +6,12 @@
 ; (seq 1 \F foo "foo" (vector: 1 2 3))
 ; -> (seq (quote 1) (quote \F) foo (quote "foo") (quote (vector: 1 2 3)))
 
-(def pass
-    (gen-pass (:
-        atom  (proc (form)
-                  (if (or (symbol? form) (= form ()))
-                  form
-                  %(quote $form)))
-        spec? (proc (form) (option? form.head))
-        spec  (proc (form) %(quote $form)))))
+(proc pass (form)
+    (if (pair? form)
+        (if (option? form.head)
+            %(quote $form)
+            ((gen-pass 'application) pass form))
+        (if (or (symbol? form) (= form ()))
+            form
+            %(quote $form))))
 

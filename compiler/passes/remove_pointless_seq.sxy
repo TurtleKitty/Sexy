@@ -5,10 +5,12 @@
 
 ; (seq expr) -> expr
 
-(def pass
-    (gen-pass (:
-        'seq (proc (form)
-                (if (= form.size 2)
-                    (pass form.1)
-                    %(seq @(pass form.tail)))))))
+(proc pass (form)
+    (if (pair? form)
+        (if (= 'seq form.head)
+            (if (= form.size 2)
+                (pass form.1)
+                %(seq @(pass form.tail)))
+            ((gen-pass 'application) pass form))
+        form))
 

@@ -6,15 +6,21 @@
 ; (λ (args) bodies...)    -> (λ $id (args) bodies...)
 ; (proc (args) bodies...) -> (proc $id (args) bodies...)
 
-(proc pass (form db)
-    (proc id-proc (form)
-        (def id (uuid))
-        (db.set! id form)
-        %($form.head $id $form.1 @(pass form.tail.tail db)))
-    (def general
-        (gen-pass (:
-            λ    id-proc
-            proc id-proc
-        )))
-    (general form))
+(def db null)
+
+(proc id-proc (form)
+    (def id (uuid))
+    (db.set! id form)
+    %($form.head $id $form.1 @(pass form.tail.tail db)))
+
+(proc pass (form)
+    (when rest (set! db rest.head))
+    (if (pair? form)
+        (case form.head
+            (def set! del! seq wall gate capture guard ensure)
+                ((gen-pass form.head) pass form)
+            (λ proc)
+                (id-proc form)
+            default: ((gen-pass 'application) pass form))
+        form))
 

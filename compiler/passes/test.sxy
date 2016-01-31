@@ -1,0 +1,21 @@
+
+(use gen-pass "generic.sxy")
+
+(proc pass (form)
+    (if (symbol? form)
+        form.to-text
+        form))
+
+(def file sys.rest.head)
+
+(def forms
+    (pair 'seq
+        (sys.fs.from file
+            (proc (f)
+                f.read-sexy))))
+
+(sys.log forms)
+
+(sys.log %(gen-pass $forms.head))
+(sys.log (gen-pass forms.head))
+

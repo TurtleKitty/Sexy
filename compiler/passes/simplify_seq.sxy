@@ -5,10 +5,13 @@
 
 ; (seq 1 2 3 4 5) -> (seq 1 (seq 2 (seq 3 (seq 4 5))))
 
-(def pass
-    (gen-pass (:
-        'seq (proc (form)
-                 (if (> form.size 3)
-                    %(seq $(pass form.1) $(pass (pair 'seq form.tail.tail)))
-                    %(seq @(pass form.tail)))))))
+(proc pass (form)
+    (if (pair? form)
+        (if (= 'seq form.head)
+            (if (> form.size 3)
+                %(seq $(pass form.1) $(pass (pair 'seq form.tail.tail)))
+                %(seq @(pass form.tail)))
+            ((gen-pass 'application) pass form))
+        form))
+
 

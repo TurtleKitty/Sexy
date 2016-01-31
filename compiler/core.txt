@@ -265,6 +265,7 @@ read-sexy -> all sexy forms to list
 (read-token-while "runes")
 (read-token-until "runes")
 (read-token-if proc)
+(each proc) ?
 
 sink
 
