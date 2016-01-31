@@ -111,7 +111,7 @@
     ((proc (funz)
         (def s funz.size)
         (if (= s 0)
-            (error "Compose requires at least one argument.  It prefers more than one.")
+            (error (object 'name 'too-few-args 'form %(compose @rest) 'to-text "(compose ...) requires at least one argument.  It prefers more than one."))
             (if (= s 1)
                 rest.head
                 (if (= s 2)
@@ -151,16 +151,17 @@
                     (if (pair? xs)
                         (loop xs.head xs.tail.head xs.tail.tail noob)
                         noob))
-                (error (list ': "requires an even number of arguments")))
+                (error (object 'name 'args-fail 'form %(: @rest) 'to-text "(: ...) requires an even number of arguments")))
             ())))
 
 (macro cond ()
     (def default
         (if opt.default
             opt.default
-            (list 'error (list 'list ''cond-no-matching-clause (list 'pair ''cond (list 'quote rest))))))
+            (list 'error (list 'object ''name ''cond-no-matching-clause ''to-text "(cond... ) form fell through!"
+                                ''form (list 'pair ''cond (list 'quote rest))))))
     (if (< rest.size 2)
-        (error (list 'bad-cond "cond should have at least one predicate and consequent." (pair 'cond rest)))
+        (error (object 'name 'syntax-error 'to-text "(cond ...) should have at least one predicate and consequent." 'form (pair 'cond rest)))
         (let loop (pred rest.0 conseq rest.1 remaining rest.tail.tail)
             (if remaining
                 (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
@@ -226,9 +227,10 @@
     (def default
         (if opt.default
             opt.default
-            (list 'error (list 'list ''case-no-matching-clause (list 'pair ''case (list 'quote rest))))))
+            (list 'error (list 'object ''name ''case-no-matching-clause ''to-text "(case ...) form fell through!"
+                               ''form (list 'pair ''case (list 'quote rest))))))
     (if (< rest.size 2)
-        (error (list 'bad-case "case should have at least one predicate and consequent." (pair 'case rest)))
+        (error (object 'name 'syntax-error 'to-text "(case ...) should have at least one predicate and consequent." 'form (pair 'case rest)))
         (seq
             (def cval (gensym))
             (qq
@@ -393,9 +395,11 @@
             (let ((unq testy) (quote (unq predicate)) (unq result) (unq predicate))
                 (if (send (unq result) 'to-bool)
                     true
-                    (error (list 'assertion-failed (unq testy))))))))
+                    (error (object 'name 'assertion-failed 'to-text "(assert ...) FAIL" 'form (unq testy))))))))
 
 (proc ndx (n x)
+    (when (or (< n 0) (< x 0))
+        (error (object 'name 'type-error 'form %(ndx $n $x) 'to-text "usage: (ndx n x) : n and x must be integers greater than zero.")))
     (proc dx ()
         (+ 1 (rand x)))
     (let loop (m n total 0)
@@ -432,7 +436,7 @@
                 p.read-rune ; discard opening [
                 (let loop (next p.peek-rune items ())
                     (when (eof? next)
-                        (error 'unexpected-EOF-in-JSON-array!))
+                        (error (object 'name 'json-read-error 'form items 'to-text "Unexpected EOF in JSON array!")))
                     (if next.whitespace?
                         (seq p.read-rune (loop p.peek-rune items))
                         (case next
@@ -445,7 +449,7 @@
                 p.read-rune ; discard opening {
                 (let loop (next p.peek-rune items (record))
                     (when (eof? next)
-                        (error 'unexpected-EOF-in-JSON-object!))
+                        (error (object 'name 'json-read-error 'form items 'to-text "Unexpected EOF in JSON object!")))
                     (if next.whitespace?
                         (seq p.read-rune (loop p.peek-rune items))
                         (case next
@@ -468,15 +472,15 @@
                     (case next
                         (\")     (read-text p)
                         (\[)     (read-array p)
-                        (\])     (error "unexpected ] !")
+                        (\])     (error (object 'name 'json-read-error 'form txt 'to-text "Unexpected ] !"))
                         (\{)     (read-object p)
-                        (\})     (error "unexpected } !")
+                        (\})     (error (object 'name 'json-read-error 'form txt 'to-text "Unexpected } !"))
                         (\- \0 \1 \2 \3 \4 \5 \6 \7 \8 \9)
                             (read-num p)
                         default:
                             (let (this-guy (read-symbol p))
                                 (if (not (syms.has? this-guy))
-                                    (error %(unquoted-string! $this-guy))
+                                    (error (object 'name json-read-error 'form this-guy 'to-text "Unquoted string!"))
                                     this-guy)))))
             (reader txt.to-stream))
 
@@ -497,9 +501,11 @@
                     default: 
                         (if (thing.responds? 'to-json)
                             thing.to-json
-                            (error "json.stringify - unknown-type"))))
+                            (error (object 'json-write-error 'form thing 'to-text "json.write - unknown-type")))))
 
             (object
+                'read json-in
+                'write json-out
                 'parse json-in
                 'stringify json-out)))
 
@@ -529,11 +535,13 @@
     (def forward (msgs.filter none-shall-pass))
     (proc unseal (xyzzy)
         (if (null? secret)
-            (error 'not-unsealable!)
+            (error (object 'name 'ACCESS-DENIED 'form sealed 'to-text "Object not unsealable!"))
             (if (= xyzzy secret)
                 obj
-                (error 'ACCESS-DENIED))))
-    (object 'type type 'unseal unseal resend: %(($obj @forward)) default: obj.default))
+                (error (object 'name 'ACCESS-DENIED 'form sealed 'to-text "WRONG!!!")))))
+    (def sealed
+        (object 'type type 'unseal unseal resend: %(($obj @forward)) default: obj.default))
+    sealed)
 
 (macro alias (name new-alias)
     %(macro $new-alias ()
