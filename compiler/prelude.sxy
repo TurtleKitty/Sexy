@@ -535,6 +535,10 @@
                 (error 'ACCESS-DENIED))))
     (object 'type type 'unseal unseal resend: %(($obj @forward)) default: obj.default))
 
+(macro alias (name new-alias)
+    %(macro $new-alias ()
+        %($'$name @rest)))
+
 
 ; reserving for future use
 
