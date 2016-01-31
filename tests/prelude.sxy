@@ -41,7 +41,9 @@
     (text? "foo"))
 
 (sys.test 'pair?
-    (pair? (pair: 1 2)))
+    (and
+        (pair? '(1 . 2))
+        (pair? (pair 1 2))))
 
 (sys.test 'list?
     (list? (list 1)))

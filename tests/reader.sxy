@@ -28,7 +28,7 @@
 
 (sys.test 'pair-literal
     (= (pair 'x 'y)
-       '(pair: x y)))
+       '(x . y)))
 
 (sys.test 'vector-literal
     (= (vector 1 2 (list 3 4 5))
