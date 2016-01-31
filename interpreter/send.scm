@@ -634,8 +634,8 @@
                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
                 ((responds?) (cont (lambda (x) (hte? fields x))))
                 ((messages) (cont (append (hash-table-keys fields) (hash-table-keys resends))))
-                ((autos) (cont autos))
-                ((resends) (cont resends))
+                ((autos) (cont (hash-table-keys autos)))
+                ((resends) (cont (hash-table-keys resends)))
                 ((default) (cont (htr obj 'default)))
                 (else (sexy-apply (htr obj 'default) (list msg) 'null cont err))))))
 
@@ -900,7 +900,7 @@
                                         (begin
                                             (read-char obj)
                                             (loop (peek-char obj)))))))
-                        ((read-token)
+                        ((read-token read-tokens)
                             (lambda (n)
                                 (read-string n obj)))
                         ((read-token-while)
@@ -946,7 +946,7 @@
                         ((responds?)
                             (lambda (msg)
                                 (if (member msg msgs) #t #f)))
-                        ((to-list) (read-lines obj))))))
+                        ((to-list read-lines) (read-lines obj))))))
         ((close) (close-input-port obj) (cont 'null))
         (else (idk msg obj cont err))))
 

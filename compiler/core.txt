@@ -1,0 +1,312 @@
+
+object
+
+type
+view
+to-bool
+to-text
+answers?
+messages
+autos
+resends
+default
+
+
+null
+
+view -> self
+to-text "null"
+to-bool (false)
+to-symbol -> self
+(apply () (:)) -> ERROR
+
+
+bool
+
+view
+to-bool -> self
+to-text
+to-symbol -> self
+not -> (not self)
+
+
+int
+
+view
+to-text
+to-bool -> 0 is false, else true
+zero?
+pos?
+neg?
+abs
+floor
+ceil
+round
+truncate
+inc
+dec
+even?
+odd?
+
+
+real
+
+view
+to-text
+to-bool
+zero?
+pos?
+neg?
+abs
+floor
+ceil
+round
+truncate
+
+
+rune
+
+view
+to-rune
+to-text
+to-bool -> true
+to-number -> int, real, or ERROR
+code -> UTF8
+alpha?
+digit?
+whitespace?
+uc?
+lc?
+uc
+lc
+
+
+symbol
+
+view
+to-bool
+to-text
+
+
+text
+
+view
+to-bool -> empty is false, else true
+to-symbol
+to-option
+to-number -> int or real
+to-list -> (\a \b \c)
+to-text -> self
+to-stream
+size
+empty?
+clone
+chomp
+trim
+ltrim
+rtrim
+(lpad \rune n)
+(rpad \rune n)
+(take n)
+(drop m)
+set! ???
+(index "subtext")
+(match "regex")
+(split "regex")
+(capture "regex")
+(replace "regex" "replacement")
+
+
+pair
+
+view
+to-bool -> () is false, else true
+to-text
+to-list
+to-text -> all items must be runes
+to-vector
+to-record
+size
+empty?
+reverse
+head key car
+tail val cdr
+(cons x)
+(has? x)
+(append x)
+(take n)
+(drop n)
+(apply (n) null)
+(fold init proc)
+(reduce init proc)
+(map proc)
+(filter proc)
+(sort op)
+(each proc)
+
+
+vector
+
+view
+to-bool -> (#) is false, else true
+to-text -> all items must be runes
+to-list
+to-vector
+to-record
+size
+empty?
+clone
+pairs
+(has? item)
+(index item) -> n or null
+(put n v n v n v)   ; functional
+(set! n v n v n v)  ; imperative
+(append x)
+(take n)
+(drop n)
+(apply (n) null)
+(fold init proc)
+(reduce init proc)
+(map proc)
+(filter proc)
+(sort op)
+(each proc)
+
+
+record
+
+view
+to-bool
+to-list   -> alist
+to-record
+to-text
+size
+empty?
+keys
+values
+pairs
+clone
+(get k)
+(put k v k2 v2 ...)
+(rm k k2 k3)
+(set! k 1 k2 2 k3 3 ...)
+(del! k k2 k3 ...)
+(has? k)
+(apply (k) null)
+(merge r)
+(fold init proc)
+(reduce init proc)
+(map proc) -> record
+(filter proc) -> record
+(sort op) -> alist
+(each proc)
+
+
+env (standard | repl | immutable | wild)
+
+view
+mama
+to-env
+to-bool
+to-text
+to-list
+to-record
+empty?
+(def! x 1 y 2 z 3 ...)
+(get x)
+(set! x 2 y 3 z 5 ...)
+(has? x)     ; local
+(del! x y z ...)
+(lookup x)   ; local or ancestral
+(extend u 7 v 8)
+(expand form)
+(eval expr)
+
+
+proc / λ / operator
+
+view
+to-bool
+to-text
+arity
+formals
+code
+env
+(apply (args) (: opts))
+
+
+stream
+
+view
+to-bool
+input?
+output?
+open?
+close
+
+source
+
+view
+to-bool -> open?
+to-text -> printable
+ready?
+read
+read-rune
+peek-rune
+read-line
+read-lines -> to-list
+read-text -> slurp
+read-sexy -> all sexy forms to list
+(assert-rune "runes")
+(skip n)
+(skip-while "runes")
+(skip-until "runes")
+(read-tokens n)
+(read-token-while "runes")
+(read-token-until "runes")
+(read-token-if proc)
+
+sink
+
+flush
+nl -> newline
+(write obj) -> obj.view
+(print obj) -> obj.to-text
+(say obj)   -> obj.print + obj.nl
+
+
+fs-socket
+
+to-bool -> true
+ready? -> true if there is a connection ready to be accepted
+accept -> accepts a connection and returns a socket
+close -> shut down the TCP listener
+path -> returns the file system path of the listener
+
+socket messages
+
+to-bool -> true
+close -> close the socket
+path -> file system path the socket is connected to
+
+
+tcp-socket
+
+to-bool -> true
+ready? -> true if there is a connection ready to be accepted
+accept -> accepts a connection and returns a socket
+close -> shut down the TCP listener
+ip -> returns local IP address
+port -> returns the port number of the listener
+
+socket messages
+
+to-bool -> true
+close -> close the socket
+local-addr -> local IP address of the socket
+local-port -> local port number of the socket
+remote-addr -> remote IP address of the socket
+remote-port -> remote port number of the socket
+
+
+
