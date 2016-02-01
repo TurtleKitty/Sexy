@@ -82,6 +82,14 @@
                     (loop (+ n 1)))))
         (= foo 10))))
 
+(sys.test 'let-seq
+    (= '(2 . 3)
+        ((λ ()
+            (let (x 1 y 2)
+                (set! x 2)
+                (set! y 3)
+                (pair x y))))))
+
 (sys.test 'cond
     ((thunk
         (proc foo (x)
