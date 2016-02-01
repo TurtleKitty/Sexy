@@ -57,6 +57,27 @@
             (set! mute 3)))
         (= mute 3)))
 
+; del!
+
+(sys.test 'del!
+    (let (x
+        (guard
+            (proc (e k) e.name)
+            (let (doomed 23)
+                (def flag (= doomed 23))
+                (del! doomed)
+                doomed)))
+    (= 'undefined-symbol x)))
+
+(sys.test 'del-higher!
+    (= 'undefined-symbol
+        (guard
+            (proc (e k) e.name)
+            (let (doomed 23)
+                (let ()
+                    (del! doomed))
+                doomed))))
+
 ; proc
 
 (sys.test 'proc-identity
