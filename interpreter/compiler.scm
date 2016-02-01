@@ -162,7 +162,7 @@
                         (delete!
                             env
                             name
-                            (lambda (null) (cont null))
+                            (lambda (null) (cont 'null))
                             err)))
                 err))
         (sexy-error code "del! wants a symbol as its first argument!")))

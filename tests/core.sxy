@@ -39,35 +39,32 @@
 
 ; set!
 
-(def mute 1)
-
 (sys.test 'set!
-    (seq
+    (let (mute 1)
         (set! mute 2)
         (= mute 2)))
 
 (sys.test 'set-other
-    (seq
+    (let (mute 1)
         (set! mute "I'm a text!")
         (= mute "I'm a text!")))
 
 (sys.test 'set-higher
-    (seq
-        ((λ ()
-            (set! mute 3)))
+    (let (mute 1)
+        (let ()
+            (set! mute 3))
         (= mute 3)))
 
 ; del!
 
 (sys.test 'del!
-    (let (x
+    (= 'undefined-symbol
         (guard
             (proc (e k) e.name)
             (let (doomed 23)
                 (def flag (= doomed 23))
                 (del! doomed)
-                doomed)))
-    (= 'undefined-symbol x)))
+                doomed))))
 
 (sys.test 'del-higher!
     (= 'undefined-symbol

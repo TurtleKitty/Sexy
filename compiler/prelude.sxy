@@ -133,7 +133,11 @@
         (if vars.empty?
             (pair () ())
             (sep vars.head vars.1 vars.tail.tail () ())))
-    (def λ-form ((send (list 'λ p.head) 'append) (if is-named rest.tail rest)))
+    (def λ-form
+        ((send (list 'λ p.head) 'append)
+            (list
+                (pair 'seq
+                    (if is-named rest.tail rest)))))
     (if is-named
         (seq
             (def args (gensym))

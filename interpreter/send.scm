@@ -8,7 +8,12 @@
 
 (define (sexy-send obj msg cont err)
     (define (wtf)
-        (error (list "WTF kind of object was THAT?" obj msg)))
+        (display "WTF kind of object was THAT?\n")
+        (write (list obj msg)) (newline)
+        (exit))
+        ;(err
+        ;    (sexy-object `(name MYSTERY-ERROR type error form (send ,obj ,msg) to-text "Unknown object!") #f #f #f)
+        ;    (lambda (v) (write `(value ,v)) (newline) (exit))))
     (cond
         ((boolean? obj) (sexy-send-bool obj msg cont err))
         ((symbol? obj) (sexy-send-symbol obj msg cont err))
@@ -666,7 +671,7 @@
 (define (sexy-send-env obj msg cont err)
     (define msgs '(view to-text def! set! has? get del! pairs lookup mama extend eval expand))
     (case msg
-        ((get has? set! del! to-bool keys values pairs)
+        ((get has? to-bool keys values pairs)
             (sexy-send-record (htr obj 'vars) msg cont err))
         ((type) (cont 'env))
         ((view to-text)
@@ -678,6 +683,37 @@
         ((default) (cont default-default))
         ((def!)
             (sexy-send-record (htr obj 'vars) 'set! cont err))
+        ((rm!)
+            (sexy-send-record (htr obj 'vars) 'del! cont err))
+        ((set!)
+            (cont
+                (sexy-proc
+                    primitive-type
+                    'env
+                    (lambda (args opts cont err)
+                        (if (not (eq? (length args) 2))
+                            (err (list "set! requires 2 arguments!" args) cont)
+                            (let ((name (car args)) (val (cadr args)))
+                                (update!
+                                    obj
+                                    name
+                                    val
+                                    (lambda (v) (cont 'null))
+                                    err)))))))
+        ((del!)
+            (cont
+                (sexy-proc
+                    primitive-type
+                    'env
+                    (lambda (args opts cont err)
+                        (if (not (eq? (length args) 1))
+                            (err (list "del! requires 1 argument!" args) cont)
+                            (let ((name (car args)))
+                                (delete!
+                                    obj
+                                    name
+                                    (lambda (v) (cont 'null))
+                                    err)))))))
         ((lookup)
             (cont
                 (sexy-proc

@@ -274,7 +274,8 @@
                     env
                     'def!
                     (lambda (def!)
-                        (cont (def! k v)))
+                        (def! k v)
+                        (cont 'null))
                     err)
                 (sexy-send-env
                     env
@@ -294,9 +295,10 @@
             (if (has? k)
                 (sexy-send-env
                     env
-                    'del!
-                    (lambda (del!)
-                        (cont (del! k)))
+                    'rm!
+                    (lambda (rm!)
+                        (rm! k)
+                        (cont 'null))
                     err)
                 (sexy-send-env
                     env
