@@ -1,47 +1,51 @@
 package sexy
 
-type Pair struct {
+type SxyPair struct {
     head SxyObj
     tail SxyObj
 }
 
-func (p Pair) Answers (m SxyObj) SxyObj {
+func (p SxyPair) Answers (m SxyObj) SxyBool {
     // return messages.has? m
 }
 
-func (p Pair) Autos SxyObj {
+func (p SxyPair) Autos SxyPair {
     // return autos
 }
 
-func (p Pair) Default SxyObj {
+func (p SxyPair) Default SxyProc {
     // fn to accept ints and return vals
 }
 
-func (p Pair) Messages SxyObj {
+func (p SxyPair) Messages SxyPair {
     // ...
 }
 
-func (p Pair) Resends SxyObj {
+func (p SxyPair) Resends SxyPair {
     // return ()
 }
 
-func (p Pair) Send (m SxyObj) SxyObj {
+func (p SxyPair) Send (m SxyObj) SxyObj {
     // the money shot
 }
 
-func (p Pair) ToBool SxyObj {
+func (p SxyPair) ToBool SxyBool {
     // to-bool
 }
 
-func (p Pair) ToText SxyObj {
-    // ...
+func (p SxyPair) ToText SxyText {
+    // to-bool
 }
 
-func (p Pair) Type SxyObj {
-    // return 'pair
+func (p SxyPair) ToLiteral SxyText {
+    // to-bool
 }
 
-func (p Pair) View SxyObj {
+func (p SxyPair) Type SxySymbol {
+    return SxySymbolTable("pair")
+}
+
+func (p SxyPair) View SxyText {
     // return (x . y) ?
 }
 

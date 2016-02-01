@@ -4,9 +4,10 @@ object
 type
 view
 to-bool
-to-text
-answers?
+to-text    ; print
+to-literal ; write
 messages
+answers?
 autos
 resends
 default

@@ -1,15 +1,16 @@
 package sexy
 
 type SxyObj interface {
-    Answers     SxyObj
-    Autos       SxyObj
-    Default     SxyObj
-    Messages    SxyObj
-    Resends     SxyObj
+    Answers     SxyBool
+    Autos       SxyPair
+    Default     SxyProc
+    Messages    SxyPair
+    Resends     SxyPair
     Send        SxyObj
-    ToBool      SxyObj
-    ToText      SxyObj
-    Type        SxyObj
-    View        SxyObj
+    ToBool      SxyBool
+    ToText      SxyText
+    ToLiteral   SxyText
+    Type        SxySymbol
+    View        SxyText
 }
 
