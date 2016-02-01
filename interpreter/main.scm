@@ -42,7 +42,13 @@ END
     (exit))
 
 (define top-cont identity)
-(define top-err  (lambda (ex continue) (debug "Uncaught error: " ex) (exit)))
+(define top-err
+    (lambda (ex continue)
+        (debug 'runtime-error
+            (if (and (hash-table? ex) (eq? (sexy-send-atomic ex 'type) 'error))
+                (map (lambda (f) (sexy-view (sexy-send-atomic ex f))) '(name to-text form)))
+                (sexy-view ex))
+        (exit)))
 
 (define *cwd* (current-directory))
 (define *use-cache* #t)

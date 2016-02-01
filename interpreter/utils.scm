@@ -17,8 +17,8 @@
 (define (debug x . xs)
     (define e (current-error-port))
     (if (null? xs)
-        (begin (write x e) (newline e))
-        (begin (write (cons x xs) e) (newline e))))
+        (begin (sexy-write x e) (newline e))
+        (begin (sexy-write (cons x xs) e) (newline e))))
 
 (define (debug-obj x)
     (define ps (sexy-view x))
