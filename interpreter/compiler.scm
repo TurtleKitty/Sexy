@@ -89,7 +89,7 @@
                                 code
                                 (lambda (v)
                                     (if (eq? not-found v)
-                                        (err (sexy-object `(name undefined-symbol form ,code to-text "Name not defined.") #f #f #f) cont)
+                                        (err (sexy-object `(type error name undefined-symbol form ,code to-text "Name not defined.") #f #f #f) cont)
                                         (cont v)))
                                 err))))))
         pass))
