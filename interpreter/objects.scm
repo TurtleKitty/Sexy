@@ -1,6 +1,7 @@
 
-(define (sexy-gensym)
-    (string->symbol (string-append "gensym-" (uuid-v4))))
+(define (sexy-gensym #!optional (name "gensym"))
+    (string->symbol
+        (string-append name "-" (uuid-v4))))
 
 (define (sexy-record . args)
     (define this (mkht))
