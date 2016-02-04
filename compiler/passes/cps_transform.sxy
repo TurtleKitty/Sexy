@@ -1,0 +1,106 @@
+
+; http://matt.might.net/articles/cps-conversion/
+
+(use gen-pass "generic.sxy")
+
+(lib () pass)
+
+; (if x (seq 1 2) (seq 3 4))
+; -> ((λ (x-value) (if x-value (λ (s1 
+
+; FIXME must have def working before anything else will work right.
+
+(proc pass (form)
+    (def id (gensym "id"))
+    (T-c form %(λ ($id) $id)))
+
+(proc atomic? (form)
+    (if (pair? form)
+        (('(quote proc λ) 'has?) form.head)
+        true))
+
+(proc gencont ()
+    (gensym "continuation"))
+
+(proc M (form)
+    (when (not (atomic? form))
+        (error (object 'type 'error 'form form 'name 'not-an-atom! 'to-text "WRONG!")))
+    (if (not (pair? form))
+        form
+        (case form.head
+            (quote) form
+            (proc λ) (seq
+                (def k 'return)            ; user continuation
+                (def e (gensym "handler")) ; error continuation
+                %($form.head $form.2 $(append form.3 (list k e)) @form.tail.tail.tail.tail)) ; remember the added IDs from pass 2
+            default: (error 'wtf))))
+
+(proc T-c (form c)
+    (debug (list 'T-c form c))
+    (if (atomic? form)
+        %($c $(M form))
+        (case form.head
+            (if) (seq
+                (def k (gencont))
+                %((λ ($k)
+                    $(T-k form.1
+                        (proc (p)
+                            %(if $p
+                                 $(T-c form.2 k)
+                                 $(T-c form.3 k))))) $c))
+            (seq) (T-k form.1
+                    (proc (x)
+                        (T-c form.2 c)))
+            (wall) form
+            (gate) form
+            (capture) form
+            (guard) form
+            (error) form
+            (ensure) form
+            (load) form
+            default: ; procedure application
+                (T-k form.head
+                    (proc (f)
+                        (T*-k form.tail
+                            (proc (args)
+                                %($f @args $c))))))))
+
+(proc T-k (form k)
+    (debug (list 'T-k form k))
+    (if (atomic? form)
+        (k (M form))
+        (case form.head
+            (def set! del!) form
+            (if) (seq
+                (def rv (gensym "value"))
+                (def cont %(λ ($rv) $(k rv)))
+                (T-k form.1
+                    (proc (aexp)
+                        %(if $aexp 
+                            $(T-c form.2 cont)
+                            $(T-c form.3 cont)))))
+
+            (seq) (T-k form.1
+                    (proc (x)
+                        (T-k form.2 k)))
+            (wall) form
+            (gate) form
+            (capture) form
+            (guard) form
+            (error) form
+            (ensure) form
+            (load) form
+            default: ; procedure application
+                (def rv (gensym "value"))
+                (def cont %(λ ($rv) $(k rv)))
+                (T-c form cont))))
+
+(proc T*-k (exprs k)
+    (if exprs.empty?
+        (k ())
+        (T-k exprs.head
+            (proc (hd)
+                (T*-k exprs.tail
+                    (proc (tl)
+                        (k (pair hd tl))))))))
+

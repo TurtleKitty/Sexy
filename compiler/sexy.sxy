@@ -145,7 +145,7 @@ sexy clean))
     (def its-good (check-sexy-syntax expanded))
     (if its-good
         (cli-env.eval expanded)
-        (error 'syntax-error)))
+        (error (object 'type 'error 'name 'syntax-error 'form expanded 'to-text "Syntax error."))))
 
 (proc sexy-compile (filename)
     ; expand, compile, and cache - don't run

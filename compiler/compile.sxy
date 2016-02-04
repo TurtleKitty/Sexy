@@ -6,6 +6,9 @@
 (use remove-pointless-seq "passes/remove_pointless_seq.sxy") 
 (use simplify-seq "passes/simplify_seq.sxy")
 (use flatten-seq "passes/flatten_seq.sxy")
+; (use capture-lambda "passes/capture_lambda.sxy")
+; (use alpha-convert "passes/alpha_conversion.sxy")
+(use cps-transform "passes/cps_transform.sxy")
 
 (lib () compile)
 
@@ -32,4 +35,7 @@
     (meow 'flat-seq) (debug fs)
     (def ss2  (simplify-seq fs)) ; resimplify after flattening
     (meow 'simplify-seq2) (debug ss2)
-    ss2)
+    (def cps  (cps-transform ss2))
+    (meow 'cps-transform) (debug cps)
+    cps)
+    
