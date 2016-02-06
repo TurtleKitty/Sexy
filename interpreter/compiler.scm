@@ -54,7 +54,6 @@
             ((quote)    (sexy-compile-quote code))
             ((if)       (sexy-compile-if code))
             ((seq)      (sexy-compile-seq code))
-            ((set!)     (sexy-compile-set! code))
             ((macro)    (sexy-compile-macro code))
             ((λ)        (sexy-compile-lambda code))
             ((proc)     (sexy-compile-proc code))

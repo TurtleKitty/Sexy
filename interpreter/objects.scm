@@ -7,7 +7,10 @@
     (define this (mkht))
     (define vars (mkht))
     (hts! this 'type 'record)
-    (for-pairs (lambda (k v) (hts! vars k v)) args)
+    (for-pairs
+        (lambda (k v)
+            (hts! vars k v))
+        args)
     (hts! this 'vars vars)
     this)
 

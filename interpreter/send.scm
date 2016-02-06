@@ -497,127 +497,125 @@
         (if (hte? vars msg)
             (htr vars msg)
             'null))
-    (if (hte? vars msg)
-        (cont (htr vars msg))
-        (case msg
-            ((type view size autos resends default clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt to-text merge messages responds?)
-                (cont
-                    (case msg
-                        ((type) 'record)
-                        ((view to-text)
-                            (let ((keys (htks vars)))
-                                (cons
-                                    (string->keyword "record")
-                                    (fold
-                                        (lambda (p xs)
-                                            (cons (car p) (cons (sexy-view (cdr p)) xs)))
-                                        '()
-                                        (hash-table->alist vars)))))
-                        ((size) (hash-table-size vars))
-                        ((autos) '(view size clone to-bool to-list to-text keys values pairs))
-                        ((resends) '())
-                        ((default) rdefault)
-                        ((clone)
-                            (let ((noob (sexy-record)))
-                                (hts! noob 'vars (hash-table-copy vars))
-                                noob))
-                        ((to-bool)
-                            (> (hash-table-size vars) 0))
-                        ((get)
-                            (lambda (k)
-                                (if (hte? vars k)
-                                    (htr vars k)
-                                    'null)))
-                        ((put)
-                            (lambda args
-                                (define noob (sexy-record))
-                                (hts! noob 'vars (hash-table-copy vars))
-                                (sexy-send-record
-                                    noob
-                                    'set!
-                                    (lambda (setter!)
-                                        (apply setter! args)
-                                        noob)
-                                    err)))
-                        ((set!)
-                            (lambda args
-                                (for-pairs (lambda (k v) (hts! vars k v)) args)
-                                'null))
-                        ((rm)
-                            (lambda args
-                                (define noob (sexy-record))
-                                (hts! noob 'vars (hash-table-copy vars))
-                                (sexy-send-record
-                                    noob
-                                    'del!
-                                    (lambda (deleter!)
-                                        (apply deleter! args)
-                                        noob)
-                                    err)))
-                        ((del!)
-                            (lambda args
-                                (map (lambda (k) (htd! vars k)) args)
-                                'null))
-                        ((has?)
-                            (lambda (x)
-                                (hte? vars x)))
-                        ((apply)
-                            (sexy-proc
-                                primitive-type
-                                'record
-                                (lambda (args opts cont err)
-                                    (sexy-send-record obj (caar args) cont err))))
-                        ((keys) (htks vars))
-                        ((values) (htvs vars))
-                        ((pairs to-list) (hash-table->alist vars))
-                        ((to-opt)
-                            (fold
-                                (lambda (p xs)
-                                    (cons (symbol->keyword (car p)) (cons (cdr p) xs)))
-                                '()
-                                (hash-table->alist vars)))
-                        ((messages) msgs)
-                        ((responds?)
-                            (lambda (msg)
-                                (or 
-                                    (hte? vars msg)
-                                    (if (member msg msgs) #t #f))))
-                        ((merge)
-                            (lambda (other)
-                                (define nuvars (hash-table-merge (htr other 'vars) vars))
-                                (define noob (mkht))
-                                (hts! noob 'type 'record)
-                                (hts! noob 'vars nuvars)
-                                noob)))))
-                ((fold) (sexy-send-list
-                            (hash-table->alist vars)
-                            'fold
-                            cont
-                            err))
-                ((reduce) (sexy-send-list
-                            (hash-table->alist vars)
-                            'reduce
-                            cont
-                            err))
-                ((map)
-                    (sexy-ho
-                        '(λ (rec)
-                            (λ (funk)
-                                (def mapped (rec.to-list.map funk))
-                                mapped.to-record))
-                        obj
+    (case msg
+        ((type view size autos resends default clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt to-text merge messages responds?)
+            (cont
+                (case msg
+                    ((type) 'record)
+                    ((view to-text)
+                        (let ((keys (htks vars)))
+                            (cons
+                                (string->keyword "record")
+                                (fold
+                                    (lambda (p xs)
+                                        (cons (car p) (cons (sexy-view (cdr p)) xs)))
+                                    '()
+                                    (hash-table->alist vars)))))
+                    ((size) (hash-table-size vars))
+                    ((autos) '(view size clone to-bool to-list to-text keys values pairs))
+                    ((resends) '())
+                    ((default) rdefault)
+                    ((clone)
+                        (let ((noob (sexy-record)))
+                            (hts! noob 'vars (hash-table-copy vars))
+                            noob))
+                    ((to-bool)
+                        (> (hash-table-size vars) 0))
+                    ((get)
+                        (lambda (k)
+                            (if (hte? vars k)
+                                (htr vars k)
+                                'null)))
+                    ((put)
+                        (lambda args
+                            (define noob (sexy-record))
+                            (hts! noob 'vars (hash-table-copy vars))
+                            (sexy-send-record
+                                noob
+                                'set!
+                                (lambda (setter!)
+                                    (apply setter! args)
+                                    noob)
+                                err)))
+                    ((set!)
+                        (lambda args
+                            (for-pairs (lambda (k v) (hts! vars k v)) args)
+                            'null))
+                    ((rm)
+                        (lambda args
+                            (define noob (sexy-record))
+                            (hts! noob 'vars (hash-table-copy vars))
+                            (sexy-send-record
+                                noob
+                                'del!
+                                (lambda (deleter!)
+                                    (apply deleter! args)
+                                    noob)
+                                err)))
+                    ((del!)
+                        (lambda args
+                            (map (lambda (k) (htd! vars k)) args)
+                            'null))
+                    ((has?)
+                        (lambda (x)
+                            (hte? vars x)))
+                    ((apply)
+                        (sexy-proc
+                            primitive-type
+                            'record
+                            (lambda (args opts cont err)
+                                (sexy-send-record obj (caar args) cont err))))
+                    ((keys) (htks vars))
+                    ((values) (htvs vars))
+                    ((pairs to-list) (hash-table->alist vars))
+                    ((to-opt)
+                        (fold
+                            (lambda (p xs)
+                                (cons (symbol->keyword (car p)) (cons (cdr p) xs)))
+                            '()
+                            (hash-table->alist vars)))
+                    ((messages) msgs)
+                    ((responds?)
+                        (lambda (msg)
+                            (or 
+                                (hte? vars msg)
+                                (if (member msg msgs) #t #f))))
+                    ((merge)
+                        (lambda (other)
+                            (define nuvars (hash-table-merge (htr other 'vars) vars))
+                            (define noob (mkht))
+                            (hts! noob 'type 'record)
+                            (hts! noob 'vars nuvars)
+                            noob)))))
+            ((fold) (sexy-send-list
+                        (hash-table->alist vars)
+                        'fold
                         cont
                         err))
-                ((filter) 
-                    (sexy-ho
-                        '(λ (rec)
-                            (λ (funk)
-                                (def mapped (rec.to-list.filter funk))
-                                mapped.to-record))
-                        obj
+            ((reduce) (sexy-send-list
+                        (hash-table->alist vars)
+                        'reduce
                         cont
                         err))
-                (else (cont (rdefault msg))))))
+            ((map)
+                (sexy-ho
+                    '(λ (rec)
+                        (λ (funk)
+                            (def mapped (rec.to-list.map funk))
+                            mapped.to-record))
+                    obj
+                    cont
+                    err))
+            ((filter) 
+                (sexy-ho
+                    '(λ (rec)
+                        (λ (funk)
+                            (def mapped (rec.to-list.filter funk))
+                            mapped.to-record))
+                    obj
+                    cont
+                    err))
+            (else (cont (rdefault msg)))))
 
 (define (sexy-send-object obj msg cont err)
     (define fields (htr obj 'fields))

@@ -93,7 +93,7 @@
                         (lambda (args opts cont err)
                             (define autos (sexy-send-atomic opts 'auto))
                             (define rsend (sexy-send-atomic opts 'resend))
-                            (define default (sexy-send-atomic opts 'default))
+                            (define default ((sexy-send-atomic opts 'get) 'default))
                             (if (eq? autos 'null) (set! autos #f) #f)
                             (if (eq? rsend 'null) (set! rsend #f) #f)
                             (if (eq? default 'null) (set! default #f) #f)

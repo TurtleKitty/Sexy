@@ -160,8 +160,8 @@
 
 (macro cond ()
     (def default
-        (if opt.default
-            opt.default
+        (if (opt.get 'default)
+            (opt.get 'default)
             (list 'error (list 'object ''name ''cond-no-matching-clause ''to-text "(cond... ) form fell through!"
                                 ''form (list 'pair ''cond (list 'quote rest))))))
     (if (< rest.size 2)
@@ -229,8 +229,8 @@
 
 (macro case (val)
     (def default
-        (if opt.default
-            opt.default
+        (if (opt.get 'default)
+            (opt.get 'default)
             (list 'error (list 'object ''name ''case-no-matching-clause ''to-text "(case ...) form fell through!"
                                ''form (list 'pair ''case (list 'quote rest))))))
     (if (< rest.size 2)
@@ -279,6 +279,14 @@
     (qq
         (λ ((unq uscore))
             (seq (unqs (rename bodies))))))
+
+(macro set! ()
+    %(env.set!
+        @(let loop (k rest.head v rest.1 others rest.tail.tail rv ())
+            (def noob (pair %(quote $k) (pair v rv)))
+            (if others.empty?
+                noob
+                (loop others.head others.1 others.tail.tail noob)))))
 
 (macro del! ()
     %(env.del! @(rest.map (_ (list 'quote _)))))
@@ -562,5 +570,4 @@
 (def & null)
 (def ~ null)
 (def ^ null)
-
 
