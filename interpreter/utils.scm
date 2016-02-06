@@ -41,6 +41,9 @@
     (newline)
     (exit))
 
+(define (sexy-error-object name form to-text)
+    (sexy-object `(type error name ,name form ,form to-text ,to-text) #f #f #f))
+
 (define (sexy-bool obj cont err)
     (sexy-send obj 'to-bool cont err))
 

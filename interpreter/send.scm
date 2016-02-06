@@ -691,28 +691,37 @@
                     primitive-type
                     'env
                     (lambda (args opts cont err)
-                        (if (not (eq? (length args) 2))
-                            (err (list "set! requires 2 arguments!" args) cont)
-                            (let ((name (car args)) (val (cadr args)))
-                                (update!
-                                    obj
-                                    name
-                                    val
-                                    (lambda (v) (cont 'null))
-                                    err)))))))
+                        (define len (length args))
+                        (if (not (> len 1))
+                            (err (sexy-error-object 'env-error `(set! ,@args) "env.set! requires at least 2 arguments.") cont)
+                            (if (not (= 0 (modulo len 2)))
+                                (err (sexy-error-object 'env-error `(set! ,@args) "env.set! requires an even number of arguments.") cont)
+                                (let loop ((name (car args)) (val (cadr args)) (rest (cddr args)))
+                                    (update!
+                                        obj
+                                        name
+                                        val
+                                        (lambda (_)
+                                            (if (pair? rest)
+                                                (loop (car rest) (cadr rest) (cddr rest))
+                                                (cont 'null)))
+                                        err))))))))
         ((del!)
             (cont
                 (sexy-proc
                     primitive-type
                     'env
                     (lambda (args opts cont err)
-                        (if (not (eq? (length args) 1))
-                            (err (list "del! requires 1 argument!" args) cont)
-                            (let ((name (car args)))
+                        (if (not (> (length args) 0))
+                            (err (sexy-error-object 'env-error `(del! ,@args) "env.del! requires at least 1 argument.") cont)
+                            (let loop ((name (car args)) (rest (cdr args)))
                                 (delete!
                                     obj
                                     name
-                                    (lambda (v) (cont 'null))
+                                    (lambda (_)
+                                        (if (pair? rest)
+                                            (loop (car rest) (cdr rest))
+                                            (cont 'null)))
                                     err)))))))
         ((lookup)
             (cont
