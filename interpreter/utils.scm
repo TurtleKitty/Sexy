@@ -144,7 +144,7 @@
     ((sexy-compile-lambda (sexy-parse code)) (local-env) identity identity))
 
 (define blessed
-    '(def quote if seq set! macro λ proc wall gate capture ensure guard error env opt rest return))
+    '(def quote if seq macro λ proc wall gate capture ensure guard error env opt rest return))
 
 (define (holy? name)
     (or (member name blessed)

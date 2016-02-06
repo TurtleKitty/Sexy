@@ -297,8 +297,7 @@
                     env
                     'rm!
                     (lambda (rm!)
-                        (rm! k)
-                        (cont 'null))
+                        (sexy-apply rm! (list k) my-empty-record (lambda (_) (cont 'ok))  err))
                     err)
                 (sexy-send-env
                     env

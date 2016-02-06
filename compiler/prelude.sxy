@@ -280,6 +280,9 @@
         (λ ((unq uscore))
             (seq (unqs (rename bodies))))))
 
+(macro del! ()
+    %(env.del! @(rest.map (_ (list 'quote _)))))
+
 (macro qw ()
     (pair 'list (rest.map (λ (x) x.to-text))))
 

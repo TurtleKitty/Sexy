@@ -718,7 +718,7 @@
                                     (lambda (_)
                                         (if (pair? rest)
                                             (loop (car rest) (cdr rest))
-                                            (cont 'null)))
+                                            (cont 'ok)))
                                     err)))))))
         ((lookup)
             (cont
