@@ -1,6 +1,14 @@
 
 (define done-been-expanded (mkht))
 
+(define expand-err
+    (lambda (ex continue)
+        (debug 'compile-error
+            (if (and (hash-table? ex) (eq? (sexy-send-atomic ex 'type) 'error))
+                (map (lambda (f) (sexy-view (sexy-send-atomic ex f))) '(name to-text form)))
+                (sexy-view ex))
+        (exit)))
+
 (define (sexy-expand code env)
     (define (expand x)
         (sexy-expand x env))
@@ -9,7 +17,7 @@
     (define (look-it-up x)
         (if (sexy-global? x)
             (glookup x)
-            (lookup env x top-cont top-err)))
+            (lookup env x top-cont expand-err)))
     (define (sexy-macro? obj)
         (and (hash-table? obj) (eq? (htr obj 'type) 'operator)))
     (if (not (list? code))
@@ -29,16 +37,16 @@
                             (exit)))
                     ((macro)
                         (let* ((noo-env (noob)) (nucode (map (lambda (c) (sexy-expand c noo-env)) code)))
-                            ((sexy-compile nucode) env top-cont top-err)
+                            ((sexy-compile nucode) env top-cont expand-err)
                             nucode))
                     ((macro-eval)
                         (let ((expanded (expand (cons 'seq (cdr code)))))
-                            ((sexy-compile expanded) env top-cont top-err)
+                            ((sexy-compile expanded) env top-cont expand-err)
                             ''macro-eval-was-here))
                     ((seq)
                         (if (check-sexy-seq code)
                             (let ((expanded (map expand code)))
-                                (prep-defs (cdr expanded) env top-cont top-err)
+                                (prep-defs (cdr expanded) env top-cont expand-err)
                                 expanded)
                             (exit)))
                     ((quote)
@@ -64,7 +72,7 @@
                                         (define args (car arg-pair))
                                         (define opts (prep-options (cdr arg-pair)))
                                         (sexy-expand
-                                            (sexy-apply obj args opts top-cont top-err)
+                                            (sexy-apply obj args opts top-cont expand-err)
                                             env))
                                     (map expand code)))
                             (map expand code))))))))

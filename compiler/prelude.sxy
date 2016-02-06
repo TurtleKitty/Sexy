@@ -281,15 +281,26 @@
             (seq (unqs (rename bodies))))))
 
 (macro set! ()
+    (when (< rest.size 2)
+        (error (object 'type 'error 'name 'syntax-error 'form %(set! @rest) 'to-text "set! requires at least two arguments.")))
     %(env.set!
         @(let loop (k rest.head v rest.1 others rest.tail.tail rv ())
+            (when (not (symbol? k))
+                (error (object 'type 'error 'name 'syntax-error 'form %(set! @rest) 'to-text "set! requires keys to be symbols.")))
             (def noob (pair %(quote $k) (pair v rv)))
             (if others.empty?
                 noob
                 (loop others.head others.1 others.tail.tail noob)))))
 
 (macro del! ()
-    %(env.del! @(rest.map (_ (list 'quote _)))))
+    (when (< rest.size 1)
+        (error (object 'type 'error 'name 'syntax-error 'form %(del! @rest) 'to-text "del! requires at least one argument.")))
+    %(env.del!
+        @(rest.map
+            (_
+                (when (not (symbol? _))
+                    (error (object 'type 'error 'name 'syntax-error 'form %(del! @rest) 'to-text "del! requires keys to be symbols.")))
+                (list 'quote _)))))
 
 (macro qw ()
     (pair 'list (rest.map (λ (x) x.to-text))))

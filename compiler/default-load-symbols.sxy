@@ -27,7 +27,9 @@
             (seq
                 (def git-info (json.parse (sys.net.http.get api-uri)))
                 (when (not git-info)
-                    (error (list 'not-found git-dir)))
+                    (error (object 'type 'error 'name 'not-found
+                                   'form %(sys.net.http.get $api-uri)
+                                   'to-text (cat "GitHub API unavailable. Could be network trouble or API rate limits. Try \"curl " api-uri "\""))))
                 (def names (git-info.map (_ _.name)))
                 (def nums (names.map (_ (ton (frac _)))))
                 (def only (nums.filter filt))
