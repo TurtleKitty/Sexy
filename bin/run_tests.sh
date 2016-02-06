@@ -5,7 +5,7 @@
 for i in tests/*.sxy; do
     echo $i
     echo
-    ./sexy run $i;
+    ./sexy run $i 2>&1;
     echo
 done
 

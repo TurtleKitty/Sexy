@@ -8,12 +8,9 @@
 
 (define (sexy-send obj msg cont err)
     (define (wtf)
-        (display "WTF kind of object was THAT?\n")
-        (write (list obj msg)) (newline)
+        (write (list `(send ,obj ,msg) "Unknown object."))
+        (newline)
         (exit))
-        ;(err
-        ;    (sexy-object `(name MYSTERY-ERROR type error form (send ,obj ,msg) to-text "Unknown object!") #f #f #f)
-        ;    (lambda (v) (write `(value ,v)) (newline) (exit))))
     (cond
         ((boolean? obj) (sexy-send-bool obj msg cont err))
         ((symbol? obj) (sexy-send-symbol obj msg cont err))
