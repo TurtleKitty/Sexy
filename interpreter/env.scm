@@ -105,7 +105,11 @@
                         (lambda (args opts cont err)
                             (define l (length args))
                             (if (< l 2)
-                                (err (list 'arity "send requires two arguments: an object and a message.") cont)
+                                (err
+                                    (sexy-object `(type error name arity-mismatch form (send ,@args)
+                                                   to-text "send requires two arguments: an object and a message.")
+                                                   #f #f #f)
+                                    cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
                 (cons 'math
                     (sexy-object

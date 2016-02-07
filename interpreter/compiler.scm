@@ -105,7 +105,7 @@
                             (if (and
                                     (haz? name)
                                     (not (eq? will-exist (getter name))))
-                                (err (list 'bad-def code name " is already defined in the local environment.") cont)
+                                (err (sexy-object `(type error name bad-def form ,code to-text "Name already defined in the local environment.") #f #f #f) cont)
                                 (let ((val-c (sexy-compile val)))
                                     (val-c
                                         env
