@@ -1,5 +1,5 @@
 #!/usr/local/bin/sexy run
 
-(sys.say opt)
-(sys.say rest)
+(sys.say sys.opt)
+(sys.say sys.rest)
 
