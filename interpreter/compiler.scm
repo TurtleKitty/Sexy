@@ -8,15 +8,17 @@
                 (lambda (x)
                     (and (pair? x)
                          (or
-                            (eq? (car x) 'macro)
-                            (eq? (car x) 'proc)
-                            (eq? (car x) 'def))))
+                            (eq? (car x) 'def)
+                            (and (eq? (car x) 'proc) (symbol? (cadr x)))
+                            (eq? (car x) 'macro))))
                 seq)))
     (define names (get-names seq))
     (define haz? (sexy-send-env env 'has? top-cont top-err))
     (define needed (filter (lambda (n) (not (haz? n)))  names))
     (define margs (flatten (zip needed (make-list (length needed) will-exist))))
-    (apply mutate! (cons env (cons cont (cons err margs)))))
+    (if (> (length margs) 0)
+        (apply mutate! (cons env (cons cont (cons err margs))))
+        (cont 'null)))
 
 (define (prepare-sexy-args xs)
     (define (rval args opts)
@@ -96,7 +98,7 @@
     (define name (cadr code))
     (define val (caddr code))
     (if (not (symbol? name))
-        (sexy-error "def expects it's first argument to be a symbol.  Got " code)
+        (sexy-error "def: first argument must be a symbol.  Got " code)
         (frag
             (sexy-send-env env 'has?
                 (lambda (haz?)

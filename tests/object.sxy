@@ -7,7 +7,7 @@
 (def simp (object 'a 1 'b 2))
 
 (sys.test 'obj-type (= simp.type 'object))
-(sys.test 'obj-view (= simp.view 'object))
+(sys.test 'obj-view (= simp.view '(object a b)))
 (sys.test 'message-send (and (= simp.a 1) (= simp.b 2)))
 (sys.test 'object-responds? (and (simp.responds? 'a) (not (simp.responds? 'c))))
 (sys.test 'object-messages (= (simp.messages.sort <) '(a b)))
