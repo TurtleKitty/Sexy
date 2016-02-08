@@ -52,7 +52,7 @@
 (define (check-sexy-def code)
     (define usage '(def <name> <value>))
     (if (< (length code) 3)
-        (syntax-error code "def requires at least two arguments." usage))
+        (syntax-error code "def: too few arguments." usage))
         (let ((name (cadr code)))
             (cond
                 ((not (symbol? name))
