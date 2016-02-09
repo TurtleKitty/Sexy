@@ -1,0 +1,14 @@
+
+(use gen-pass "generic.sxy")
+
+(lib () pass)
+
+; (capture k body ...) -> (capture (λ (k) body ...))
+
+(proc pass (form)
+    (if (pair? form)
+        (if (= form.head 'capture)
+            %(capture (λ ($form.1) @(pass form.tail.tail)))
+            (pair (pass form.head) (pass form.tail)))
+        form))
+

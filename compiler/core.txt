@@ -89,6 +89,18 @@ to-bool
 to-text
 
 
+bin
+
+view  (64 127 99 22 ...)
+to-bool 'true
+to-number -> ReallyBigInt
+to-list -> list of ints
+to-text -> UTF8
+size -> no of bytes
+clone
+set! <index> <uint 0-255>
+
+
 text
 
 view
@@ -97,6 +109,7 @@ to-symbol
 to-option
 to-number -> int or real
 to-list -> (\a \b \c)
+to-bin -> bin
 to-text -> self
 to-stream
 size
@@ -311,7 +324,28 @@ remote-addr -> remote IP address of the socket
 remote-port -> remote port number of the socket
 
 
-blesed keywords:
+sys
+
+sys.messages
+(say fs view write read shell rest test 64764 time stderr stdin net proc launch-the-missile opt ts srand print stdout log env signal)
+
+sys.fs.messages
+(rm ls dir? chroot ln tmp socket-pair listen mv symlink? read pwd to from cp cd connect stat mkdir write exists? tmp-dir rmdir)
+
+sys.net.messages
+(tcp http)
+
+sys.proc.messages
+(process-gid program-name exit sleep pid parent-pid uid run fork gid)
+
+sys.signal.messages
+(quit usr1 stop int kill alrm handle pipe masked? cont abrt handler send segv hup term mask usr2 unmask chld fpe ill)
+
+sys.env.messages
+(del! set! view hostname get uname)
+
+
+blessed keywords:
 
 def
 if
@@ -325,16 +359,22 @@ gate
 capture
 guard
 error
+load
+
+
+dynamic variables:
+
 env
 opt
 rest
 return
-load
 
-core procs and operators:
+
+core procs, operators, and objects:
 
 syntax
 macro-eval
+
 +
 -
 *
@@ -346,19 +386,22 @@ is?
 =
 >
 <
+
 pair
 list
 vector
 record
+environment
 object
+
 apply
 send
+syntax-ok?
 gensym
 rand
-uuid?
-syntax-ok?
+uuid
 math
-make-env
+physics
 
 
 reader literals:
@@ -403,10 +446,8 @@ prelude:
 (proc xor (x y))
 (proc identity (x) x))
 (proc append (xs ys))
-(proc apply (f args options))
 (proc papply (f))
 (proc compose ())
-(proc make-env ())
 (macro let (name-or-vars))
 (macro : ())
 (macro cond ())
@@ -426,6 +467,7 @@ prelude:
 (macro for (init pred update body))
 (macro each (name arg body))
 (proc range (start end))
+(macro # ())
 (macro matrix ())
 (macro gen (name body))
 (macro spec (name args pred body))
@@ -438,8 +480,15 @@ prelude:
 (macro promise (expr) ; lazy evaluation)
 (proc seal (obj) )
 (macro alias (name new-alias))
+
+
+reserved for the future:
+
+(def א null)
 (def ! null)
 (def ? null)
 (def & null)
 (def ~ null)
 (def ^ null)
+(def | null)
+
