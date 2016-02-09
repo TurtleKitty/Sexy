@@ -311,4 +311,136 @@ remote-addr -> remote IP address of the socket
 remote-port -> remote port number of the socket
 
 
+blesed keywords:
 
+def
+if
+quote
+seq
+macro
+λ
+proc
+wall
+gate
+capture
+guard
+error
+env
+opt
+rest
+return
+load
+
+core procs and operators:
+
+syntax
+lib
+test ; to hide tests in libraries
+macro-eval
++
+-
+*
+/
+div
+rem
+mod
+is?
+=
+>
+<
+pair
+list
+vector
+record
+object
+apply
+send
+gensym
+rand
+uuid?
+syntax-ok?
+math
+make-env
+
+
+reader literals:
+
+'foo
+"foo"
+\r
+()
+(x . y)
+(1 2 3)
+(text:)
+(template: {{ }})
+(vector:)
+(record:)
+
+
+prelude:
+
+(macro lib (vars body))
+(macro use (name uri))
+(macro thunk ())
+(proc isa? (thing type))
+(proc bool? (thing))
+(proc proc? (thing))
+(proc operator? (thing))
+(proc symbol? (thing))
+(proc stream? (thing))
+(proc socket? (thing))
+(proc null? (thing))
+(proc record? (thing))
+(proc eof? (x))
+(proc not (x))
+(proc != (x y))
+(proc >= (x y))
+(proc <= (x y))
+(macro and (x))
+(macro or (x))
+(proc and? (x))
+(proc or? (x))
+(proc nand ())
+(proc nor ())
+(proc xor (x y))
+(proc identity (x) x))
+(proc append (xs ys))
+(proc apply (f args options))
+(proc papply (f))
+(proc compose ())
+(proc make-env ())
+(macro let (name-or-vars))
+(macro : ())
+(macro cond ())
+(macro qq (expr))
+(macro when (pred))
+(macro case (val))
+(macro while (pred body))
+(macro _ (body))
+(macro set! ())
+(macro del! ())
+(macro ensure (thnk))
+(macro qw ())
+(macro everywhere ())
+(macro with-gensyms (gs))
+(macro chain (obj))
+(macro for (init pred update body))
+(macro each (name arg body))
+(proc range (start end))
+(macro matrix ())
+(macro gen (name body))
+(macro spec (name args pred body))
+(macro assert (predicate))
+(proc ndx (n x))
+(proc repl (e in out err))
+(proc parse (s))
+(proc resend (msg))
+(def json)
+(macro promise (expr) ; lazy evaluation)
+(proc seal (obj) )
+(macro alias (name new-alias))
+(def ! null)
+(def ? null)
+(def & null)
+(def ~ null)
+(def ^ null)

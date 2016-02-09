@@ -302,6 +302,17 @@
                     (error (object 'type 'error 'name 'syntax-error 'form %(del! @rest) 'to-text "del! requires keys to be symbols.")))
                 (list 'quote _)))))
 
+(macro ensure (thnk)
+    (def v (gensym))
+    %(guard
+        (proc (e k)
+            ($thnk)
+            (error e)) 
+        (gate
+            (let ($v (seq @rest))
+                ($thnk)
+                $v))))
+
 (macro qw ()
     (pair 'list (rest.map (λ (x) x.to-text))))
 

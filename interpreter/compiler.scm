@@ -64,7 +64,6 @@
             ((capture)  (sexy-compile-capture code))
             ((guard)    (sexy-compile-guard code))
             ((error)    (sexy-compile-error code))
-            ((ensure)   (sexy-compile-ensure code))
             ((load)     (sexy-compile-load code))
             (else       (sexy-compile-application code)))
         (sexy-compile-atom code)))
@@ -122,50 +121,6 @@
                                         err))))
                         err))
                 err))))
-
-(define (sexy-compile-set! code)
-    (define name (cadr code))
-    (define val (caddr code))
-    (define val-c (sexy-compile val))
-    (if (symbol? name)
-        (frag
-            (lookup
-                env
-                name
-                (lambda (v)
-                    (if (eq? v not-found)
-                        (err (list 'symbol-not-defined name) cont)
-                        (val-c
-                            env
-                            (lambda (v)
-                                (update!
-                                    env
-                                    name
-                                    v
-                                    (lambda (null)
-                                        (cont v))
-                                    err))
-                            err)))
-                err))
-        (sexy-error code "set! wants a symbol as its first argument!")))
-
-(define (sexy-compile-del! code)
-    (define name (cadr code))
-    (if (symbol? name)
-        (frag
-            (lookup
-                env
-                name
-                (lambda (v)
-                    (if (eq? v not-found)
-                        (err (list 'symbol-not-defined name) cont)
-                        (delete!
-                            env
-                            name
-                            (lambda (null) (cont 'null))
-                            err)))
-                err))
-        (sexy-error code "del! wants a symbol as its first argument!")))
 
 (define (sexy-compile-quote code)
     (frag
@@ -378,22 +333,6 @@
             env
             (lambda (e)
                 (err e cont))
-            err)))
-
-(define (sexy-compile-ensure code)
-    (define protector-c (sexy-compile (cadr code)))
-    (define expr-c (sexy-seq-subcontractor (cddr code) #t))
-    (frag
-        (protector-c
-            env
-            (lambda (protector-thunk)
-                (define (p-cont v)
-                    (sexy-apply protector-thunk '() 'null identity err)
-                    (cont v))
-                (define (p-err e k)
-                    (sexy-apply protector-thunk '() 'null identity err)
-                    (err e k))
-                (p-cont (expr-c env identity p-err)))
             err)))
 
 (define (sexy-compile-load code)
