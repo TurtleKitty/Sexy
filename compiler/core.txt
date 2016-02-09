@@ -334,8 +334,6 @@ load
 core procs and operators:
 
 syntax
-lib
-test ; to hide tests in libraries
 macro-eval
 +
 -
@@ -420,6 +418,7 @@ prelude:
 (macro set! ())
 (macro del! ())
 (macro ensure (thnk))
+(macro test ())
 (macro qw ())
 (macro everywhere ())
 (macro with-gensyms (gs))

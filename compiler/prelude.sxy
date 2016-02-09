@@ -313,6 +313,9 @@
                 ($thnk)
                 $v))))
 
+(macro test ()
+    'null) ; FIXME
+
 (macro qw ()
     (pair 'list (rest.map (λ (x) x.to-text))))
 
