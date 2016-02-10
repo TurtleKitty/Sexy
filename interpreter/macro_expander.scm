@@ -5,8 +5,8 @@
     (lambda (ex continue)
         (debug 'compile-error
             (if (and (hash-table? ex) (eq? (sexy-send-atomic ex 'type) 'error))
-                (map (lambda (f) (sexy-view (sexy-send-atomic ex f))) '(name form to-text)))
-                (sexy-view ex))
+                (map (lambda (f) (sexy-view (sexy-send-atomic ex f))) '(name form to-text))
+                (sexy-view ex)))
         (exit)))
 
 (define (sexy-expand code env)

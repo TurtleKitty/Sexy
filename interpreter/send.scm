@@ -4,13 +4,13 @@
         primitive-type
         'proc
         (lambda (args opts cont err)
-             (err 'message-not-understood cont))))
+             (err (sexy-error-object 'message-not-understood '(send obj msg) "Message not understood.") cont))))
 
 (define (sexy-send obj msg cont err)
     (define (wtf)
         (write (list `(send ,obj ,msg) "Unknown object."))
         (newline)
-        (exit))
+        (cont 'WTF))
     (cond
         ((boolean? obj) (sexy-send-bool obj msg cont err))
         ((symbol? obj) (sexy-send-symbol obj msg cont err))
@@ -42,7 +42,12 @@
         ((autos) (cont '(view to-bool to-text)))
         ((resends) (cont '()))
         ((default) (cont default-default))
-        ((view to-symbol) (cont obj))
+        ((view) (cont obj))
+        ((to-symbol)
+            (cont
+                (if (keyword? obj)
+                    (keyword->symbol obj)
+                    obj)))
         ((to-text) (cont (symbol->string obj)))
         (else
             (case obj
@@ -76,7 +81,7 @@
     (define msgs '(view to-text to-bool to-symbol))
     (case msg
         ((to-bool) (cont #f))
-        ((apply) (err 'null-is-not-applicable cont))
+        ((apply) (err (sexy-error-object 'null-is-not-applicable '(null ...) "Null can not be used as a procedure.") cont))
         ((messages) (cont msgs))
         ((responds?) (cont (lambda (msg) #t)))
         (else (cont 'null))))
@@ -266,7 +271,7 @@
             (cont 
                 (lambda (idx val)
                     (if (> idx (string-length obj))
-                        (err (list 'out-of-bounds idx obj) cont)
+                        (err (sexy-error-object 'out-of-bounds `(,obj ,idx) "text: index out of bounds.") cont)
                         (begin
                             (string-set! obj idx val)
                             obj)))))
@@ -274,7 +279,7 @@
             (if (number? msg)
                 (if (> (string-length obj) msg)
                     (cont (string-ref obj msg))
-                    (err (list 'out-of-bounds obj msg) cont))
+                    (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "text: index out of bounds.") cont))
                 (idk obj msg cont err)))))
 
 (define (sexy-ho code obj cont err)
@@ -310,7 +315,7 @@
         (if (number? msg)
             (if (> (length obj) msg)
                 (cont (list-ref obj msg))
-                (err (list 'out-of-bounds obj msg) cont))
+                (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "list: index out of bounds.") cont))
             (idk obj msg cont err)))
     (case msg
         ((type autos resends default empty? view to-bool to-list to-text to-vector head key car tail val cdr cons size reverse has? append take drop apply messages responds?)
@@ -353,10 +358,10 @@
                             (lambda (args opts cont err)
                                 (if (pair? (car args))
                                     (sexy-send-list obj (caar args) cont err)
-                                    (err (sexy-view (sexy-record 'error 'bad-message! 'obj obj 'args args)) cont))))))))
+                                    (err (sexy-error-object 'bad-message! `(,obj ,args ,opts) "Message not understood.") cont))))))))
         ((to-record)
             (if (not (every pair? obj))
-                (err (list 'not-an-associative-list! obj 'to-record) cont)
+                (err (sexy-error-object 'not-an-associative-list! `(send ,obj to-record) "list: to-record only works on associative lists." ) cont)
                 (let ((r (sexy-record)))
                     (define vars (htr r 'vars))
                     (for-each (lambda (p) (hts! vars (car p) (cdr p))) obj)
@@ -657,7 +662,7 @@
                     'proc
                     (lambda (args opts cont err)
                         (if (< (length args) 2)
-                            (err (list "proc.apply requires 2 arguments!" obj args) cont)
+                            (err (sexy-error-object 'arity `((send ,obj apply) ,args) "proc.apply requires 2 arguments!") cont)
                             (sexy-apply obj (car args) (cadr args) cont err))))))
         ((messages) (cont msgs))
         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
@@ -765,7 +770,7 @@
         (if (number? msg)
             (if (> (vector-length obj) msg)
                 (cont (vector-ref obj msg))
-                (err (list 'out-of-bounds obj msg) cont))
+                (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "vector: index out of bounds.") cont))
             (idk obj msg cont err)))
     (case msg
         ((type view autos resends default to-bool to-text to-list pairs size clone has? set! apply messages responds?)
@@ -792,7 +797,7 @@
                     ((set!)
                         (lambda (idx val)
                             (if (> idx (vector-length obj))
-                                (err (list 'out-of-bounds idx obj) cont)
+                                (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "vector: index out of bounds.") cont)
                                 (begin
                                     (vector-set! obj idx val)
                                     obj))))
@@ -883,7 +888,7 @@
           read-token read-token-while read-token-until read-token-if to-list to-text read-sexy
           messages responds?)
             (if (port-closed? obj)
-                (err (list 'input-stream-closed obj msg) cont)
+                (err (sexy-error-object 'input-stream-closed `(send ,obj ,msg) "Input stream closed.") cont)
                 (cont 
                     (case msg
                         ((autos) '(view to-text to-bool to-list ready? input? output? open? read read-rune peek-rune read-line read-text read-sexy)) 
@@ -900,12 +905,12 @@
                                 'stream
                                 (lambda (args opts cont err)
                                     (if (not (= 1 (length args)))
-                                        (err '(assert-rune "requires one text argument") cont)
+                                        (err (sexy-error-object 'arity `assert-rune "stream.assert-rune requires one text argument") cont)
                                         (let ((runes (string->list (car args))))
                                             (define next (read-char obj))
                                             (if (member next runes)
                                                 (cont next)
-                                                (err (list 'assert-rune next (car args) "Assertion FAIL") cont)))))))
+                                                (err (sexy-error-object 'assert-rune-FAIL `(assert-rune next ,(car args)) "Assertion FAIL") cont)))))))
                         ((skip)
                             (lambda (n)
                                 (read-string n obj)
@@ -953,7 +958,7 @@
                                 'env
                                 (lambda (args opts cont err)
                                     (if (not (= 1 (length args)))
-                                        (err '(read-token-if "requires one proc argument.") cont)
+                                        (err (sexy-error-object 'arity `(read-token-if) "read-token-if: requires one proc argument.") cont)
                                         (let ((pred (car args)))
                                             (let loop ((tok (peek-char obj)) (acc '()))
                                                 (sexy-apply
@@ -984,7 +989,7 @@
     (case msg
         ((write print say nl autos)
             (if (port-closed? obj)
-                (err (list 'output-stream-closed obj msg) cont)
+                (err (sexy-error-object 'output-stream-closed `(send ,obj ,msg) "Output stream closed.") cont)
                 (cont
                     (case msg
                         ((autos) '(view to-text to-bool ready? input? output? open? nl close)) 
@@ -1020,7 +1025,7 @@
         ((autos) '(view to-text to-bool))
         ((resends) '())
         ((default) (cont default-default))
-        ((apply) (err 'eof-is-not-applicable cont))
+        ((apply) (err (sexy-error-object 'eof-is-not-applicable '(EOF ...) "EOF objects can not be used as procedures.") cont))
         (else (idk msg obj cont err))))
 
 
