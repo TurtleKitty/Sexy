@@ -37,11 +37,8 @@
                             (exit)))
                     ((macro)
                         (let* ((noo-env (noob)) (nucode (map (lambda (c) (sexy-expand c noo-env)) code)))
-                            (if (holy? (cadr code))
-                                (expand-err (sexy-error-object 'blasphemy code "That name is sacred.  It cannot be redefined.") identity)
-                                (begin
-                                    ((sexy-compile nucode) env top-cont expand-err)
-                                    nucode))))
+                            ((sexy-compile nucode) env top-cont expand-err)
+                            nucode))
                     ((macro-eval)
                         (let ((expanded (expand (cons 'seq (cdr code)))))
                             ((sexy-compile expanded) env top-cont expand-err)
