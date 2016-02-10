@@ -1,6 +1,4 @@
 
-; http://matt.might.net/articles/cps-conversion/
-
 (use gen-pass "generic.sxy")
 
 (lib () pass)
@@ -8,11 +6,15 @@
 ; (if x (seq 1 2) (seq 3 4))
 ; -> ((λ (x-value) (if x-value (λ (s1 
 
-; FIXME must have def working before anything else will work right.
+
+; might need a previous pass to do
+; (def x y) -> ((send null env 'def!) 'x y)
+; x -> ((send null env 'lookup) 'x)
+; ... maybe even earlier.
 
 (proc pass (form)
     (def id (gensym "id"))
-    (T-c form %(λ ($id) $id)))
+    (cps form))
 
 (proc atomic? (form)
     (if (pair? form)
@@ -22,6 +24,430 @@
 (proc gencont ()
     (gensym "continuation"))
 
+(proc genhand ()
+    (gensym "handler"))
+
+(proc genval ()
+    (gensym "value"))
+
+(proc cps (form)
+    form)
+
+(proc cps-frag (cont hand body)
+    %(λ (env $cont $hand) $body))
+
+(proc cps-atom (form)
+    (def cont (gencont))
+    (def hand (genhand))
+    (def pass (cps-frag cont hand %($cont $form)))
+    (if (symbol? form)
+        (if (option? form)
+            pass
+            (case form
+                (true false null env) pass
+                (else
+                    (if (global? form)
+                        (cps-frag
+                            cont
+                            hand
+                            (let (v (genval))
+                                %($cont (send (λ ($v) ($v (quote $form))) hand null global 'lookup))))
+                        (cps-frag
+                            cont
+                            hand
+                            (let (v (genval))
+                                %($cont (send (λ ($v) ($v (quote $form))) hand null env 'lookup))))))))
+        pass))
+
+(proc cps-def (form)
+    (def name form.1)
+    (def val (cps form.2))
+    (def cont
+        (let (v (genval) defr! (genval))
+            %(λ ($v)
+                (send (λ ($defr!) ($defr! (quote $name) $v) hand null env 'lookup))
+    %($val env   hand)
+
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (sexy-object `(type error name bad-def form ,code to-text "Name already defined in the local environment.") #f #f #f) cont)
+                                (let ((val-c (sexy-compile val)))
+                                    (val-c
+                                        env
+                                        (lambda (v)
+                                            (mutate!
+                                                env
+                                                (lambda (null)
+                                                    (cont v))
+                                                err
+                                                name
+                                                v))
+                                        err))))
+                        err))
+                err))))
+(rem:
+
+(define my-empty-record (sexy-record))
+
+(define (sexy-compile code)
+    (if (and (pair? code) (list? code))
+        (case (car code)
+            ((def)      (sexy-compile-def code))
+            ((quote)    (sexy-compile-quote code))
+            ((if)       (sexy-compile-if code))
+            ((seq)      (sexy-compile-seq code))
+            ((macro)    (sexy-compile-macro code))
+            ((λ)        (sexy-compile-lambda code))
+            ((proc)     (sexy-compile-proc code))
+            ((wall)     (sexy-compile-wall code))
+            ((gate)     (sexy-compile-gate code))
+            ((capture)  (sexy-compile-capture code))
+            ((guard)    (sexy-compile-guard code))
+            ((error)    (sexy-compile-error code))
+            ((load)     (sexy-compile-load code))
+            (else       (sexy-compile-application code)))
+        (sexy-compile-atom code)))
+
+(define (sexy-compile-atom code)
+    (define pass (frag (cont code)))
+    (if (symbol? code)
+        (if (keyword? code)
+            pass
+            (case code
+                ((true) (frag (cont #t)))
+                ((false) (frag (cont #f)))
+                ((null) pass)
+                ((env) (frag (cont env)))
+                (else
+                    (if (sexy-global? code)
+                        (frag
+                            (cont (glookup code)))
+                        (frag
+                            (lookup
+                                env
+                                code
+                                (lambda (v)
+                                    (if (eq? not-found v)
+                                        (err (sexy-object `(type error name undefined-symbol form ,code to-text "Name not defined.") #f #f #f) cont)
+                                        (cont v)))
+                                err))))))
+        pass))
+
+(define (sexy-compile-def code)
+    (define name (cadr code))
+    (define val (caddr code))
+    (if (not (symbol? name))
+        (sexy-error "def: first argument must be a symbol.  Got " code)
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (sexy-object `(type error name bad-def form ,code to-text "Name already defined in the local environment.") #f #f #f) cont)
+                                (let ((val-c (sexy-compile val)))
+                                    (val-c
+                                        env
+                                        (lambda (v)
+                                            (mutate!
+                                                env
+                                                (lambda (null)
+                                                    (cont v))
+                                                err
+                                                name
+                                                v))
+                                        err))))
+                        err))
+                err))))
+
+(define (sexy-compile-quote code)
+    (frag
+        (cont (cadr code))))
+
+(define (sexy-compile-if code)
+    (define pred (sexy-compile (cadr code)))
+    (define if-true (sexy-compile (caddr code)))
+    (define if-false (sexy-compile (cadddr code)))
+    (frag
+        (pred
+            env
+            (lambda (b)
+                (sexy-bool
+                    b
+                    (lambda (is-true)
+                        (if is-true
+                            (if-true env cont err)
+                            (if-false env cont err)))
+                    err))
+            err)))
+
+(define (sexy-compile-seq code)
+    (define seq (cdr code))
+    (if (pair? seq)
+        (sexy-seq-subcontractor seq #t)
+        (sexy-error code "Empty sequences are forbidden!")))
+
+(define (sexy-seq-subcontractor xs prep?)
+    (define head (car xs))
+    (define tail (cdr xs))
+    (let ((head-c (sexy-compile head)))
+        (if (pair? tail)
+            (let ((tail-c (sexy-seq-subcontractor tail #f)))
+                (if prep?
+                    (frag
+                        (prep-defs
+                            xs
+                            env
+                            (lambda (null)
+                                (head-c
+                                    env
+                                    (lambda (h) (tail-c env cont err))
+                                    err))
+                            err))
+                    (frag
+                        (head-c
+                            env
+                            (lambda (h) (tail-c env cont err))
+                            err))))
+            head-c)))
+
+(define (check-formals formals)
+    (if (pair? formals)
+        (let loop ((f (car formals)) (fs (cdr formals)))
+            (if (holy? f)
+                (begin (sexy-error (blasphemy f)) #f)
+                (if (pair? fs)
+                    (loop (car fs) (cdr fs))
+                    #t)))
+        #t))
+
+(define (make-sexy-lambda code env formals body)
+    (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor body #f))
+    (if (check-formals formals)
+        (let ((p
+            (sexy-proc
+                code
+                env 
+                (lambda (args opts cont err)
+                    (if (not (= arity (length args)))
+                        (err (list 'arity code (sprintf "This lambda requires ~A arguments. Given: " arity) args) cont)
+                        (let* ((fargs (if (pair? args) (take args arity) '())))
+                               (extend
+                                    env 
+                                    formals
+                                    fargs
+                                    (lambda (noob)
+                                        (bodies-c noob cont err))
+                                    err)))))))
+            (hts! p 'type 'λ)
+            p)
+        (sexy-error 'bad-formals-in-lambda code)))
+
+(define (sexy-compile-lambda code)
+    (let ((formals (cadr code)) (bodies (cddr code)))
+        (frag
+            (cont (make-sexy-lambda code env formals bodies)))))
+
+(define (make-sexy-proc code env formals bodies)
+    (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor bodies #t))
+    (if (check-formals formals)
+        (sexy-proc
+            code
+            env 
+            (lambda (args opts cont err)
+                (if (< (length args) arity)
+                    (err (list 'arity code (sprintf "This procedure requires at least ~A arguments. Given: " arity) args) cont)
+                    (let* ((fargs (if (pair? args) (take args arity) '()))
+                           (the-rest (if (pair? args) (drop args arity) '()))
+                           (returner cont))
+                           (extend
+                                env 
+                                (append formals '(opt rest return))
+                                (append fargs (list opts the-rest returner))
+                                (lambda (noob)
+                                    (bodies-c noob cont err))
+                                err)))))
+        (sexy-error 'bad-formals-in-proc code)))
+
+(define (sexy-compile-proc code)
+    (define is-named (symbol? (cadr code)))
+    (if is-named
+        (sexy-compile `(def ,(cadr code) (proc ,(caddr code) ,@(cdddr code))))
+        (let ((formals (cadr code)) (bodies (cddr code)))
+            (frag
+                (cont (make-sexy-proc code env formals bodies))))))
+
+(define (sexy-compile-macro code)
+    (define name (cadr code))
+    (define formals (caddr code))
+    (define bodies (cdddr code))
+    (if (not (symbol? name))
+        (sexy-error "macro expects it's first argument to be a symbol.  Got " code)
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (list 'bad-def code name " is already defined in the local environment.") cont)
+                                (let ((thing (make-sexy-proc code env formals bodies)))
+                                    (hts! thing 'type 'operator)
+                                    (mutate!
+                                        env
+                                        (lambda (null)
+                                            (cont thing))
+                                        err
+                                        name
+                                        thing))))
+                        err))
+                err))))
+
+(define (sexy-compile-wall code)
+    (define args (cadr code))
+    (define exprs (cddr code))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
+    ; create new env and copy args
+    (frag
+        (define noob (sexy-environment #f))
+        (sexy-send noob 'def!
+            (lambda (def!)
+                (let loop ((travellers args))
+                    (if (pair? travellers)
+                        (let ((x (car travellers)) (xs (cdr travellers)))
+                            (lookup env x
+                                (lambda (v)
+                                    (def! x v)
+                                    (loop xs))
+                                err))
+                        (expr-c noob cont err))))
+                    err)))
+
+(define (sexy-compile-gate code)
+    (define exprs (cdr code))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
+    (frag
+        (cont
+            (expr-c env identity err))))
+
+(define (sexy-compile-capture code)
+    (define name (cadr code))
+    (define lamb (cons 'proc (cons (list name) (cddr code))))
+    (define lamb-c (sexy-compile lamb))
+    (frag
+        (lamb-c
+            env
+            (lambda (funk)
+                (sexy-apply
+                    funk
+                    (list (lambda (k-val) (cont k-val)))
+                    'null
+                    top-cont
+                    err))
+            err)))
+
+(define (sexy-compile-guard code)
+    (define handler (cadr code))
+    (define exprs (cddr code))
+    (define handler-c (sexy-compile handler))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
+    (frag
+        (handler-c
+            env
+            (lambda (handler-fn)
+                (define (new-err-cont e k)
+                    (sexy-apply handler-fn (list e k) 'null cont err))
+                (expr-c env cont new-err-cont))
+            err)))
+
+(define (sexy-compile-error code)
+    (define errobj (cadr code))
+    (define erob-c (sexy-compile errobj))
+    (frag
+        (erob-c
+            env
+            (lambda (e)
+                (err e cont))
+            err)))
+
+(define (sexy-compile-load code)
+    (define path (cadr code))
+    (define module (if (hte? sexy-modules path) (htr sexy-modules path) (lambda args 'null)))
+    (define load-env (local-env))
+    (define args-opts (prepare-sexy-args (cddr code)))
+    (define args-c (sexy-compile-list (car args-opts)))
+    (define opts-c (sexy-compile-list (cdr args-opts)))
+    (frag 
+        (args-c
+            env
+            (lambda (args)
+                (opts-c
+                    env
+                    (lambda (opts)
+                        (module load-env top-cont top-err)
+                        (lookup load-env 'sexy-library-export-procedure
+                            (lambda (exporter)
+                                (if (eq? exporter not-found)
+                                    (cont (lambda args 'null))
+                                    (cont
+                                        (sexy-apply exporter args (prep-options opts) top-cont top-err))))
+                            top-err))
+                    err))
+            err)))
+
+(define (sexy-compile-list xs)
+    (if (pair? xs)
+        (let ((head (sexy-compile (car xs))) (tail (sexy-compile-list (cdr xs))))
+            (frag
+                (head
+                    env
+                    (lambda (h)
+                        (tail
+                            env
+                            (lambda (t) (cont (cons h t)))
+                            err))
+                    err)))
+        (frag (cont '()))))
+
+(define (sexy-compile-application code)
+    (define fn-c (sexy-compile (car code)))
+    (define args-opts (prepare-sexy-args (cdr code)))
+    (define args-c (sexy-compile-list (car args-opts)))
+    (define opts-c (sexy-compile-list (cdr args-opts)))
+    (frag
+        (fn-c
+            env
+            (lambda (f) 
+                (args-c
+                    env
+                    (lambda (args)
+                        (opts-c
+                            env
+                            (lambda (opts)
+                                (sexy-apply f args (prep-options opts) cont err))
+                            err))
+                    err))
+            err)))
+
+)
+
+
+(rem:
+
+; http://matt.might.net/articles/cps-conversion/
+; some day I'll grok this enough to implement it
+
 (proc M (form)
     (when (not (atomic? form))
         (error (object 'type 'error 'form form 'name 'not-an-atom! 'to-text "WRONG!")))
@@ -29,9 +455,13 @@
         form
         (case form.head
             (quote) form
-            (proc λ) (seq
-                (def k 'return)            ; user continuation
-                (def e (gensym "handler")) ; error continuation
+            (λ) (seq
+                (def k (gencont)) ; user continuation
+                (def e (genhand)) ; error continuation
+                %($form.head $form.2 $(append form.3 (list k e)) @form.tail.tail.tail.tail)) ; remember the added IDs from pass 2
+            (proc) (seq
+                (def k 'return)    ; user continuation
+                (def e (genhand))  ; error continuation
                 %($form.head $form.2 $(append form.3 (list k e)) @form.tail.tail.tail.tail)) ; remember the added IDs from pass 2
             default: (error 'wtf))))
 
@@ -40,6 +470,7 @@
     (if (atomic? form)
         %($c $(M form))
         (case form.head
+            (def) form
             (if) (seq
                 (def k (gencont))
                 %((λ ($k)
@@ -56,7 +487,6 @@
             (capture) form
             (guard) form
             (error) form
-            (ensure) form
             (load) form
             default: ; procedure application
                 (T-k form.head
@@ -70,7 +500,10 @@
     (if (atomic? form)
         (k (M form))
         (case form.head
-            (def set! del!) form
+            (def) (seq
+                (def rv (gensym "value"))
+                %((λ ($rv)
+                    (def form.1 $rv))))
             (if) (seq
                 (def rv (gensym "value"))
                 (def cont %(λ ($rv) $(k rv)))
@@ -79,7 +512,6 @@
                         %(if $aexp 
                             $(T-c form.2 cont)
                             $(T-c form.3 cont)))))
-
             (seq) (T-k form.1
                     (proc (x)
                         (T-k form.2 k)))
@@ -88,7 +520,6 @@
             (capture) form
             (guard) form
             (error) form
-            (ensure) form
             (load) form
             default: ; procedure application
                 (def rv (gensym "value"))
@@ -103,4 +534,6 @@
                 (T*-k exprs.tail
                     (proc (tl)
                         (k (pair hd tl))))))))
+)
+
 

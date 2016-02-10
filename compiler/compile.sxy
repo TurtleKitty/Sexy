@@ -10,7 +10,7 @@
 (use flatten-seq "passes/flatten_seq.sxy")
 (use explicit-opt "passes/add_opt_to_formals.sxy")
 (use explicit-rest "passes/add_rest_to_formals.sxy")
-;(use cps-transform "passes/cps_transform.sxy")
+(use cps-transform "passes/cps_transform.sxy")
 
 (lib () compile)
 
@@ -47,8 +47,6 @@
     (meow 'explicit-opt e-opt)
     (def e-rest (explicit-rest e-opt))
     (meow 'explicit-rest e-rest)
-)
-(rem:
     (def cps (cps-transform e-rest))
     (meow 'cps-transform cps)
     cps)
