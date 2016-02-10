@@ -1,0 +1,32 @@
+
+
+(use gen-pass "generic.sxy")
+
+(lib () pass)
+
+; (seq (def x 1) (def y (proc ...)) ... x ... (y ...) ...)
+;   -> (seq (def x null) (def y null) (set! x 1) (set! y (proc ...)) ... x ... (y ...) ...)
+
+(proc pass (form)
+    (proc is-def (form)
+        (and (pair? form) (= form.head 'def)))
+    (if (pair? form)
+        (case form.head
+            (seq)
+                (let (defs (form.tail.filter is-def))
+                    (def nulls (defs.map (_ %(def $_.1 null))))
+                    (def transformed
+                        (form.tail.map
+                            (_
+                                (if (is-def _)
+                                    %((send env 'set!) $_.1 $(pass _.2))
+                                    _))))
+                    %(seq @nulls @transformed))
+            (def if quote wall gate capture guard error)
+                ((gen-pass form.head) pass form)
+            (proc λ)
+                ((gen-pass 'proc-id) pass form)
+            default:
+                ((gen-pass 'application) pass form))
+        form))
+
