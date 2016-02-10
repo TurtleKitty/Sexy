@@ -10,7 +10,15 @@
     (if (pair? form)
         (if (option? form.head)
             %(quote $form)
-            ((gen-pass 'application) pass form))
+            (case form.head
+                (def if quote seq wall gate guard error)
+                    ((gen-pass form.head) pass form)
+                (capture)
+                    ((gen-pass 'seq) pass form)
+                (proc λ)
+                    ((gen-pass 'proc-id) pass form)
+                default:
+                    ((gen-pass 'application) pass form)))
         (if (or (symbol? form) (= form ()))
             form
             %(quote $form))))

@@ -1,10 +1,14 @@
 
 (def foo (proc (x) (+ x x)))
+
 (proc bar (y) (+ y y))
+
 (proc baz (z)
     (def x 1)
     (def y 2)
     (+ x y))
 
 (def I (λ (x) x))
+
+(baz 3 x: 1 y: 2 z: (+ 2 3))
 

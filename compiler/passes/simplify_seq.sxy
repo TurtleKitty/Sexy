@@ -11,7 +11,12 @@
             (if (> form.size 3)
                 %(seq $(pass form.1) $(pass (pair 'seq form.tail.tail)))
                 %(seq @(pass form.tail)))
-            ((gen-pass 'application) pass form))
+            (case form.head
+                (def if quote wall gate capture guard error)
+                    ((gen-pass form.head) pass form)
+                (proc λ)
+                    ((gen-pass 'proc-id) pass form)
+                default:
+                    ((gen-pass 'application) pass form)))
         form))
-
 

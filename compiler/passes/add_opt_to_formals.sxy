@@ -1,0 +1,37 @@
+
+(use gen-pass "generic.sxy")
+
+(lib () pass)
+
+; (proc (x y z ...) ...) -> (proc (opt x y z ...) ...)
+; (<proc> x y foo: 1 z bar: 2 ...) -> (<proc> (record 'foo 1 'bar 2) x y z ...)
+
+(proc pass (form)
+    (if (pair? form)
+        (case form.head
+            (def if quote wall gate guard error)
+                ((gen-pass form.head) pass form)
+            (λ)
+                (let (no-opt (gensym "_"))
+                    %(λ $form.1 $(pair no-opt form.2) $(pass form.tail.tail.tail.head))) 
+            (seq capture)
+                %($form.head @(form.tail.map pass))
+            (proc)
+                %(proc $form.1 $(pair 'opt form.2) @(form.tail.tail.tail.map pass))
+            default:
+                (let (the-head (pass form.head))
+                    (if (pair? form.tail)
+                        (let (the-tail (form.tail.map pass))
+                            (let loop (x the-tail.head xs the-tail.tail args () options ())
+                                (if (option? x)
+                                    (let (opts (pair xs.head (pair %(quote $x.to-symbol) options)))
+                                        (if (pair? xs.tail)
+                                            (loop xs.1 xs.tail.tail args opts)
+                                            %($the-head $(pair 'record opts.reverse) @args.reverse)))
+                                    (let (yarrrgs (pair x args))
+                                        (if (pair? xs)
+                                            (loop xs.head xs.tail yarrrgs options)
+                                            %($the-head $(if options (pair 'record @options.reverse) 'null) @yarrrgs.reverse))))))
+                        %($the-head null))))
+        form))
+

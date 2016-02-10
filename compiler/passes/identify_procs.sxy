@@ -17,8 +17,10 @@
     (when rest (set! db rest.head))
     (if (pair? form)
         (case form.head
-            (def set! del! seq wall gate capture guard ensure)
+            (def if quote seq wall gate guard error)
                 ((gen-pass form.head) pass form)
+            (capture)
+                ((gen-pass 'seq) pass form) ; after capture-lambda
             (λ proc)
                 (id-proc form)
             default: ((gen-pass 'application) pass form))

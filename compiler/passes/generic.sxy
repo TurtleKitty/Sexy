@@ -4,30 +4,32 @@
 (proc pass-q (pass form) form)
 
 (proc pass-1 (pass form)
-    %($form.head @(pass form.tail)))
+    %($form.head @(form.tail.map pass)))
 
 (proc pass-2 (pass form)
-    %($form.head $form.1 @(pass form.tail.tail)))
+    %($form.head $form.1 @(form.tail.tail.map pass)))
 
 (proc pass-3 (pass form)
-    %($form.head $form.1 $form.2 @(pass form.tail.tail.tail)))
+    %($form.head $form.1 $form.2 @(form.tail.tail.tail.map pass)))
+
+(proc pass-if (pass form)
+    %(if $(pass form.1) $(pass form.2) $(pass form.3)))
 
 (proc pass-n (pass form)
-    (pair (pass form.head) (pass form.tail)))
+    (pair (pass form.head) (form.tail.map pass)))
 
 (def generic-pass-factory 
     (:
-        quote   pass-q
-        seq     pass-1
-        def     pass-2
-        set!    pass-2
-        del!    pass-2
-        proc    pass-2
-        proc-id pass-3
-        wall    pass-2
-        gate    pass-1
-        capture pass-2
-        guard   pass-2
-        ensure  pass-2
+        def          pass-2
+        if           pass-if
+        quote        pass-q
+        seq          pass-1
+        proc         pass-2
+        proc-id      pass-3
+        wall         pass-2
+        gate         pass-1
+        capture      pass-2
+        guard        pass-2
+        error        pass-1
         application  pass-n))
 

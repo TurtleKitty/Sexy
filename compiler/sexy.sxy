@@ -26,11 +26,8 @@
 (proc compile-file (fname)
     (def expanded (read-expand fname))
     (def ok (syntax-ok? expanded))
-    (when ok 
-        (sys.say %(expanded $expanded)))
     (if ok
         (let (compiled (compile (pair 'seq expanded)))
-            (sys.say %(compiled $compiled))
             (def cached-fname null) ;(cache-file fname compiled)
             (rem: compile golang from here?)
             cached-fname)

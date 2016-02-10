@@ -9,6 +9,12 @@
     (if (pair? form)
         (if (and (= form.head 'seq) (pair? form.1) (= form.1.head 'seq))
             (pass %(seq @form.1.tail @form.tail.tail))
-            (pair (pass form.head) (pass form.tail)))
+            (case form.head
+                (def if quote wall gate capture guard error)
+                    ((gen-pass form.head) pass form)
+                (proc λ)
+                    ((gen-pass 'proc-id) pass form)
+                default:
+                    ((gen-pass 'application) pass form)))
         form))
 

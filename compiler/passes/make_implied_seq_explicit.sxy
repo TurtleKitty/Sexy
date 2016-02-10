@@ -4,17 +4,24 @@
 (lib () pass)
 
 ; (proc id (x) expr1 expr2 ...) -> (proc id (x) (seq expr1 expr2 ...))
-; ditto for (wall gate capture guard ensure)
+; ditto for (wall gate capture guard)
 
 (proc pass (form)
     (if (pair? form)
         (case form.head
+            (λ)
+                ((gen-pass 'proc-id) pass form)
             (proc)
                 %(proc $form.1 $form.2 (seq @(pass form.tail.tail.tail)))
-            (wall capture guard ensure)
+            (wall guard)
                 %($form.head $form.1 (seq @(pass form.tail.tail)))
+            (capture)
+                %(capture $(pass form.1))
             (gate)
                 %(gate (seq @(pass form.tail)))
-            default: ((gen-pass 'application) pass form))
+            (def if quote seq error)
+                ((gen-pass form.head) pass form)
+            default:
+                ((gen-pass 'application) pass form))
         form))
 
