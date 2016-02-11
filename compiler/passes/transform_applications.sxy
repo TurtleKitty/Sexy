@@ -3,19 +3,45 @@
 
 (lib () pass)
 
-; (proc (x y z ...) ...) -> (proc (opt x y z ...) ...)
-; (<proc> x y foo: 1 z bar: 2 ...) -> (<proc> (record 'foo 1 'bar 2) x y z ...)
+; (<λ|proc> x y foo: 1 z bar: 2 ...) -> (<λ|proc> (x y z) (record 'foo 1 'bar 2))
+
+;   (λ id (x y z) expr) ->
+;       (λ id (args-gensym opt-gensym)
+;           (if (= (arity (send (args-gensym 'size) null)) null)
+;               (seq
+;                   ((send (env 'def!) null) ('x args-gensym.0 'y args-gensym.1 'z args-gensym.2) null)
+;                   expr)
+;               (error (object ('type 'error 'name 'arity 'form '(λ (x y z) expr)
+;                               'to-text (cat "Procedure requires " arity " arguments; given " args-gensym))
+;                                null))))
+
+;   (proc id (x y z) ...) ->
+;       (λ id (args-gensym opt)
+;           (if (< (arity (send (args-gensym 'size) null)) null)
+;               (seq
+;                   ((send (env 'def!) null) ('x args-gensym.0 'y args-gensym.1 'z args-gensym.2 'rest args-gensym.tail.tail.tail) null)
+;                   expr)
+;               (error (object ('type 'error 'name 'arity 'form '(proc (x y z) ...)
+;                               'to-text (cat "Procedure requires at least " arity " arguments; given " args-gensym))
+;                                null))))
 
 (proc pass (form)
     (if (pair? form)
         (case form.head
-            (def if quote wall gate guard error)
+            (if quote wall gate guard error)
                 ((gen-pass form.head) pass form)
-            (λ)
-                (let (no-opt (gensym "_"))
-                    %(λ $form.1 $(pair no-opt form.2) $(pass form.tail.tail.tail.head))) 
             (seq capture)
                 %($form.head @(form.tail.map pass))
+            (λ)
+                (let (args (gensym "args") no-opt (gensym "opt") arity form.2.size)
+                    %(λ $form.1 ($args $no-opt)
+                        (if (= ($arity (send (list $args 'size) null)) null)
+                            (seq
+                                ((send (env 'def!) null) $(zip (form.2.map (_ (list 'quote _))) args) null)
+                                $(pass form.3))
+                            (error (object ('type 'error 'name 'arity 'form '(λ $form.2 $form.3)
+                                           'to-text (cat "Procedure requires " $arity " arguments; given " $args))
+                                            null)))))
             (proc)
                 %(proc $form.1 $(pair 'opt form.2) @(form.tail.tail.tail.map pass))
             default:

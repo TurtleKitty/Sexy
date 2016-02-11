@@ -3,15 +3,6 @@
 
 (lib () pass)
 
-; (if x (seq 1 2) (seq 3 4))
-; -> ((λ (x-value) (if x-value (λ (s1 
-
-
-; might need a previous pass to do
-; (def x y) -> ((send null env 'def!) 'x y)
-; x -> ((send null env 'lookup) 'x)
-; ... maybe even earlier.
-
 (proc pass (form)
     (def id (gensym "id"))
     (cps form))
@@ -65,9 +56,11 @@
     (def cont
         (let (v (genval) defr! (genval))
             %(λ ($v)
-                (send (λ ($defr!) ($defr! (quote $name) $v) hand null env 'lookup))
-    %($val env   hand)
+                (send (λ ($defr!) ($defr! (quote $name) $v) hand null env 'lookup)))))
+    %($val env cont hand))
 
+
+(rem:
         (frag
             (sexy-send-env env 'has?
                 (lambda (haz?)
@@ -90,7 +83,8 @@
                                                 v))
                                         err))))
                         err))
-                err))))
+                err)))
+
 (rem:
 
 (define my-empty-record (sexy-record))
