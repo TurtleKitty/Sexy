@@ -362,3 +362,19 @@
             (def f (lambda (x) (* 10 x)))
             (f 10))))
 
+(sys.test 'any?
+    (let (xs '(1 1 1) ys '(1 1 0) zs '(0 0 0))
+        (proc is-1 (x) (= x 1))
+        (and
+            (any? is-1 xs)
+            (any? is-1 ys)
+            (not (any? is-1 zs)))))
+
+(sys.test 'every?
+    (let (xs '(1 1 1) ys '(1 1 0) zs '(0 0 0))
+        (proc is-1 (x) (= x 1))
+        (and
+            (every? is-1 xs)
+            (not (every? is-1 ys))
+            (not (every? is-1 zs)))))
+

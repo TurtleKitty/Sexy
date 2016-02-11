@@ -587,7 +587,31 @@
     %(macro $new-alias ()
         %($'$name @rest)))
 
+(proc any? (f xs)
+    (when (not (proc? f))
+        (error (object 'type 'error 'name 'bad-argument 'form %(map $f $xs @rest)
+                       'to-text "any?: first argument must be a procedure.")))
+    (def ys xs.to-list)
+    (let loop (z ys.head zs ys.tail)
+        (if (f z)
+            true
+            (if (pair? zs)
+                (loop zs.head zs.tail)
+                false))))
 
+(proc every? (f xs)
+    (when (not (proc? f))
+        (error (object 'type 'error 'name 'bad-argument 'form %(map $f $xs @rest)
+                       'to-text "every?: first argument must be a procedure.")))
+    (def ys xs.to-list)
+    (let loop (z ys.head zs ys.tail)
+        (if (f z)
+            (if (pair? zs)
+                (loop zs.head zs.tail)
+                true)
+            false)))
+
+ 
 ; reserving for future use
 
 (def ! null)
