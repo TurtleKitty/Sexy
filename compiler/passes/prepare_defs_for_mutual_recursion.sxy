@@ -5,7 +5,7 @@
 (lib () pass)
 
 ; (seq (def x 1) (def y (proc ...)) ... x ... (y ...) ...)
-;   -> (seq (def x null) (def y null) (set! x 1) (set! y (proc ...)) ... x ... (y ...) ...)
+;   -> (seq (def x null) (def y null) ((send env 'set!) 'x 1) ((send env 'set!) 'y (proc ...)) ... x ... (y ...) ...)
 
 (proc pass (form)
     (proc is-def (form)
@@ -19,7 +19,7 @@
                         (form.tail.map
                             (_
                                 (if (is-def _)
-                                    %((send env 'set!) $_.1 $(pass _.2))
+                                    %((send env 'set!) (quote $_.1) $(pass _.2))
                                     _))))
                     %(seq @nulls @transformed))
             (def if quote wall gate capture guard error)

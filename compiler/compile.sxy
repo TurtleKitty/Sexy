@@ -8,8 +8,9 @@
 (use prep-defs "passes/prepare_defs_for_mutual_recursion.sxy")
 (use simplify-seq "passes/simplify_seq.sxy")
 (use flatten-seq "passes/flatten_seq.sxy")
-(use explicit-opt "passes/add_opt_to_formals.sxy")
-(use explicit-rest "passes/add_rest_to_formals.sxy")
+(use def-to-env-msg "passes/def_to_env_msg.sxy")
+(use var-to-env-msg "passes/var_to_env_msg.sxy")
+(use app-transform "passes/transform_applications.sxy")
 (use cps-transform "passes/cps_transform.sxy")
 
 (lib () compile)

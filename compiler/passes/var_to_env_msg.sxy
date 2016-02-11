@@ -1,0 +1,20 @@
+
+(use gen-pass "generic.sxy")
+
+(lib () pass)
+
+; x -> ((send env 'lookup) 'x)
+
+(proc pass (form)
+    (if (pair? form)
+        (case form.head
+            (if quote seq wall gate capture guard error)
+                ((gen-pass form.head) pass form)
+            (proc λ)
+                ((gen-pass 'proc-id) pass form)
+            default:
+                ((gen-pass 'application) pass form))
+        (if (symbol? form)
+            %((send env 'lookup) (quote $form))
+            form)))
+
