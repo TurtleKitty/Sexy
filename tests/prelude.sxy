@@ -378,3 +378,32 @@
             (not (every? is-1 ys))
             (not (every? is-1 zs)))))
 
+(sys.test 'map
+    (let ()
+        (def xs '(1 2 3))
+        (def ys '(4 5 6))
+        (def zs (vector: 7 8 9))
+        (proc bam! (x y z)
+            (* (+ x y) z))
+        (= '(35 56 81)
+           (map bam! xs ys zs))))
+
+(sys.test 'fold
+    (let ()
+        (def xs '(1 2 3))
+        (def ys '(4 5 6))
+        (def zs '(vector: 7 8 9))
+        (proc zap! (x y z acc)
+            (+ x y z acc))
+        (= 45
+           (fold zap! 0 xs ys zs))))
+
+(sys.test 'zip
+    (let ()
+        (def xs '(a b c))
+        (def ys '(1 2 3))
+        (def zs '(x y z))
+        (= '((a 1 x) (b 2 y) (c 3 z))
+           (zip xs ys zs))))
+
+ 

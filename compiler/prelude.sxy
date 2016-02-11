@@ -616,6 +616,38 @@
                 true)
             false)))
 
+(proc map (f xs) ; general map
+    (when (not (proc? f))
+        (error (object 'type 'error 'name 'bad-argument 'form %(map $f $xs @rest)
+                       'to-text "map: first argument must be a procedure.")))
+    (proc get-heads (xs)
+        (xs.map (resend 'head)))
+    (proc get-tails (xs)
+        (xs.map (resend 'tail)))
+    (let (objz (pair xs rest))
+        (def lists (objz.map (resend 'to-list)))
+        (let loop (heads (get-heads lists) tails (get-tails lists) results ())
+            (def noo (pair (apply f heads null) results))
+            (if (every? identity tails)
+                (loop (get-heads tails) (get-tails tails) noo)
+                noo.reverse))))
+
+(proc fold (kons knil) ; general fold
+    (when (not (proc? kons))
+        (error (object 'type 'error 'name 'bad-argument 'form %(fold $kons $knil @rest)
+                       'to-text "fold: first argument must be a procedure.")))
+    (def lists (rest.map (resend 'to-list)))
+    (proc fold-m (kons knil lists)
+        (if (any? (resend 'empty?) lists)
+            knil
+            (fold-m kons
+                (apply kons (append (lists.map (resend 'head)) (list knil)) null)
+                (lists.map (resend 'tail)))))
+    (fold-m kons knil lists))
+
+(proc zip (xs)
+    (apply map %($list $xs @rest) null))
+
  
 ; reserving for future use
 
