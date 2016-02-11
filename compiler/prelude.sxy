@@ -21,8 +21,13 @@
 (proc bool? (thing)
     (isa? thing 'bool))
 
+(proc λ? (thing)
+    (isa? thing 'λ))
+
 (proc proc? (thing)
-    (isa? thing 'proc))
+    (or
+        (isa? thing 'λ)
+        (isa? thing 'proc)))
 
 (proc operator? (thing)
     (isa? thing 'operator))
