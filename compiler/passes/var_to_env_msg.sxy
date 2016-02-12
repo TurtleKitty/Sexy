@@ -14,7 +14,7 @@
                 ((gen-pass 'proc-id) pass form)
             default:
                 ((gen-pass 'application) pass form))
-        (if (symbol? form)
+        (if (and (symbol? form) (not (global? form)))
             %((send env 'lookup) (quote $form))
             form)))
 

@@ -1,0 +1,60 @@
+
+(use gen-pass "generic.sxy")
+
+(lib () pass)
+
+;   (λ id (x y z) expr) ->
+;       (λ id (args-gensym opt-gensym)
+;           (if (= arity (send args-gensym 'size))
+;               (seq
+;                   (def x args.gensym.0)
+;                   (def y args.gensym.1)
+;                   (def z args.gensym.2)
+;                   expr)
+;               (error (object 'type 'error 'name 'arity 'form '(λ (x y z) expr)
+;                              'to-text (cat "Procedure requires " arity " arguments; given " args-gensym)))))
+
+;   (proc id (x y z) ...) ->
+;       (λ id (args-gensym opt)
+;           (if (< arity (send args-gensym 'size))
+;               (seq
+;                   (def x args.gensym.0)
+;                   (def y args.gensym.1)
+;                   (def z args.gensym.2)
+;                   ...)
+;               (error (object 'type 'error 'name 'arity 'form '(proc (x y z) ...)
+;                              'to-text (cat "Procedure requires at least " arity " arguments; given " args-gensym)))))
+
+(proc pass (form)
+    (if (pair? form)
+        (case form.head
+            (if quote wall gate guard error)
+                ((gen-pass form.head) pass form)
+            (seq capture)
+                %($form.head @(form.tail.map pass))
+            (λ)
+                (let (args (gensym "args") no-opt (gensym "opt") arity form.2.size)
+(debug 'λ-transform)
+                    %(λ $form.1 ($args $no-opt)
+                        (if (= $arity (send $args 'size))
+                            (seq
+                                @(map (proc (arg) (list 'def arg.0 (list 'send args arg.1)))
+                                      (zip form.2 (range 0 form.2.size)))
+                                $(pass form.3))
+                            (error (object 'type 'error 'name 'arity 'form '(λ $form.2 $form.3)
+                                           'to-text (cat "Procedure requires exactly " $arity " arguments; given " $args))))))
+            (proc)
+                (let (args (gensym "args") arity form.2.size)
+(debug 'proc-transform)
+                    %(λ $form.1 ($args opt)
+                        (if (< $arity (send $args 'size))
+                            (seq
+                                @(map (proc (arg) (list 'def arg.0 (list 'send args arg.1)))
+                                      (zip form.2 (range 0 form.2.size)))
+                                @(map pass form.tail.tail.tail))
+                            (error (object 'type 'error 'name 'arity 'form '(proc $form.2 @form.tail.tail.tail)
+                                           'to-text (cat "Procedure requires a minimum of " $arity " arguments; given " $args))))))
+            default:
+                ((gen-pass 'application) pass form))
+        form))
+
