@@ -18,9 +18,10 @@
 ;       (λ id (args-gensym opt)
 ;           (if (< arity (send args-gensym 'size))
 ;               (seq
-;                   (def x args.gensym.0)
-;                   (def y args.gensym.1)
-;                   (def z args.gensym.2)
+;                   (def x args-gensym.0)
+;                   (def y args-gensym.1)
+;                   (def z args-gensym.2)
+;                   (def rest args-gensym.tail.tail.tail)
 ;                   ...)
 ;               (error (object 'type 'error 'name 'arity 'form '(proc (x y z) ...)
 ;                              'to-text (cat "Procedure requires at least " arity " arguments; given " args-gensym)))))
@@ -34,7 +35,6 @@
                 %($form.head @(form.tail.map pass))
             (λ)
                 (let (args (gensym "args") no-opt (gensym "opt") arity form.2.size)
-(debug 'λ-transform)
                     %(λ $form.1 ($args $no-opt)
                         (if (= $arity (send $args 'size))
                             (seq
@@ -45,13 +45,13 @@
                                            'to-text (cat "Procedure requires exactly " $arity " arguments; given " $args))))))
             (proc)
                 (let (args (gensym "args") arity form.2.size)
-(debug 'proc-transform)
                     %(λ $form.1 ($args opt)
                         (if (< $arity (send $args 'size))
                             (seq
                                 @(map (proc (arg) (list 'def arg.0 (list 'send args arg.1)))
-                                      (zip form.2 (range 0 form.2.size)))
-                                @(map pass form.tail.tail.tail))
+                                      (zip (append form.2 '(rest)) (range 0 form.2.size)))
+                                 (def rest ((send $args 'drop) $form.2.size))
+                                $(pass form.3))
                             (error (object 'type 'error 'name 'arity 'form '(proc $form.2 @form.tail.tail.tail)
                                            'to-text (cat "Procedure requires a minimum of " $arity " arguments; given " $args))))))
             default:
