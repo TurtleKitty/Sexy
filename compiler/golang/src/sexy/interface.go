@@ -1,6 +1,6 @@
 package sexy
 
-type SxyObj interface {
+type SxyThing interface {
     Answers     SxyBool
     Autos       SxyPair
     Default     SxyProc

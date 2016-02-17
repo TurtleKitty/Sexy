@@ -13,12 +13,16 @@ package sexy
 
 type Sxyλ struct {
     arity SxyInt
-    formals []SxySymbol
     code SxyText
     env SxyEnv
-    procedure func(
+    formals SxyPair
+    procedure func(args SxyPair, opts SxyRecord, ukont Sxyλ, ekont Sxyλ)
 }
 
+
+func (p *Sxyλ) Send (msg SxySymbol, ukont Sxyλ, ekont Sxyλ) SxyThing {
+
+}
 
 func (p Sxyλ) Answers (m SxyObj) SxyBool {
     // return messages.has? m
@@ -64,8 +68,19 @@ func (p Sxyλ) View SxyText {
     return p.code
 }
 
-func (p Sxyλ) Apply (args SxyPair, opts SxyRecord, cont Sxyλ, err SxyProc) SxyObj {
+func Apply (f SxyThing, args SxyPair, opts SxyRecord, ukont Sxyλ, ekont Sxyλ) SxyObj {
+    exec := f.Send(SxySymbolTable("apply"))
 
+    for {
+        exec, done := exec(args, opts, ukont, ekont)
+
+        if done {
+            return exec
+        }
+    }
 }
+
+
+
 
 

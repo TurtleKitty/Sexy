@@ -17,9 +17,14 @@ func SxySymbolTable (s string) *SxySymbol {
     }
 
     var noob SxySymbol = s
+
     symbolTable[s] = noob
 
     return &noob
+}
+
+func (s *SxySymbol) Send (msg *SxySymbol, ukont Sxyλ, ekont Sxyλ) SxyThing {
+    
 }
 
 func (s SxySymbol) Answers (msg SxySymbol) SxyBool {

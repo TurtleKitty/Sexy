@@ -1,16 +1,17 @@
 package sexy
 
 type SxyObject struct {
+    goValue   interface {}
     messages  map[*SxySymbol]SxyObj
     autos     map[*SxySymbol]bool
     resends   map[*SxySymbol]SxyObj
-    defProc   SxyProc
+    defProc   SxyObj
 }
 
 var SxyObjBuiltIns map[string]bool{
     "answers?": true,
     "autos": true,
-    "default" true,
+    "default": true,
     "messages": true,
     "resends": true,
     "to-bool": true,
@@ -24,33 +25,8 @@ func init () {
 
 }
 
-func CreateObject (msgs, ottos, rsends, dProc SxyObj) SxyObject {
-    // FIXME needs to be a SxyProc
-}
+func CreateObject (msgs []SxyObject, ottos []SxyObject, rsends, dProc SxyObj) SxyObject {
 
-func BuiltInMessages (o SxyObj) {
-    switch string(msg) {
-    case: "answers?"
-        return o.Answers // return function that takes message?
-    case: "autos"
-        return o.Autos()
-    case: "default"
-        return o.Default()
-    case: "messages"
-        return o.Messages()
-    case: "resends"
-        return o.Resends()
-    case: "to-bool"
-        return o.ToBool()
-    case: "to-text"
-        return o.ToText()
-    case: "to-literal"
-        return o.ToLiteral()
-    case: "type"
-        return o.Type()
-    case: "view"
-        return o.View()
-    }
 }
 
 func (obj SxyObject) Answers (msg SxySymbol) SxyBool {
@@ -98,7 +74,7 @@ func (obj SxyObject) Resends () (rv SxyPair) {
     return rv
 }
 
-func (obj SxyObject) Send (msg SxySymbol) SxyObj {
+func (obj *SxyObject) Send (msg SxySymbol, ukont Sxyλ, ekont Sxyλ) SxyThing {
     val, ok := messages[*msg]
 
     if ok {
