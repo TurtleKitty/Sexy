@@ -23,11 +23,11 @@
                                     (let (opts (pair xs.head (pair %(quote $x.to-symbol) options)))
                                         (if (pair? xs.tail)
                                             (loop xs.1 xs.tail.tail args opts)
-                                            %($the-head $args.reverse $(pair 'record opts.reverse))))
+                                            %($the-head (list @args.reverse) $(pair 'record opts.reverse))))
                                     (let (yarrrgs (pair x args))
                                         (if (pair? xs)
                                             (loop xs.head xs.tail yarrrgs options)
-                                            %($the-head $yarrrgs.reverse $(if options (pair 'record @options.reverse) 'null)))))))
+                                            %($the-head (list @yarrrgs.reverse) $(if options (pair 'record @options.reverse) 'null)))))))
                         %($the-head () null))))
         form))
 

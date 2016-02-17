@@ -53,6 +53,7 @@
     (meow 'app-transform taps)
     (def vtem (var-to-env-msg taps))
     (meow 'var-to-env-msg vtem)
+vtem
 )
 (rem:
     (def cps (cps-transform taps))
