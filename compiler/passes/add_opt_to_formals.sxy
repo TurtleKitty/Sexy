@@ -3,17 +3,21 @@
 
 (lib () pass)
 
-; (<λ|proc> x y foo: 1 z bar: 2 ...) -> (<λ|proc> (x y z) (record 'foo 1 'bar 2))
+; (proc (x y z ...) ...) -> (proc (opt x y z ...) ...)
+; (<proc> x y foo: 1 z bar: 2 ...) -> (<proc> (record 'foo 1 'bar 2) x y z ...)
 
 (proc pass (form)
     (if (pair? form)
         (case form.head
-            (if quote wall gate guard error)
+            (def if quote wall gate guard error)
                 ((gen-pass form.head) pass form)
+            (λ)
+                (let (no-opt (gensym "_"))
+                    %(λ $form.1 $(pair no-opt form.2) $(pass form.tail.tail.tail.head))) 
             (seq capture)
                 %($form.head @(form.tail.map pass))
-            (λ proc)
-                ((gen-pass 'proc-id) pass form)
+            (proc)
+                %(proc $form.1 $(pair 'opt form.2) @(form.tail.tail.tail.map pass))
             default:
                 (let (the-head (pass form.head))
                     (if (pair? form.tail)
@@ -23,11 +27,11 @@
                                     (let (opts (pair xs.head (pair %(quote $x.to-symbol) options)))
                                         (if (pair? xs.tail)
                                             (loop xs.1 xs.tail.tail args opts)
-                                            %($the-head (list @args.reverse) $(pair 'record opts.reverse))))
+                                            %($the-head $(pair 'record opts.reverse) @args.reverse)))
                                     (let (yarrrgs (pair x args))
                                         (if (pair? xs)
                                             (loop xs.head xs.tail yarrrgs options)
-                                            %($the-head (list @yarrrgs.reverse) $(if options (pair 'record @options.reverse) 'null)))))))
-                        %($the-head () null))))
+                                            %($the-head $(if options (pair 'record @options.reverse) 'null) @yarrrgs.reverse))))))
+                        %($the-head null))))
         form))
 

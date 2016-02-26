@@ -8,10 +8,10 @@
 (use prep-defs "passes/prepare_defs_for_mutual_recursion.sxy")
 (use simplify-seq "passes/simplify_seq.sxy")
 (use flatten-seq "passes/flatten_seq.sxy")
+(use explicit-opt "passes/add_opt_to_formals.sxy")
+(use explicit-rest "passes/add_rest_to_formals.sxy")
 (use def-to-env-msg "passes/def_to_env_msg.sxy")
 (use var-to-env-msg "passes/var_to_env_msg.sxy")
-(use proc-transform "passes/transform_procedures.sxy")
-(use app-transform "passes/transform_applications.sxy")
 ;(use cps-transform "passes/cps_transform.sxy")
 
 (lib () compile)
@@ -25,34 +25,48 @@
 
 (proc compile (form)
     (meow 'BEGIN form)
+
     (def np (normalize-procs form))
     (meow 'norm-proc np)
+
     (def cl (capture-lambda np))
     (meow 'capture-lambda cl)
+
     (def ip (identify-procs cl proc-db)) ; mutate!
     (meow 'id-proc ip) (debug proc-db)
+
     (def qal (quote-all-literals ip))
     (meow 'quote-lits qal)
+
     (def siq (specify-implied-seq qal))
     (meow 'specify-seq siq)
+
     (def rps (remove-pointless-seq siq))
     (meow 'remove-dumb-seqs rps)
+
     (def pds (prep-defs rps))
     (meow 'prep-defs pds)
-    (def trpr (proc-transform pds)) ; these defs need no prep
-    (meow 'proc-transform trpr)
-    (def ss (simplify-seq trpr))
+
+    (def ss (simplify-seq pds))
     (meow 'simplify-seq ss)
+
     (def fs (flatten-seq ss))
     (meow 'flat-seq fs)
+
     (def ss2 (simplify-seq fs)) ; resimplify after flattening
     (meow 'simplify-seq2 ss2)
-    (def dtem (def-to-env-msg ss2))
+
+    (def dtem (def-to-env-msg fs))
     (meow 'def-to-env-msg dtem)
-    (def taps (app-transform dtem))
-    (meow 'app-transform taps)
-    (def vtem (var-to-env-msg taps))
+
+    (def vtem (var-to-env-msg dtem))
     (meow 'var-to-env-msg vtem)
+
+    (def e-opt (explicit-opt vtem))
+    (meow 'explicit-opt e-opt)
+
+    (def e-rest (explicit-rest e-opt))
+    (meow 'explicit-rest e-rest)
 vtem
 )
 (rem:

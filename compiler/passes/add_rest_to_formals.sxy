@@ -3,17 +3,17 @@
 
 (lib () pass)
 
-; (def x 1) -> ((send env 'def!) 'x 1)
+; (proc (opt x y z ...) ...) -> (proc (opt x y z ... . rest) ...)
 
 (proc pass (form)
     (if (pair? form)
         (case form.head
-            (def)
-                %((send env (quote def!)) (quote $form.1) $(pass form.2))
-            (if quote seq wall gate capture guard error)
+            (def if quote seq wall gate capture guard error)
                 ((gen-pass form.head) pass form)
-            (proc λ)
+            (λ)
                 ((gen-pass 'proc-id) pass form)
+            (proc)
+                %(proc $form.1 (@form.2 . rest) @(form.tail.tail.tail.map pass))
             default:
                 ((gen-pass 'application) pass form))
         form))
