@@ -161,6 +161,38 @@
                     (λ ($k-val) ($cont $k-val))))
             $hand)))
 
+(proc cps-guard (form)
+    (def handler (cps form.1))
+    (def cps-body (cps form.tail.tail))
+    (def cont (gencont))
+    (def hand (genhand))
+    (def funk (genval))
+    (def e (genval))
+    (def k (genval))
+    (cps-frag
+        cont
+        hand
+        %($handler
+            env
+            (λ ($funk)
+                (cps-body
+                    env
+                    $cont
+                    (λ ($e $k) ($funk $cont $hand null $e $k))))
+            $hand)))
+
+(proc cps-error (form)
+    (def error-obj (cps form.1))
+    (def cont (gencont))
+    (def hand (genhand))
+    (def e (genval))
+    (cps-frag
+        ($error-obj
+            env
+            (λ ($e)
+                ($hand $e $cont))
+            $hand)))
+
 (proc cps-atom (form)
     (def cont (gencont))
     (def hand (genhand))
@@ -186,30 +218,6 @@
 
 
 (rem:
-
-(define (cps-guard form)
-    (define handler (cadr form))
-    (define exprs (cddr form))
-    (define handler-c (cps handler))
-    (define expr-c (sexy-seq-subcontractor exprs #t))
-    (frag
-        (handler-c
-            env
-            (lambda (handler-fn)
-                (define (new-err-cont e k)
-                    (sexy-apply handler-fn (list e k) 'null cont err))
-                (expr-c env cont new-err-cont))
-            err)))
-
-(define (cps-error form)
-    (define errobj (cadr form))
-    (define erob-c (cps errobj))
-    (frag
-        (erob-c
-            env
-            (lambda (e)
-                (err e cont))
-            err)))
 
 (define (cps-load form)
     (define path (cadr form))
