@@ -32,8 +32,7 @@
             (quote)    (cps-quote form)
             (if)       (cps-if form)
             (seq)      (cps-seq form)
-            (λ)        (cps-lambda form)
-            (proc)     (cps-proc form)
+            (λ proc)   (cps-lambda form)
             (wall)     (cps-wall form)
             (gate)     (cps-gate form)
             (capture)  (cps-capture form)
@@ -90,6 +89,18 @@
             (λ () ($cps-tail env $cont $hand))
             $hand)))
 
+(proc cps-lambda (form)
+    ; strip ids as well
+    (def cont (gencont))
+    (def hand (genhand))
+    (def lambda-cont (gencont))
+    (def lambda-hand (genhand))
+    (def new-args (pair lambda-cont (pair lambda-hand form.2)))
+    (cps-frag
+        cont
+        hand
+        %($cont (λ $new-args @form.tail.tail.tail))))
+
 (proc cps-atom (form)
     (def cont (gencont))
     (def hand (genhand))
@@ -115,102 +126,6 @@
 
 
 (rem:
-
-
-(define (check-formals formals)
-    (if (pair? formals)
-        (let loop ((f (car formals)) (fs (cdr formals)))
-            (if (holy? f)
-                (begin (sexy-error (blasphemy f)) #f)
-                (if (pair? fs)
-                    (loop (car fs) (cdr fs))
-                    #t)))
-        #t))
-
-(define (make-sexy-lambda form env formals body)
-    (define arity (length formals))
-    (define bodies-c (sexy-seq-subcontractor body #f))
-    (if (check-formals formals)
-        (let ((p
-            (sexy-proc
-                form
-                env 
-                (lambda (args opts cont err)
-                    (if (not (= arity (length args)))
-                        (err (list 'arity form (sprintf "This lambda requires ~A arguments. Given: " arity) args) cont)
-                        (let* ((fargs (if (pair? args) (take args arity) '())))
-                               (extend
-                                    env 
-                                    formals
-                                    fargs
-                                    (lambda (noob)
-                                        (bodies-c noob cont err))
-                                    err)))))))
-            (hts! p 'type 'λ)
-            p)
-        (sexy-error 'bad-formals-in-lambda form)))
-
-(define (sexy-compile-lambda form)
-    (let ((formals (cadr form)) (bodies (cddr form)))
-        (frag
-            (cont (make-sexy-lambda form env formals bodies)))))
-
-(define (make-sexy-proc form env formals bodies)
-    (define arity (length formals))
-    (define bodies-c (sexy-seq-subcontractor bodies #t))
-    (if (check-formals formals)
-        (sexy-proc
-            form
-            env 
-            (lambda (args opts cont err)
-                (if (< (length args) arity)
-                    (err (list 'arity form (sprintf "This procedure requires at least ~A arguments. Given: " arity) args) cont)
-                    (let* ((fargs (if (pair? args) (take args arity) '()))
-                           (the-rest (if (pair? args) (drop args arity) '()))
-                           (returner cont))
-                           (extend
-                                env 
-                                (append formals '(opt rest return))
-                                (append fargs (list opts the-rest returner))
-                                (lambda (noob)
-                                    (bodies-c noob cont err))
-                                err)))))
-        (sexy-error 'bad-formals-in-proc form)))
-
-(define (sexy-compile-proc form)
-    (define is-named (symbol? (cadr form)))
-    (if is-named
-        (sexy-compile `(def ,(cadr form) (proc ,(caddr form) ,@(cdddr form))))
-        (let ((formals (cadr form)) (bodies (cddr form)))
-            (frag
-                (cont (make-sexy-proc form env formals bodies))))))
-
-(define (sexy-compile-macro form)
-    (define name (cadr form))
-    (define formals (caddr form))
-    (define bodies (cdddr form))
-    (if (not (symbol? name))
-        (sexy-error "macro expects it's first argument to be a symbol.  Got " form)
-        (frag
-            (sexy-send-env env 'has?
-                (lambda (haz?)
-                    (sexy-send-env env 'get
-                        (lambda (getter)
-                            (if (and
-                                    (haz? name)
-                                    (not (eq? will-exist (getter name))))
-                                (err (list 'bad-def form name " is already defined in the local environment.") cont)
-                                (let ((thing (make-sexy-proc form env formals bodies)))
-                                    (hts! thing 'type 'operator)
-                                    (mutate!
-                                        env
-                                        (lambda (null)
-                                            (cont thing))
-                                        err
-                                        name
-                                        thing))))
-                        err))
-                err))))
 
 (define (sexy-compile-wall form)
     (define args (cadr form))
@@ -344,7 +259,7 @@
 (rem:
 
 ; http://matt.might.net/articles/cps-conversion/
-; some day I'll grok this enough to implement it
+; someday I'll grok this enough to implement it
 
 (proc M (form)
     (when (not (atomic? form))
