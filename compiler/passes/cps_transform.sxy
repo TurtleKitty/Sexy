@@ -4,12 +4,11 @@
 (lib () pass)
 
 (proc pass (form)
-    (def id (gensym "id"))
     (cps form))
 
 (proc atomic? (form)
     (if (pair? form)
-        (('(quote proc λ) 'has?) form.head)
+        ((send '(quote proc λ) 'has?) form.head)
         true))
 
 (proc gencont ()
@@ -33,21 +32,23 @@
     (def pass (cps-frag cont hand %($cont $form)))
     (if (symbol? form)
         (if (option? form)
-            pass
+            (error (object 'name 'misplaced-option
+                           'form form
+                           'to-text "All options should be erased by now!"))
             (case form
                 (true false null env) pass
-                (else
+                default:
                     (if (global? form)
                         (cps-frag
                             cont
                             hand
                             (let (v (genval))
-                                %($cont (send (λ ($v) ($v (quote $form))) hand null global 'lookup))))
+                                %($cont (send (λ ($v) ($cont $v)) hand null global 'lookup))))
                         (cps-frag
                             cont
                             hand
                             (let (v (genval))
-                                %($cont (send (λ ($v) ($v (quote $form))) hand null env 'lookup))))))))
+                                %($cont (send (λ ($v) ($cont $v)) hand null env 'lookup)))))))
         pass))
 
 (proc cps-def (form)
