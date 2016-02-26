@@ -67,9 +67,11 @@
 
     (def e-rest (explicit-rest e-opt))
     (meow 'explicit-rest e-rest)
-vtem
-)
-(rem:
-    (def cps (cps-transform taps))
+
+    (def cps (cps-transform vtem))
     (meow 'cps-transform cps)
+
     cps)
+
+
+

@@ -101,6 +101,33 @@
         hand
         %($cont (λ $new-args @form.tail.tail.tail))))
 
+(proc cps-wall (form)
+    (def cont (gencont))
+    (def hand (genhand))
+    (def noob (genval))
+    (def looker (genval))
+    (def vals (genval))
+    (def args form.1)
+    (def cps-body (cps form.tail.tail))
+    (cps-frag
+        cont
+        hand
+        %(send
+            (λ ($looker)
+                ($looker
+                    (λ ($vals)
+                        (environment
+                            (λ ($noob) ($cps-body $noob $cont $hand))
+                            $hand
+                            null
+                            @(flatten (zip (quote $args) $vals))))
+                    $hand
+                    null
+                    $args))
+            $hand
+            env
+            'lookup-list)))
+
 (proc cps-atom (form)
     (def cont (gencont))
     (def hand (genhand))
@@ -127,25 +154,6 @@
 
 (rem:
 
-(define (sexy-compile-wall form)
-    (define args (cadr form))
-    (define exprs (cddr form))
-    (define expr-c (sexy-seq-subcontractor exprs #t))
-    ; create new env and copy args
-    (frag
-        (define noob (sexy-environment #f))
-        (sexy-send noob 'def!
-            (lambda (def!)
-                (let loop ((travellers args))
-                    (if (pair? travellers)
-                        (let ((x (car travellers)) (xs (cdr travellers)))
-                            (lookup env x
-                                (lambda (v)
-                                    (def! x v)
-                                    (loop xs))
-                                err))
-                        (expr-c noob cont err))))
-                    err)))
 
 (define (sexy-compile-gate form)
     (define exprs (cdr form))

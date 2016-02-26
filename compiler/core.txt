@@ -232,6 +232,7 @@ empty?
 (has? x)     ; local
 (del! x y z ...)
 (lookup x)   ; local or ancestral
+(lookup-list '(x y z))
 (extend u 7 v 8)
 (expand form)
 (eval expr)
