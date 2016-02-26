@@ -138,6 +138,29 @@
         %($cont
             (cps-body env identity $hand))))
 
+; FIXME need a pass to convert globals to lookups after this one
+
+(proc cps-capture (form)
+    (def name form.1)
+    (def lamb %(λ ($name) @form.tail.tail))
+    (def cps-lamb (cps lamb))
+    (def cont (gencont))
+    (def hand (genhand))
+    (def funk (genval))
+    (def k-val (genval))
+    (cps-frag
+        cont
+        hand
+        %($cps-lamb
+            env
+            (λ ($funk)
+                ($funk
+                    identity
+                    $hand
+                    null
+                    (λ ($k-val) ($cont $k-val))))
+            $hand)))
+
 (proc cps-atom (form)
     (def cont (gencont))
     (def hand (genhand))
@@ -163,22 +186,6 @@
 
 
 (rem:
-
-(define (cps-capture form)
-    (define name (cadr form))
-    (define lamb (cons 'proc (cons (list name) (cddr form))))
-    (define lamb-c (cps lamb))
-    (frag
-        (lamb-c
-            env
-            (lambda (funk)
-                (sexy-apply
-                    funk
-                    (list (lambda (k-val) (cont k-val)))
-                    'null
-                    top-cont
-                    err))
-            err)))
 
 (define (cps-guard form)
     (define handler (cadr form))
