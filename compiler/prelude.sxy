@@ -648,6 +648,13 @@
 (proc zip (xs)
     (apply map %($list $xs @rest) null))
 
+(proc flatten (xs)
+    (cond
+        (= xs ()) ()
+        (not (pair? xs)) (list xs)
+        default: (append (flatten xs.head)
+                         (flatten xs.tail))))
+
  
 ; reserving for future use
 
