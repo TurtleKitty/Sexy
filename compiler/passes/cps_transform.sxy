@@ -128,6 +128,16 @@
             env
             'lookup-list)))
 
+(proc (cps-gate form)
+    (def cps-body (cps form.tail))
+    (def cont (gencont))
+    (def hand (genhand))
+    (cps-frag
+        cont
+        hand
+        %($cont
+            (cps-body env identity $hand))))
+
 (proc cps-atom (form)
     (def cont (gencont))
     (def hand (genhand))
@@ -154,18 +164,10 @@
 
 (rem:
 
-
-(define (sexy-compile-gate form)
-    (define exprs (cdr form))
-    (define expr-c (sexy-seq-subcontractor exprs #t))
-    (frag
-        (cont
-            (expr-c env identity err))))
-
-(define (sexy-compile-capture form)
+(define (cps-capture form)
     (define name (cadr form))
     (define lamb (cons 'proc (cons (list name) (cddr form))))
-    (define lamb-c (sexy-compile lamb))
+    (define lamb-c (cps lamb))
     (frag
         (lamb-c
             env
@@ -178,10 +180,10 @@
                     err))
             err)))
 
-(define (sexy-compile-guard form)
+(define (cps-guard form)
     (define handler (cadr form))
     (define exprs (cddr form))
-    (define handler-c (sexy-compile handler))
+    (define handler-c (cps handler))
     (define expr-c (sexy-seq-subcontractor exprs #t))
     (frag
         (handler-c
@@ -192,9 +194,9 @@
                 (expr-c env cont new-err-cont))
             err)))
 
-(define (sexy-compile-error form)
+(define (cps-error form)
     (define errobj (cadr form))
-    (define erob-c (sexy-compile errobj))
+    (define erob-c (cps errobj))
     (frag
         (erob-c
             env
@@ -202,13 +204,13 @@
                 (err e cont))
             err)))
 
-(define (sexy-compile-load form)
+(define (cps-load form)
     (define path (cadr form))
     (define module (if (hte? sexy-modules path) (htr sexy-modules path) (lambda args 'null)))
     (define load-env (local-env))
     (define args-opts (prepare-sexy-args (cddr form)))
-    (define args-c (sexy-compile-list (car args-opts)))
-    (define opts-c (sexy-compile-list (cdr args-opts)))
+    (define args-c (cps-list (car args-opts)))
+    (define opts-c (cps-list (cdr args-opts)))
     (frag 
         (args-c
             env
@@ -227,9 +229,9 @@
                     err))
             err)))
 
-(define (sexy-compile-list xs)
+(define (cps-list xs)
     (if (pair? xs)
-        (let ((head (sexy-compile (car xs))) (tail (sexy-compile-list (cdr xs))))
+        (let ((head (cps (car xs))) (tail (sexy-compile-list (cdr xs))))
             (frag
                 (head
                     env
@@ -241,11 +243,11 @@
                     err)))
         (frag (cont '()))))
 
-(define (sexy-compile-application code)
-    (define fn-c (sexy-compile (car code)))
+(define (cps-application code)
+    (define fn-c (cps (car code)))
     (define args-opts (prepare-sexy-args (cdr code)))
-    (define args-c (sexy-compile-list (car args-opts)))
-    (define opts-c (sexy-compile-list (cdr args-opts)))
+    (define args-c (cps-list (car args-opts)))
+    (define opts-c (cps-list (cdr args-opts)))
     (frag
         (fn-c
             env
