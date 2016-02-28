@@ -12,7 +12,7 @@
 (use explicit-rest "passes/add_rest_to_formals.sxy")
 (use def-to-env-msg "passes/def_to_env_msg.sxy")
 (use var-to-env-msg "passes/var_to_env_msg.sxy")
-;(use cps-transform "passes/cps_transform.sxy")
+(use cps-transform "passes/cps_transform.sxy")
 
 (lib () compile)
 

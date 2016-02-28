@@ -3,7 +3,7 @@
 
 (lib () pass)
 
-(proc pass (form)
+(proc pass (form) ; FIXME add proc db to pass?
     (cps form))
 
 (proc atomic? (form)
@@ -20,8 +20,8 @@
 (proc genval ()
     (gensym "value"))
 
-(proc error-object (name form text)
-    (error (object 'name name 'form form 'to-text text)))
+(proc error-object (name form to-text)
+    (error (object 'name name 'form form 'to-text to-text)))
 
 (proc cps-frag (cont hand body)
     %(λ (env $cont $hand) $body))
@@ -32,7 +32,8 @@
             (quote)    (cps-quote form)
             (if)       (cps-if form)
             (seq)      (cps-seq form)
-            (λ proc)   (cps-lambda form)
+            (λ)        (cps-lambda form)
+            (proc)     (cps-proc form)
             (wall)     (cps-wall form)
             (gate)     (cps-gate form)
             (capture)  (cps-capture form)
@@ -96,6 +97,17 @@
     (def lambda-cont (gencont))
     (def lambda-hand (genhand))
     (def new-args (pair lambda-cont (pair lambda-hand form.2)))
+    (cps-frag
+        cont
+        hand
+        %($cont (λ $new-args @form.tail.tail.tail))))
+
+(proc cps-proc (form)
+    ; strip ids as well - FIXME - only if we're converting to (sexy-primitive-proc env code exec)
+    (def cont (gencont))
+    (def hand (genhand))
+    (def lambda-hand (genhand))
+    (def new-args (pair 'return (pair lambda-hand form.2)))
     (cps-frag
         cont
         hand
@@ -187,10 +199,52 @@
     (def hand (genhand))
     (def e (genval))
     (cps-frag
+        $cont
+        $hand
         ($error-obj
             env
             (λ ($e)
                 ($hand $e $cont))
+            $hand)))
+
+(proc cps-list (xs)
+    (def cont (gencont))
+    (def hand (genhand))
+    (def h (genval))
+    (def t (genval))
+    (if (pair? xs)
+        (let (head (cps xs.head) tail (cps-list xs.tail))
+            (cps-frag
+                cont
+                hand
+                %($head
+                    env
+                    (λ ($h)
+                        (tail
+                            env
+                            (λ ($t) ($cont (pair h t)))
+                            $hand))
+                    $hand)))
+        (cps-frag cont hand %($cont ()))))
+
+(proc cps-application (form)
+    (def cps-proc (cps form.head))
+    (def cps-args (cps-list form.tail))
+    (def cont (gencont))
+    (def hand (genhand))
+    (def f (genval))
+    (def yargs (genval))
+    (cps-frag
+        cont
+        hand
+        %($cps-proc
+            env
+            (λ ($f) 
+                (cps-args
+                    env
+                    (λ ($yargs)
+                        (sexy-primitive-apply $cont $hand $f $yargs))
+                    $hand))
             $hand)))
 
 (proc cps-atom (form)
@@ -208,12 +262,12 @@
                             cont
                             hand
                             (let (v (genval))
-                                %($cont (send (λ ($v) ($cont $v)) hand null global 'lookup))))
+                                %($cont (send (λ ($v) ($cont $v)) hand null global 'lookup)))) ; FIXME this may be unnecessary
                         (cps-frag
                             cont
                             hand
                             (let (v (genval))
-                                %($cont (send (λ ($v) ($cont $v)) hand null env 'lookup)))))))
+                                %($cont (send (λ ($v) ($cont $v)) hand null env 'lookup))))))) ; FIXME this was done in previous pass
         pass))
 
 
@@ -244,44 +298,6 @@
                     err))
             err)))
 
-(define (cps-list xs)
-    (if (pair? xs)
-        (let ((head (cps (car xs))) (tail (sexy-compile-list (cdr xs))))
-            (frag
-                (head
-                    env
-                    (lambda (h)
-                        (tail
-                            env
-                            (lambda (t) (cont (cons h t)))
-                            err))
-                    err)))
-        (frag (cont '()))))
-
-(define (cps-application code)
-    (define fn-c (cps (car code)))
-    (define args-opts (prepare-sexy-args (cdr code)))
-    (define args-c (cps-list (car args-opts)))
-    (define opts-c (cps-list (cdr args-opts)))
-    (frag
-        (fn-c
-            env
-            (lambda (f) 
-                (args-c
-                    env
-                    (lambda (args)
-                        (opts-c
-                            env
-                            (lambda (opts)
-                                (sexy-apply f args (prep-options opts) cont err))
-                            err))
-                    err))
-            err)))
-
-)
-
-
-(rem:
 
 ; http://matt.might.net/articles/cps-conversion/
 ; someday I'll grok this enough to implement it
