@@ -1,0 +1,12 @@
+
+(lib () pass)
+
+; sexy -> scheme
+
+(proc pass (form)
+    (if (pair? form)
+        (if (eq? form.head 'λ)
+            %(lambda $form.1 @(pass form.tail.tail))
+            form)
+        form))
+

@@ -27,7 +27,7 @@
     (def expanded (read-expand fname))
     (def ok (syntax-ok? expanded))
     (if ok
-        (let (compiled (compile (pair 'seq expanded)))
+        (let (compiled (compile sys (pair 'seq expanded)))
             (def cached-fname null) ;(cache-file fname compiled)
             (rem: compile golang from here?)
             cached-fname)

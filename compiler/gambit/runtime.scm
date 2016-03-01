@@ -1,9 +1,14 @@
 
 (define true #t)
 (define false #f)
-(define null 'something)
+(define null 'null)
 
 (define global
-    (define sexy-send 'x)
-    (define sexy-apply 'x)
-    ...)
+    (environment
+        identity
+        handler
+        (record 'env-type 'immutable)
+        'send send
+        'apply apply
+        ...))
+

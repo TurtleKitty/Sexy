@@ -3,13 +3,11 @@
 
 (lib () pass)
 
-(proc pass (form) ; FIXME add proc db to pass?
-    (cps form))
+(def procs null)
 
-(proc atomic? (form)
-    (if (pair? form)
-        ((send '(quote proc λ) 'has?) form.head)
-        true))
+(proc pass (form proc-db)
+    (set! procs proc-db)
+    (cps form))
 
 (proc gencont ()
     (gensym "continuation"))
@@ -49,7 +47,7 @@
     (cps-frag
         cont
         hand
-        %($cont $form.1)))
+        %($cont (quote $form.1))))
 
 (proc cps-if (form)
     (def pred (cps form.1))
@@ -82,16 +80,16 @@
     (def cps-tail (cps xs.tail))
     (def cont (gencont))
     (def hand (genhand))
+    (def whatever (genval))
     (cps-frag
         cont
         hand
         %($cps-head
             env
-            (λ () ($cps-tail env $cont $hand))
+            (λ ($whatever) ($cps-tail env $cont $hand))
             $hand)))
 
 (proc cps-lambda (form)
-    ; strip ids as well
     (def cont (gencont))
     (def hand (genhand))
     (def lambda-cont (gencont))
@@ -100,10 +98,9 @@
     (cps-frag
         cont
         hand
-        %($cont (λ $new-args @form.tail.tail.tail))))
+        %($cont (sexy-primitive-proc env $(procs form.1) (λ $new-args @(cps form.tail.tail.tail))))))
 
 (proc cps-proc (form)
-    ; strip ids as well - FIXME - only if we're converting to (sexy-primitive-proc env code exec)
     (def cont (gencont))
     (def hand (genhand))
     (def lambda-hand (genhand))
@@ -111,34 +108,30 @@
     (cps-frag
         cont
         hand
-        %($cont (λ $new-args @form.tail.tail.tail))))
+        %($cont (sexy-primitive-proc env $(procs form.1) (λ $new-args @(cps form.tail.tail.tail))))))
 
 (proc cps-wall (form)
     (def cont (gencont))
     (def hand (genhand))
+    (def partitioner (genval))
     (def noob (genval))
-    (def looker (genval))
-    (def vals (genval))
     (def args form.1)
     (def cps-body (cps form.tail.tail))
     (cps-frag
         cont
         hand
         %(send
-            (λ ($looker)
-                ($looker
-                    (λ ($vals)
-                        (environment
-                            (λ ($noob) ($cps-body $noob $cont $hand))
-                            $hand
-                            null
-                            @(flatten (zip (quote $args) $vals))))
+            (λ ($partitioner)
+                ($partitioner
+                    (λ ($noob)
+                        ($cps-body $noob $cont $hand))
                     $hand
                     null
-                    $args))
+                    @args))
             $hand
+            null
             env
-            'lookup-list)))
+            'partition)))
 
 (proc (cps-gate form)
     (def cps-body (cps form.tail))
@@ -148,9 +141,7 @@
         cont
         hand
         %($cont
-            (cps-body env identity $hand))))
-
-; FIXME need a pass to convert globals to lookups after this one
+            ($cps-body env identity $hand))))
 
 (proc cps-capture (form)
     (def name form.1)
@@ -199,9 +190,9 @@
     (def hand (genhand))
     (def e (genval))
     (cps-frag
-        $cont
-        $hand
-        ($error-obj
+        cont
+        hand
+        %($error-obj
             env
             (λ ($e)
                 ($hand $e $cont))
@@ -250,57 +241,18 @@
 (proc cps-atom (form)
     (def cont (gencont))
     (def hand (genhand))
-    (def pass (cps-frag cont hand %($cont $form)))
-    (if (symbol? form)
-        (if (option? form)
-            (error-object 'misplaced-option form "All options should be erased by now!")
-            (case form
-                (true false null env) pass
-                default:
-                    (if (global? form)
-                        (cps-frag
-                            cont
-                            hand
-                            (let (v (genval))
-                                %($cont (send (λ ($v) ($cont $v)) hand null global 'lookup)))) ; FIXME this may be unnecessary
-                        (cps-frag
-                            cont
-                            hand
-                            (let (v (genval))
-                                %($cont (send (λ ($v) ($cont $v)) hand null env 'lookup))))))) ; FIXME this was done in previous pass
-        pass))
+    (cps-frag cont hand %($cont $form)))
 
 
 (rem:
 
-(define (cps-load form)
-    (define path (cadr form))
-    (define module (if (hte? sexy-modules path) (htr sexy-modules path) (lambda args 'null)))
-    (define load-env (local-env))
-    (define args-opts (prepare-sexy-args (cddr form)))
-    (define args-c (cps-list (car args-opts)))
-    (define opts-c (cps-list (cdr args-opts)))
-    (frag 
-        (args-c
-            env
-            (lambda (args)
-                (opts-c
-                    env
-                    (lambda (opts)
-                        (module load-env top-cont top-err)
-                        (lookup load-env 'sexy-library-export-procedure
-                            (lambda (exporter)
-                                (if (eq? exporter not-found)
-                                    (cont (lambda args 'null))
-                                    (cont
-                                        (sexy-apply exporter args (prep-options opts) top-cont top-err))))
-                            top-err))
-                    err))
-            err)))
-
-
 ; http://matt.might.net/articles/cps-conversion/
-; someday I'll grok this enough to implement it
+; someday I'll grok this enough to implement it correctly
+
+(proc atomic? (form)
+    (if (pair? form)
+        ((send '(quote proc λ) 'has?) form.head)
+        true))
 
 (proc M (form)
     (when (not (atomic? form))
