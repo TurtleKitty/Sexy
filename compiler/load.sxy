@@ -1,0 +1,57 @@
+
+(use gen-pass "passes/generic.sxy")
+
+(lib () loader)
+
+(def module-fns (:))
+(def module-code (:))
+
+; (load "foo" x y z ...) -> (sexy-module-UUID x y z)
+; assume the expander fetched, cached, and expanded the modules
+
+(proc loader (form sys)
+    (def loaded (pass form sys))
+    (pair 'seq (append module-code.values loaded)))
+
+(proc pass (form sys)
+    (proc slurp-file (f)
+        (sys.fs.from
+            f
+            (λ (p)
+                p.read-text)))
+    (if (pair? form)
+        (case form.head
+            (load)
+                (if (module-fns.has? form.1)
+                    %(gate ($(module-fns form.1) @form.tail.tail))
+                    (let (mod-fn (send (cat "sexy-primitive-module-" (uuid)) 'to-symbol)
+                          this-mod (parse (slurp-file (get-sexy-expanded-path form.1))))
+                        (module-fns.set! form.1 mod-fn)
+                        (def code
+                            (pass
+                                (pair 'seq
+                                    (if (and (pair? this-mod.head) (= this-mod.head.head 'modules)) ; temporary (?) hack
+                                        this-mod.tail
+                                        this-mod))
+                                sys))
+                        (module-code.set! form.1
+                            %(def $mod-fn
+                                ((λ ()
+                                    (seq
+                                        @code
+                                        sexy-library-export-procedure)))))
+                        %(gate ($mod-fn @form.tail.tail))))
+            (def quote if seq wall gate capture guard error proc λ)
+                ((gen-pass form.head) pass form)
+            default:
+                ((gen-pass 'application) pass form))
+        form))
+
+(def sexy-expanded-dir "~/.sexy/expanded")
+
+(proc get-sexy-path (f)
+    (f.replace flags: "g" "[^a-zA-Z0-9_.]" "_"))
+
+(proc get-sexy-expanded-path (f)
+    (cat with: "/" sexy-expanded-dir (get-sexy-path f)))
+

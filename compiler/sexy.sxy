@@ -1,6 +1,7 @@
 #!/usr/local/bin/sexy run
 
 (use check-sexy-syntax "syntax_checker.sxy" sys.log)
+(use loader "load.sxy")
 (use compile "compile.sxy")
 (use cache-file "cache.sxy")
 
@@ -27,10 +28,11 @@
     (def expanded (read-expand fname))
     (def ok (syntax-ok? expanded))
     (if ok
-        (let (compiled (compile sys (pair 'seq expanded)))
-            (def cached-fname null) ;(cache-file fname compiled)
-            (rem: compile golang from here?)
-            cached-fname)
+        (let (loaded (append global-prelude (loader (pair 'seq expanded) sys)))
+            (let (compiled (compile loaded))
+                (def cached-fname null) ;(cache-file fname compiled)
+                (rem: append runtime and compile gambit from here?)
+                cached-fname))
         (error 'syntax-error)))
 
 (macro import-global-prelude ()
@@ -48,9 +50,10 @@
 (import-default-load-symbols)
 
 (def home-dir "~/.sexy")
-(def sexy-module-dir   (cat home-dir "/modules"))
-(def sexy-cache-dir    (cat home-dir "/compiled"))
-(def sexy-symbols-file (cat home-dir "/symbols.sxy"))
+(def sexy-module-dir    (cat home-dir "/modules"))
+(def sexy-expanded-dir  (cat home-dir "/expanded"))
+(def sexy-compiled-dir  (cat home-dir "/compiled"))
+(def sexy-symbols-file  (cat home-dir "/symbols.sxy"))
 (def sexy-load-symbol-env null)
 (def cli-env env)
 
@@ -63,7 +66,7 @@
             (sys.fs.mkdir path)))
     (def cmd args.head.to-symbol)
     (prep-dir sexy-module-dir)
-    (prep-dir sexy-cache-dir)
+    (prep-dir sexy-compiled-dir)
     (default-symbols-file)
     (load-symbols-env)
     (def control (:
@@ -151,7 +154,7 @@ sexy clean))
 
 (proc sexy-clean ()
     (def mods (sys.fs.ls sexy-module-dir))
-    (def cached (sys.fs.ls sexy-cache-dir))
+    (def cached (sys.fs.ls sexy-compiled-dir))
     (def files (append mods cached))
     (let (f files.head fs files.tail)
         (sys.fs.rm f)

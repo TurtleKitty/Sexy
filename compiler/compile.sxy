@@ -1,5 +1,4 @@
 
-(use inline-modules "passes/inline_modules.sxy")
 (use normalize-procs "passes/normalize_procs.sxy")
 (use capture-lambda "passes/make_capture_lambda_explicit.sxy")
 (use identify-procs "passes/identify_procs.sxy")
@@ -19,19 +18,15 @@
 
 (def i 0)
 (def proc-db (:))
-(def module-db (:))
 
 (proc meow (label)
     (set! i i.inc)
     (debug %($i $label @rest)))
 
-(proc compile (sys form)
+(proc compile (form)
     (meow 'BEGIN form)
 
-    (def im (inline-modules form module-db))
-    (meow 'inline-modules im)
-
-    (def np (normalize-procs im))
+    (def np (normalize-procs form))
     (meow 'norm-proc np)
 
     (def cl (capture-lambda np))
@@ -77,6 +72,4 @@
     (meow 'cps-transform cps)
 
     cps)
-
-
 
