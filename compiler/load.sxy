@@ -5,6 +5,7 @@
 
 (def module-fns (:))
 (def module-code (:))
+(def slurp-file (λ (f) (error 'slurp-file-undefined!)))
 
 ; (load "foo" x y z ...) -> (sexy-module-UUID x y z)
 ; assume the expander fetched, cached, and expanded the modules
@@ -13,27 +14,33 @@
     (def loaded (pass form sys))
     (pair 'seq (append module-code.values loaded)))
 
-(proc pass (form sys)
-    (proc slurp-file (f)
-        (sys.fs.from
-            f
-            (λ (p)
-                p.read-text)))
+(proc pass (form)
+    (when rest
+        (def sys rest.head)
+        (set! slurp-file
+            (proc (f)
+                (sys.fs.from
+                    f
+                    (λ (p)
+                        p.read-text)))))
     (if (pair? form)
+(seq
+    (debug form)
         (case form.head
             (load)
                 (if (module-fns.has? form.1)
                     %(gate ($(module-fns form.1) @form.tail.tail))
                     (let (mod-fn (send (cat "sexy-primitive-module-" (uuid)) 'to-symbol)
                           this-mod (parse (slurp-file (get-sexy-expanded-path form.1))))
+(debug %($form.1 $mod-fn))
+(debug this-mod)
                         (module-fns.set! form.1 mod-fn)
                         (def code
                             (pass
                                 (pair 'seq
                                     (if (and (pair? this-mod.head) (= this-mod.head.head 'modules)) ; temporary (?) hack
                                         this-mod.tail
-                                        this-mod))
-                                sys))
+                                        this-mod))))
                         (module-code.set! form.1
                             %(def $mod-fn
                                 ((λ ()
@@ -45,6 +52,7 @@
                 ((gen-pass form.head) pass form)
             default:
                 ((gen-pass 'application) pass form))
+)
         form))
 
 (def sexy-expanded-dir "~/.sexy/expanded")

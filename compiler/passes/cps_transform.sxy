@@ -18,9 +18,6 @@
 (proc genval ()
     (gensym "value"))
 
-(proc error-object (name form to-text)
-    (error (object 'name name 'form form 'to-text to-text)))
-
 (proc cps-frag (cont hand body)
     %(λ (env $cont $hand) $body))
 

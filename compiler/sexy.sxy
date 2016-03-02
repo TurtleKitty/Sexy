@@ -30,9 +30,9 @@
     (if ok
         (let (loaded (append global-prelude (loader (pair 'seq expanded) sys)))
             (let (compiled (compile loaded))
-                (def cached-fname null) ;(cache-file fname compiled)
                 (rem: append runtime and compile gambit from here?)
-                cached-fname))
+                (rem: return... what? the name?)
+                'the-compiled-file-name))
         (error 'syntax-error)))
 
 (macro import-global-prelude ()
@@ -66,6 +66,7 @@
             (sys.fs.mkdir path)))
     (def cmd args.head.to-symbol)
     (prep-dir sexy-module-dir)
+    (prep-dir sexy-expanded-dir)
     (prep-dir sexy-compiled-dir)
     (default-symbols-file)
     (load-symbols-env)
@@ -145,7 +146,7 @@ sexy clean))
     (def its-good (check-sexy-syntax expanded))
     (if its-good
         (cli-env.eval expanded)
-        (error (object 'type 'error 'name 'syntax-error 'form expanded 'to-text "Syntax error."))))
+        (error (error-object 'syntax-error expanded "Syntax error."))))
 
 (proc sexy-compile (filename)
     ; expand, compile, and cache - don't run
@@ -154,8 +155,9 @@ sexy clean))
 
 (proc sexy-clean ()
     (def mods (sys.fs.ls sexy-module-dir))
-    (def cached (sys.fs.ls sexy-compiled-dir))
-    (def files (append mods cached))
+    (def expanded (sys.fs.ls sexy-expanded-dir))
+    (def compiled (sys.fs.ls sexy-compiled-dir))
+    (def files (append mods expanded compiled))
     (let (f files.head fs files.tail)
         (sys.fs.rm f)
         (if fs
