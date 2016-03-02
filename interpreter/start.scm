@@ -46,7 +46,7 @@
                         (display "Sexy syntax check complete: ")
                         (say (if its-good 'ok 'FAIL))))
                 ((clean)
-                    (let ((cached (append (glob "~/.sexy/compiled/*") (glob "~/.sexy/modules/*") (list "~/.sexy/global.sxy"))))
+                    (let ((cached (append (glob "~/.sexy/expanded/*") (glob "~/.sexy/modules/*") (list "~/.sexy/global.sxy"))))
                         (let loop ((f (car cached)) (fs (cdr cached)))
                             (delete-file* f)
                             (if (eq? fs '())

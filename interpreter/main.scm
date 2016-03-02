@@ -54,7 +54,7 @@ END
 (define *use-cache* #t)
 (define sexy-use-symbols "~/.sexy/symbols.sxy")
 (define sexy-mod-dir     "~/.sexy/modules")
-(define sexy-cache-dir   "~/.sexy/compiled")
+(define sexy-cache-dir   "~/.sexy/expanded")
 
 (define genv #f)
 (define g-has? #f)
