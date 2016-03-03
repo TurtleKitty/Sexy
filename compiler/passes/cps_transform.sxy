@@ -141,8 +141,8 @@
             ($cps-body env identity $hand))))
 
 (proc cps-capture (form)
-    (def lamb form.1)
-    (def cps-lamb (cps lamb))
+    (def k-arg form.1)
+    (def cps-lamb (cps %(λ ($k-arg) @form.tail.tail)))
     (def cont (gencont))
     (def hand (genhand))
     (def funk (genval))

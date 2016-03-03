@@ -1,6 +1,5 @@
 
 (use normalize-procs "passes/normalize_procs.sxy")
-(use capture-lambda "passes/make_capture_lambda_explicit.sxy")
 (use identify-procs "passes/identify_procs.sxy")
 (use quote-all-literals "passes/quote_literals.sxy")
 (use specify-implied-seq "passes/make_implied_seq_explicit.sxy")
@@ -25,7 +24,6 @@
 
 (def order %(
     (normalize-procs . $normalize-procs)
-    (capture-lambda . $capture-lambda)
     (identify-procs . $identify-procs) ; mutate!
     (quote-all-literals . $quote-all-literals)
     (specify-implied-seq . $specify-implied-seq)
