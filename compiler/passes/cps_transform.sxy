@@ -73,8 +73,8 @@
 
 (proc cps-seq (form)
     ; all seqs should be binary by now
-    (def cps-head (cps form.head))
-    (def cps-tail (cps form.tail))
+    (def cps-head (cps form.1))
+    (def cps-tail (cps form.2))
     (def cont (gencont))
     (def hand (genhand))
     (def whatever (genval))
