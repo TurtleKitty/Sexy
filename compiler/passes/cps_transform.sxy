@@ -73,8 +73,8 @@
 
 (proc cps-seq (form)
     ; all seqs should be binary by now
-    (def cps-head (cps xs.head))
-    (def cps-tail (cps xs.tail))
+    (def cps-head (cps form.head))
+    (def cps-tail (cps form.tail))
     (def cont (gencont))
     (def hand (genhand))
     (def whatever (genval))
@@ -130,7 +130,7 @@
             env
             'partition)))
 
-(proc (cps-gate form)
+(proc cps-gate (form)
     (def cps-body (cps form.tail))
     (def cont (gencont))
     (def hand (genhand))
@@ -228,7 +228,7 @@
         %($cps-proc
             env
             (λ ($f) 
-                (cps-args
+                ($cps-args
                     env
                     (λ ($yargs)
                         (sexy-primitive-apply $cont $hand $f $yargs))

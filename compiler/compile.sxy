@@ -56,7 +56,7 @@
     (def ss2 (simplify-seq fs)) ; resimplify after flattening
     (meow 'simplify-seq2 ss2)
 
-    (def dtem (def-to-env-msg fs))
+    (def dtem (def-to-env-msg ss2))
     (meow 'def-to-env-msg dtem)
 
     (def vtem (var-to-env-msg dtem))

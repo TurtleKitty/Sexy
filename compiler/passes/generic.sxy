@@ -24,6 +24,7 @@
         if           pass-if
         quote        pass-q
         seq          pass-1
+        λ            pass-2
         proc         pass-2
         proc-id      pass-3
         wall         pass-2

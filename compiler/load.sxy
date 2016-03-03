@@ -11,8 +11,9 @@
 ; assume the expander fetched, cached, and expanded the modules
 
 (proc loader (form sys)
+    (debug %(loader $form))
     (def loaded (pass form sys))
-    (pair 'seq (append module-code.values loaded)))
+    %(seq $(append module-code.values loaded)))
 
 (proc pass (form)
     (when rest
@@ -24,8 +25,6 @@
                     (λ (p)
                         p.read-text)))))
     (if (pair? form)
-(seq
-    (debug form)
         (case form.head
             (load)
                 (if (module-fns.has? form.1)
@@ -37,22 +36,21 @@
                         (module-fns.set! form.1 mod-fn)
                         (def code
                             (pass
-                                (pair 'seq
-                                    (if (and (pair? this-mod.head) (= this-mod.head.head 'modules)) ; temporary (?) hack
+                                %(seq
+                                    $(if (and (pair? this-mod.head) (= this-mod.head.head 'modules)) ; temporary (?) hack
                                         this-mod.tail
                                         this-mod))))
                         (module-code.set! form.1
                             %(def $mod-fn
                                 ((λ ()
                                     (seq
-                                        @code
+                                        $code
                                         sexy-library-export-procedure)))))
                         %(gate ($mod-fn @form.tail.tail))))
             (def quote if seq wall gate capture guard error proc λ)
                 ((gen-pass form.head) pass form)
             default:
                 ((gen-pass 'application) pass form))
-)
         form))
 
 (def sexy-expanded-dir "~/.sexy/expanded")

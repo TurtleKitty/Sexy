@@ -28,7 +28,7 @@
     (def expanded (read-expand fname))
     (def ok (syntax-ok? expanded))
     (if ok
-        (let (loaded (append global-prelude (loader (pair 'seq expanded) sys)))
+        (let (loaded (loader (pair 'seq expanded) sys))
             (let (compiled (compile loaded))
                 (rem: append runtime and compile gambit from here?)
                 (rem: return... what? the name?)

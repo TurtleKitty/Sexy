@@ -1,9 +1,7 @@
 
 (seq
-    (seq 1000)
-    (seq 1 2 3 4 5)
-    (seq (seq 1 2) (seq 3 4) (seq 5 6) 7)
-    (seq '(x . y) (vector: 1 2 3) (record: x 1 y 2))
-    (list 1 2 3 . (4 5))
-    4)
+    (seq 1)
+    (seq 2 3)
+    4
+    5)
 
