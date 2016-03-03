@@ -131,7 +131,7 @@
             'partition)))
 
 (proc cps-gate (form)
-    (def cps-body (cps form.tail))
+    (def cps-body (cps form.1))
     (def cont (gencont))
     (def hand (genhand))
     (cps-frag
@@ -141,8 +141,7 @@
             ($cps-body env identity $hand))))
 
 (proc cps-capture (form)
-    (def name form.1)
-    (def lamb %(λ ($name) @form.tail.tail))
+    (def lamb form.1)
     (def cps-lamb (cps lamb))
     (def cont (gencont))
     (def hand (genhand))
@@ -158,7 +157,7 @@
                     identity
                     $hand
                     null
-                    (λ ($k-val) ($cont $k-val))))
+                    $cont))
             $hand)))
 
 (proc cps-guard (form)

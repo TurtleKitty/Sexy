@@ -23,53 +23,30 @@
     (set! i i.inc)
     (debug %($i $label @rest)))
 
+(def order %(
+    (normalize-procs . $normalize-procs)
+    (capture-lambda . $capture-lambda)
+    (identify-procs . $identify-procs) ; mutate!
+    (quote-all-literals . $quote-all-literals)
+    (specify-implied-seq . $specify-implied-seq)
+    (remove-pointless-seq . $remove-pointless-seq)
+    (prep-defs . $prep-defs)
+    (simplify-seq . $simplify-seq)
+    (flatten-seq . $flatten-seq)
+    (simplify-seq . $simplify-seq) ; resimplify after flattening
+    (def-to-env-msg . $def-to-env-msg)
+    (var-to-env-msg . $var-to-env-msg)
+    (explicit-opt . $explicit-opt)
+    (explicit-rest . $explicit-rest)
+    (cps-transform . $cps-transform)
+))
+
 (proc compile (form)
     (meow 'BEGIN form)
-
-    (def np (normalize-procs form))
-    (meow 'norm-proc np)
-
-    (def cl (capture-lambda np))
-    (meow 'capture-lambda cl)
-
-    (def ip (identify-procs cl proc-db)) ; mutate!
-    (meow 'id-proc ip) (debug proc-db)
-
-    (def qal (quote-all-literals ip))
-    (meow 'quote-lits qal)
-
-    (def siq (specify-implied-seq qal))
-    (meow 'specify-seq siq)
-
-    (def rps (remove-pointless-seq siq))
-    (meow 'remove-dumb-seqs rps)
-
-    (def pds (prep-defs rps))
-    (meow 'prep-defs pds)
-
-    (def ss (simplify-seq pds))
-    (meow 'simplify-seq ss)
-
-    (def fs (flatten-seq ss))
-    (meow 'flat-seq fs)
-
-    (def ss2 (simplify-seq fs)) ; resimplify after flattening
-    (meow 'simplify-seq2 ss2)
-
-    (def dtem (def-to-env-msg ss2))
-    (meow 'def-to-env-msg dtem)
-
-    (def vtem (var-to-env-msg dtem))
-    (meow 'var-to-env-msg vtem)
-
-    (def e-opt (explicit-opt vtem))
-    (meow 'explicit-opt e-opt)
-
-    (def e-rest (explicit-rest e-opt))
-    (meow 'explicit-rest e-rest)
-
-    (def cps (cps-transform vtem proc-db))
-    (meow 'cps-transform cps)
-
-    cps)
+    (let loop (the-form form pass order.head nexts order.tail)
+        (def new-form (pass.tail the-form proc-db))
+        (meow pass.head new-form)
+        (if (pair? nexts)
+            (loop new-form nexts.head nexts.tail)
+            new-form)))
 
