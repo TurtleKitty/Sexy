@@ -36,14 +36,14 @@
         (error 'syntax-error)))
 
 (macro import-global-prelude ()
-    (def expanded (read-expand "compiler/prelude.sxy"))
+    (def expanded (read-expand "prelude.sxy"))
     (when (not (syntax-ok? expanded))
         (error "Global prelude out of whack?"))
     ;(def compiled (template: {{ (read-file (compile-file "compiler/prelude.sxy")) }}))
     %(def global-prelude $expanded))
 
 (macro import-default-load-symbols ()
-    (def contents (read-file "compiler/default-load-symbols.sxy"))
+    (def contents (read-file "default-load-symbols.sxy"))
     %(def default-load-symbols $contents))
 
 (import-global-prelude)
