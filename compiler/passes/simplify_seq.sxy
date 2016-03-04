@@ -12,7 +12,7 @@
                 (> form.size 3)
                     %(seq $(pass form.1) $(pass (pair 'seq form.tail.tail)))
                 (= form.size 2)
-                    %(seq null @(pass form.1))
+                    (pass form.1)
                 default:
                     %(seq $(pass form.1) $(pass form.2)))
             (case form.head
