@@ -97,7 +97,7 @@
         (let ()
             (define (set-em! k)
                 (define defr! (sexy-send-atomic env 'def!))
-                (define op-val (looker ((sexy-send-atomic prog-env 'get) k)))
+                (define op-val (looker k))
                 (define spaced-name
                     (string->symbol
                         (apply string-append (map symbol->string (list use-name '- k)))))

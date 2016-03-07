@@ -24,8 +24,6 @@
 (sys.test 'use-macro-file
     ((proc ()
         (use m "modules/macro.sxy")
-(macro-eval (debug env))
-(debug env)
         (and
             (= (m-quote-xyz 1 2 3) '(1 2 3))
             (= (send (m-calc-xyz 1 2 3) 'code) '(proc (v) (* v 17)))
@@ -60,7 +58,6 @@
             (= '(test "0.2.0") (use m8 github/TurtleKitty/sexy-lib/test/sexy-lib/0))
             (= '(test "1.6.4") (use m9 github/TurtleKitty/sexy-lib/test/sexy-lib/1)))))
 
-(rem:
 (sys.test 'use-proc-https
     (let () 
         (use foreigner "https://raw.githubusercontent.com/TurtleKitty/Sexy/master/tests/modules/proc.sxy")
@@ -88,6 +85,4 @@
             (= (m-quote-xyz 1 2 3) '(1 2 3))
             (= (send (m-calc-xyz 1 2 3) 'code) '(proc (v) (* v 17)))
             (= ((m-calc-xyz 1 2 3) 4 ) 68)))))
-
-)
 
