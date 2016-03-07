@@ -3,9 +3,9 @@ object
 
 type
 view
+write
+print
 to-bool
-to-text    ; print
-to-literal ; write
 messages
 answers?
 autos
@@ -15,19 +15,15 @@ default
 
 null
 
-view -> self
-to-text "null"
-to-bool (false)
-to-symbol -> self
+view write print to-symbol -> self
+to-bool -> false
 (apply () (:)) -> ERROR
 
 
 bool
 
 view
-to-bool -> self
-to-text
-to-symbol -> self
+write print to-bool to-symbol -> self
 not -> (not self)
 
 
@@ -234,6 +230,7 @@ empty?
 (lookup x)   ; local or ancestral
 (lookup-list '(x y z))
 (extend u 7 v 8)
+(partition '(x y z))
 (expand form)
 (eval expr)
 
@@ -328,7 +325,7 @@ remote-port -> remote port number of the socket
 sys
 
 sys.messages
-(say fs view write read shell rest test 64764 time stderr stdin net proc launch-the-missile opt ts srand print stdout log env signal)
+(say fs view write read load shell rest test 64764 time stderr stdin net proc launch-the-missile opt ts srand print stdout log env signal)
 
 sys.fs.messages
 (rm ls dir? chroot ln tmp socket-pair listen mv symlink? read pwd to from cp cd connect stat mkdir write exists? tmp-dir rmdir)
@@ -360,7 +357,6 @@ gate
 capture
 guard
 error
-load
 
 
 dynamic variables:

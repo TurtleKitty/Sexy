@@ -16,6 +16,7 @@
 (lib () compile)
 
 (def i 0)
+(def debugging true)
 (def proc-db (:))
 
 (proc meow (label)
@@ -40,10 +41,12 @@
 ))
 
 (proc compile (form)
-    (meow 'BEGIN form)
+    (when debugging
+        (meow 'BEGIN form))
     (let loop (the-form form pass order.head nexts order.tail)
         (def new-form (pass.tail the-form proc-db))
-        (meow pass.head new-form)
+        (when debugging
+            (meow pass.head new-form))
         (if (pair? nexts)
             (loop new-form nexts.head nexts.tail)
             new-form)))
