@@ -2,5 +2,5 @@
 (lib (x)
     (if (= x 0)
         'x
-        (load "y.sxy" x.dec)))
+        (use foo "y.sxy" x.dec)))
 

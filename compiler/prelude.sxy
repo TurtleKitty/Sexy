@@ -2,15 +2,10 @@
 ; global environment
 
 (macro lib (vars body)
-    (list 'def 'sexy-library-export-procedure
+    (list 'def 'sexy-internal-library-export-procedure
         (pair
             'proc
             (pair vars (pair body rest)))))
-
-(macro use (name uri)
-    (list 'def name
-        (pair 'load
-            (pair uri (rest.append opt.to-opt)))))
 
 (macro thunk ()
     (pair 'λ (pair () rest)))

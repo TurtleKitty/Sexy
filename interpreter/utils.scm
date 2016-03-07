@@ -8,8 +8,8 @@
 (define htd! hash-table-delete!)
 
 (define primitive-type 'primitive-procedure)
-(define not-found 'this-sexy-name-was-not-found)
-(define will-exist 'this-sexy-name-is-about-to-be-defined)
+(define not-found 'sexy-internal-this-name-was-not-found)
+(define will-exist 'sexy-internal-this-name-is-about-to-be-defined)
 
 (define (idk obj msg cont err)
     (err (list 'message-not-understood (sexy-view obj) msg) cont))
@@ -200,15 +200,8 @@
 
 (define (sexy-run program)
     (define (get-with-the-program prog)
-        (define head (car prog))
-        (if (pair? head)
-            (let ((sub-head (car head)))
-                (if (eq? sub-head 'modules)
-                    (let ((mods (cdr head)))
-                        (map def-sexy-module mods)
-                        (cdr prog))
-                    prog))
-            prog))
+        (sexy-eval-module prog "sexy-internal-main-module")
+        prog)
     (if (pair? program)
         ((sexy-seq-subcontractor (get-with-the-program program) #t)
             (cli-env)

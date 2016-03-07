@@ -2,5 +2,5 @@
 (lib (x)
     (if (< x 2)
         1
-        (* x (load "recursive.sxy" x.dec)))) ; KABOOM
+        (* x (use xyzzy "recursive.sxy" x.dec))))
 

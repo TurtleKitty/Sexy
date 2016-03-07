@@ -12,7 +12,7 @@
 
 (define (symbols-env)
     (define expanded (read-expand-cache-prog sexy-use-symbols (cli-env)))
-    (define compiled (sexy-seq-subcontractor (cdr expanded) #t))
+    (define compiled (sexy-seq-subcontractor expanded #t))
     (define the-env (cli-env))
     (compiled the-env top-cont top-err)
     (set! load-symbols-env the-env))

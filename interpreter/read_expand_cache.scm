@@ -64,7 +64,6 @@
         ((or (uri? path) (absolute-path? path)) path)
         (else (string-append *cwd* "/" path))))
 
-
 (define (make-module-path-to path)
     (irregex-replace "(/.*)/.*$" path 1))
 
@@ -89,37 +88,9 @@
             (set! *use-cache* #f)
             (let ((expanded (sexy-read-expand fpath env))
                   (fport (open-output-file cpath)))
-                (define finished
-                    (cons
-                        (delete-duplicates (find-modules expanded))
-                        expanded))
-                (sexy-write finished fport)
+                (sexy-write expanded fport)
                 (close-output-port fport)
                 (set! *cwd* old-wd)
                 (set! *use-cache* #t)
-                finished))))
-
-(define (find-modules prog)
-    (define (finder prog xs)
-        (let loop ((form (car prog)) (rest (cdr prog)) (mods xs))
-            (if (pair? form)
-                (case (car form)
-                    ((quote)
-                        (if (pair? rest)
-                            (finder rest mods)
-                            mods))
-                    ((load)
-                        (let ((numods (cons (make-module-absolute-path (cadr form)) mods)))
-                            (if (pair? rest)
-                                (loop (car rest) (cdr rest) numods)
-                                numods)))
-                    (else
-                        (let ((numods (finder form mods)))
-                            (if (pair? rest)
-                                (finder rest numods)
-                                numods))))
-                (if (pair? rest)
-                    (loop (car rest) (cdr rest) mods)
-                    mods))))
-    (cons 'modules (finder prog '())))
+                expanded))))
 

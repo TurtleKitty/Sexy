@@ -64,7 +64,7 @@
             ((capture)  (sexy-compile-capture code))
             ((guard)    (sexy-compile-guard code))
             ((error)    (sexy-compile-error code))
-            ((load)     (sexy-compile-load code))
+            ((use)      (sexy-compile-use code))
             (else       (sexy-compile-application code)))
         (sexy-compile-atom code)))
 
@@ -335,12 +335,16 @@
                 (err e cont))
             err)))
 
-(define (sexy-compile-load code)
-    (define path (cadr code))
-    (define module (if (hte? sexy-modules path) (htr sexy-modules path) (lambda args 'null)))
+(define (sexy-compile-use code)
+    (define name (cadr code))
+    (define path (caddr code))
+    (define module
+        (if (hte? sexy-modules path)
+            (htr sexy-modules path)
+            (lambda args 'null)))
     (define load-env (local-env))
     (define args-opts (prepare-sexy-args (cddr code)))
-    (define args-c (sexy-compile-list (car args-opts)))
+    (define args-c (sexy-compile-list (cdar args-opts)))
     (define opts-c (sexy-compile-list (cdr args-opts)))
     (frag 
         (args-c
@@ -350,13 +354,24 @@
                     env
                     (lambda (opts)
                         (module load-env top-cont top-err)
-                        (lookup load-env 'sexy-library-export-procedure
+                        (lookup load-env 'sexy-internal-library-export-procedure
                             (lambda (exporter)
                                 (if (eq? exporter not-found)
                                     (cont (lambda args 'null))
-                                    (cont
-                                        (sexy-apply exporter args (prep-options opts) top-cont top-err))))
-                            top-err))
+                                    (sexy-apply
+                                        exporter
+                                        args
+                                        (prep-options opts)
+                                        (lambda (v)
+                                            (mutate!
+                                                env
+                                                (lambda (null)
+                                                    (cont v))
+                                                err
+                                                name
+                                                v))
+                                        err)))
+                            err))
                     err))
             err)))
 
