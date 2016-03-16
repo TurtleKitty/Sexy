@@ -68,10 +68,11 @@
     (irregex-replace "(/.*)/.*$" path 1))
 
 (define (sexy-read-expand path env)
-    (sexy-expand
-        (sexy-read-file
-            (open-input-file path))
-        env))
+    (define form
+        (cons 'seq
+            (sexy-read-file
+                (open-input-file path))))
+    (sexy-expand form env))
 
 (define (read-expand-cache-prog path env)
     (define abs-path (make-module-absolute-path path))

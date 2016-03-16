@@ -203,7 +203,7 @@
         (sexy-eval-module prog "sexy-internal-main-module")
         prog)
     (if (pair? program)
-        ((sexy-seq-subcontractor (get-with-the-program program) #t)
+        ((sexy-compile (get-with-the-program program))
             (cli-env)
             (lambda (v) (exit))
             top-err)

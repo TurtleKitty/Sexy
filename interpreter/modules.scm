@@ -17,7 +17,7 @@
             (hts!
                 sexy-modules
                 path
-                (sexy-seq-subcontractor program #t)))
+                (sexy-compile program)))
         (hts! sexy-modules path nop)))
 
 (define (find-modules prog)
