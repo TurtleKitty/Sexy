@@ -12,6 +12,7 @@
 (use def-to-env-msg "passes/def_to_env_msg.sxy")
 (use var-to-env-msg "passes/var_to_env_msg.sxy")
 (use cps-transform "passes/cps_transform.sxy")
+(use to-scheme "passes/to_scheme.sxy")
 
 (lib () compile)
 
@@ -38,6 +39,7 @@
     (explicit-opt . $explicit-opt)
     (explicit-rest . $explicit-rest)
     (cps-transform . $cps-transform)
+    (to-scheme . $to-scheme)
 ))
 
 (proc compile (form)

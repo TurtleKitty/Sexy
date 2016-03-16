@@ -21,6 +21,8 @@
 (proc cps-frag (cont hand body)
     %(λ (env $cont $hand) $body))
 
+; FIXME don't CPS globals?
+
 (proc cps (form)
     (if (and (pair? form) (list? form))
         (case form.head
@@ -34,7 +36,6 @@
             (capture)  (cps-capture form)
             (guard)    (cps-guard form)
             (error)    (cps-error form)
-            (load)     (cps-load form)
             default:   (cps-application form))
         (cps-atom form)))
 
@@ -95,7 +96,7 @@
     (cps-frag
         cont
         hand
-        %($cont (sexy-primitive-proc env $(procs form.1) (λ $new-args @(cps form.tail.tail.tail))))))
+        %($cont (sexy-internal-primitive-proc env (quote $(procs form.1)) (λ $new-args $(cps form.tail.tail.tail))))))
 
 (proc cps-proc (form)
     (def cont (gencont))
@@ -105,7 +106,7 @@
     (cps-frag
         cont
         hand
-        %($cont (sexy-primitive-proc env $(procs form.1) (λ $new-args @(cps form.tail.tail.tail))))))
+        %($cont (sexy-internal-primitive-proc env (quote $(procs form.1)) (λ $new-args $(cps form.tail.tail.tail))))))
 
 (proc cps-wall (form)
     (def cont (gencont))
@@ -289,7 +290,6 @@
             (capture) form
             (guard) form
             (error) form
-            (load) form
             default: ; procedure application
                 (T-k form.head
                     (proc (f)
@@ -322,7 +322,6 @@
             (capture) form
             (guard) form
             (error) form
-            (load) form
             default: ; procedure application
                 (def rv (gensym "value"))
                 (def cont %(λ ($rv) $(k rv)))
