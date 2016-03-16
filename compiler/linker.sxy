@@ -20,7 +20,7 @@
 ; assume the macro expander fetched, cached, and expanded the modules
 
 (proc loader (form sys)
-    (debug %(loader $form))
+    (debug %(linker $form))
     (set! slurp-file
         (proc (f)
             (sys.fs.from

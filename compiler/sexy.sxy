@@ -1,8 +1,8 @@
 #!/usr/local/bin/sexy run
 
 (use check-sexy-syntax "syntax_checker.sxy" sys.log)
-(use loader "load.sxy")
-(use compile "compile.sxy")
+(use loader "linker.sxy")
+(use compile "compiler.sxy")
 (use cache-file "cache.sxy")
 
 (everywhere
