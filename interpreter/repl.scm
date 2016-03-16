@@ -9,8 +9,8 @@
                 (debug 'runtime-error
                     (if (and (hash-table? ex) (eq? (sexy-send-atomic ex 'type) 'error))
                         (map (lambda (f) (sexy-view (sexy-send-atomic ex f))) '(name to-text form))
-                        (sexy-view ex))
-                (loop env))))
+                        (sexy-view ex)))
+                (loop env)))
         (display "(sexy) ")
         (let ((expr (sexy-read stdin)))
             (if (eof-object? expr)
