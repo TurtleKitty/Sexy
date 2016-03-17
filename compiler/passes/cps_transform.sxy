@@ -37,7 +37,7 @@
             (guard)    (cps-guard form)
             (error)    (cps-error form)
             default:   (cps-application form))
-        form)) ; all atoms should be globals by now
+        (cps-atom form)))
 
 (proc cps-quote (form)
     (def cont (gencont))
@@ -96,7 +96,7 @@
     (cps-frag
         cont
         hand
-        %($cont (sexy-internal-primitive-proc env (quote $(procs form.1)) (λ $new-args $(cps form.tail.tail.tail))))))
+        %($cont (sexy-internal-primitive-proc $cont $hand null (quote $(procs form.1)) env (λ $new-args $(cps form.tail.tail.tail))))))
 
 (proc cps-proc (form)
     (def cont (gencont))
@@ -106,7 +106,7 @@
     (cps-frag
         cont
         hand
-        %($cont (sexy-internal-primitive-proc env (quote $(procs form.1)) (λ $new-args $(cps form.tail.tail.tail))))))
+        %(sexy-internal-primitive-proc $cont $hand null (quote $(procs form.1)) env (λ $new-args $(cps form.tail.tail.tail)))))
 
 (proc cps-wall (form)
     (def cont (gencont))
@@ -231,7 +231,7 @@
                 ($cps-args
                     env
                     (λ ($yargs)
-                        (sexy-primitive-apply $cont $hand $f $yargs))
+                        (sexy-internal-primitive-apply $cont $hand null $f $yargs))
                     $hand))
             $hand)))
 
