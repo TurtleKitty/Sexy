@@ -37,7 +37,7 @@
             (guard)    (cps-guard form)
             (error)    (cps-error form)
             default:   (cps-application form))
-        (cps-atom form)))
+        form)) ; all atoms should be globals by now
 
 (proc cps-quote (form)
     (def cont (gencont))
@@ -208,9 +208,9 @@
                 %($head
                     env
                     (λ ($h)
-                        (tail
+                        ($tail
                             env
-                            (λ ($t) ($cont (pair h t)))
+                            (λ ($t) ($cont (pair $h $t)))
                             $hand))
                     $hand)))
         (cps-frag cont hand %($cont ()))))
