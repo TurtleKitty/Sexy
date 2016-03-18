@@ -1,0 +1,827 @@
+
+(lib () send)
+
+(def control-null (:))
+(def control-bool (:))
+(def control-int (:))
+(def control-rat (:))
+(def control-real (:))
+(def control-rune (:))
+(def control-symbol (:))
+(def control-bin (:))
+(def control-text (:))
+(def control-env (:))
+(def control-pair (:))
+(def control-vector (:))
+(def control-record (:))
+(def control-λ (:))
+(def control-prov (:))
+(def control-stream (:))
+(def control-fs-socket (:))
+(def control-tcp-socket (:))
+
+(def control (:
+    null         control-null
+    bool         control-bool
+    int          control-int
+    rational     control-rat
+    real         control-real
+    rune         control-rune
+    symbol       control-symbol
+    bin          control-bin
+    text         control-text
+    environment  control-env
+    pair         control-pair
+    vector       control-vector
+    record       control-record
+    λ            control-λ
+    proc         control-prov
+    stream       control-stream
+    fs-socket    control-fs-socket
+    tcp-socket   control-tcp-socket
+)
+
+(def object-defaults (:
+    type    (λ (obj) 'object)
+    view    (λ (obj) %(object @(send obj 'messages)))
+    write   (λ (obj) %(object @(send obj 'messages)))
+    print   (λ (obj) %(object @(send obj 'messages)))
+    to-bool (λ (obj) true)
+)
+
+(proc has-msg? (obj msg)
+    ((sexy-internal-object-answers? obj) msg))
+
+(proc autofire (obj msg def-thunk)
+    (if (has-msg? obj msg)
+        (let (method (sexy-internal-object-get-message obj msg))
+            (if (sexy-internal-list-has? (sexy-internal-object-autos obj) msg)
+                (method)
+                method))
+        (def-thunk)))
+
+(proc send (obj msg)
+    (def t (sexy-internal-get-object-type obj))
+    (if (sexy-internal-record-has? control t)
+        (let (dispatcher (sexy-internal-record-get control t))
+            (if (sexy-internal-record-has? dispatcher msg)
+                ((sexy-internal-record-get dispatcher msg) obj)
+                (((sexy-internal-record-get dispatcher 'default) obj) msg)))
+        (case msg
+            ; begin with unshadowable reflection messages
+            (answers?)
+                (sexy-internal-object-answers? obj)
+            (autos)
+                (sexy-internal-object-autos obj)
+            (default)
+                (sexy-internal-object-default obj)
+            (messages)
+                (sexy-internal-object-messages obj)
+            (resends)
+                (sexy-internal-object-resends obj)
+            ; end reflection; begin shadowable messages with defaults
+            (type view write print to-bool)
+                (autofire obj msg (λ () ((object-defaults msg) obj)))
+            ; regular messages
+            default: 
+                (autofire obj msg (λ () ((sexy-internal-object-default obj) msg))))))
+
+
+(rem:
+object
+
+type
+view
+write
+print
+to-bool
+messages
+answers?
+autos
+resends
+default
+
+
+null
+
+view write print to-symbol -> self
+to-bool -> false
+(apply () (:)) -> ERROR
+
+
+bool
+
+view
+write print to-bool to-symbol -> self
+not -> (not self)
+
+
+int
+
+view
+to-text
+to-bool -> 0 is false, else true
+zero?
+pos?
+neg?
+abs
+floor
+ceil
+round
+truncate
+inc
+dec
+even?
+odd?
+
+
+real
+
+view
+to-text
+to-bool
+zero?
+pos?
+neg?
+abs
+floor
+ceil
+round
+truncate
+
+
+rune
+
+view
+to-rune
+to-text
+to-bool -> true
+to-number -> int, real, or ERROR
+code -> UTF8
+alpha?
+digit?
+whitespace?
+uc?
+lc?
+uc
+lc
+
+
+symbol
+
+view
+to-bool
+to-text
+
+
+bin
+
+view  (64 127 99 22 ...)
+to-bool 'true
+to-number -> ReallyBigInt
+to-list -> list of ints
+to-text -> UTF8
+size -> no of bytes
+clone
+set! <index> <uint 0-255>
+
+
+text
+
+view
+to-bool -> empty is false, else true
+to-symbol
+to-option
+to-number -> int or real
+to-list -> (\a \b \c)
+to-bin -> bin
+to-text -> self
+to-stream
+size
+empty?
+clone
+chomp
+trim
+ltrim
+rtrim
+(lpad \rune n)
+(rpad \rune n)
+(take n)
+(drop m)
+set! ???
+(index "subtext")
+(match "regex")
+(split "regex")
+(capture "regex")
+(replace "regex" "replacement")
+
+
+pair
+
+view
+to-bool -> () is false, else true
+to-text
+to-list
+to-text -> all items must be runes
+to-vector
+to-record
+size
+empty?
+reverse
+head key car
+tail val cdr
+(cons x)
+(has? x)
+(append x)
+(take n)
+(drop n)
+(apply (n) null)
+(fold init proc)
+(reduce init proc)
+(map proc)
+(filter proc)
+(sort op)
+(each proc)
+
+
+vector
+
+view
+to-bool -> (#) is false, else true
+to-text -> all items must be runes
+to-list
+to-vector
+to-record
+size
+empty?
+clone
+pairs
+(has? item)
+(index item) -> n or null
+(put n v n v n v)   ; functional
+(set! n v n v n v)  ; imperative
+(append x)
+(take n)
+(drop n)
+(apply (n) null)
+(fold init proc)
+(reduce init proc)
+(map proc)
+(filter proc)
+(sort op)
+(each proc)
+
+
+record
+
+view
+to-bool
+to-list   -> alist
+to-record
+to-text
+size
+empty?
+keys
+values
+pairs
+clone
+(get k)
+(put k v k2 v2 ...)
+(rm k k2 k3)
+(set! k 1 k2 2 k3 3 ...)
+(del! k k2 k3 ...)
+(has? k)
+(apply (k) null)
+(merge r)
+(fold init proc)
+(reduce init proc)
+(map proc) -> record
+(filter proc) -> record
+(sort op) -> alist
+(each proc)
+
+
+env (standard | repl | immutable | wild)
+
+view
+mama
+to-env
+to-bool
+to-text
+to-list
+to-record
+empty?
+(def! x 1 y 2 z 3 ...)
+(get x)
+(set! x 2 y 3 z 5 ...)
+(has? x)     ; local
+(del! x y z ...)
+(lookup x)   ; local or ancestral
+(lookup-list '(x y z))
+(extend u 7 v 8)
+(partition '(x y z))
+(expand form)
+(eval expr)
+
+
+proc / λ / operator
+
+view
+to-bool
+to-text
+arity
+formals
+code
+env
+(apply (args) (: opts))
+
+
+stream
+
+view
+to-bool
+input?
+output?
+open?
+close
+
+source
+
+view
+to-bool -> open?
+to-text -> printable
+ready?
+read
+read-rune
+peek-rune
+read-line
+read-lines -> to-list
+read-text -> slurp
+read-sexy -> all sexy forms to list
+(assert-rune "runes")
+(skip n)
+(skip-while "runes")
+(skip-until "runes")
+(read-tokens n)
+(read-token-while "runes")
+(read-token-until "runes")
+(read-token-if proc)
+(each proc) ?
+
+sink
+
+flush
+nl -> newline
+(write obj) -> obj.view
+(print obj) -> obj.to-text
+(say obj)   -> obj.print + obj.nl
+
+
+fs-socket
+
+to-bool -> true
+ready? -> true if there is a connection ready to be accepted
+accept -> accepts a connection and returns a socket
+close -> shut down the TCP listener
+path -> returns the file system path of the listener
+
+socket messages
+
+to-bool -> true
+close -> close the socket
+path -> file system path the socket is connected to
+
+
+tcp-socket
+
+to-bool -> true
+ready? -> true if there is a connection ready to be accepted
+accept -> accepts a connection and returns a socket
+close -> shut down the TCP listener
+ip -> returns local IP address
+port -> returns the port number of the listener
+
+socket messages
+
+to-bool -> true
+close -> close the socket
+local-addr -> local IP address of the socket
+local-port -> local port number of the socket
+remote-addr -> remote IP address of the socket
+remote-port -> remote port number of the socket
+)
+
+
+(rem:
+
+
+(define (prep-defs seq env cont err)
+    ; predefine all defs for mutual recursion
+    (define (get-names seq)
+        (map
+            cadr
+            (filter
+                (lambda (x)
+                    (and (pair? x)
+                         (or
+                            (eq? (car x) 'def)
+                            (and (eq? (car x) 'proc) (symbol? (cadr x)))
+                            (eq? (car x) 'macro))))
+                seq)))
+    (define names (get-names seq))
+    (define haz? (sexy-send-env env 'has? top-cont top-err))
+    (define needed (filter (lambda (n) (not (haz? n)))  names))
+    (define margs (flatten (zip needed (make-list (length needed) will-exist))))
+    (if (> (length margs) 0)
+        (apply mutate! (cons env (cons cont (cons err margs))))
+        (cont 'null)))
+
+(define (prepare-sexy-args xs)
+    (define (rval args opts)
+        (cons (reverse args) (reverse opts)))
+    (if (pair? xs)
+        (let loop ((head (car xs)) (tail (cdr xs)) (args '()) (opts '()))
+            (if (keyword? head)
+                (let ((k head) (v (car tail)))
+                    (if (pair? (cdr tail))
+                        (loop (cadr tail) (cddr tail) args (cons v (cons k opts)))
+                        (rval args (cons v (cons k opts)))))
+                (if (pair? tail)
+                    (loop (car tail) (cdr tail) (cons head args) opts)
+                    (rval (cons head args) opts))))
+        (rval '() '())))
+
+(define my-empty-record (sexy-record))
+
+(define (prep-options opts)
+    (if (= 0 (length opts))
+        my-empty-record
+        (apply sexy-record
+               (map (lambda (k) (if (keyword? k) (keyword->symbol k) k)) opts))))
+
+(define-syntax frag
+    (ir-macro-transformer
+        (lambda (expr inject compare)
+            (let ((body (cdr expr)))
+                `(lambda (,(inject 'env) ,(inject 'cont) ,(inject 'err)) ,@body)))))
+
+(define (sexy-compile code)
+    (if (and (pair? code) (list? code))
+        (case (car code)
+            ((def)      (sexy-compile-def code))
+            ((quote)    (sexy-compile-quote code))
+            ((if)       (sexy-compile-if code))
+            ((seq)      (sexy-compile-seq code))
+            ((macro)    (sexy-compile-macro code))
+            ((λ)        (sexy-compile-lambda code))
+            ((proc)     (sexy-compile-proc code))
+            ((wall)     (sexy-compile-wall code))
+            ((gate)     (sexy-compile-gate code))
+            ((capture)  (sexy-compile-capture code))
+            ((guard)    (sexy-compile-guard code))
+            ((error)    (sexy-compile-error code))
+            ((use)      (sexy-compile-use code))
+            (else       (sexy-compile-application code)))
+        (sexy-compile-atom code)))
+
+(define (sexy-compile-atom code)
+    (define pass (frag (cont code)))
+    (if (symbol? code)
+        (if (keyword? code)
+            pass
+            (case code
+                ((true) (frag (cont #t)))
+                ((false) (frag (cont #f)))
+                ((null) pass)
+                ((env) (frag (cont env)))
+                (else
+                    (if (sexy-global? code)
+                        (frag
+                            (cont (glookup code)))
+                        (frag
+                            (lookup
+                                env
+                                code
+                                (lambda (v)
+                                    (if (eq? not-found v)
+                                        (err (sexy-object `(type error name undefined-symbol form ,code to-text "Name not defined.") #f #f #f) cont)
+                                        (cont v)))
+                                err))))))
+        pass))
+
+(define (sexy-compile-def code)
+    (define name (cadr code))
+    (define val (caddr code))
+    (if (not (symbol? name))
+        (sexy-error "def: first argument must be a symbol.  Got " code)
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (sexy-object `(type error name bad-def form ,code to-text "Name already defined in the local environment.") #f #f #f) cont)
+                                (let ((val-c (sexy-compile val)))
+                                    (val-c
+                                        env
+                                        (lambda (v)
+                                            (mutate!
+                                                env
+                                                (lambda (null)
+                                                    (cont v))
+                                                err
+                                                name
+                                                v))
+                                        err))))
+                        err))
+                err))))
+
+(define (sexy-compile-quote code)
+    (frag
+        (cont (cadr code))))
+
+(define (sexy-compile-if code)
+    (define pred (sexy-compile (cadr code)))
+    (define if-true (sexy-compile (caddr code)))
+    (define if-false (sexy-compile (cadddr code)))
+    (frag
+        (pred
+            env
+            (lambda (b)
+                (sexy-bool
+                    b
+                    (lambda (is-true)
+                        (if is-true
+                            (if-true env cont err)
+                            (if-false env cont err)))
+                    err))
+            err)))
+
+(define (sexy-compile-seq code)
+    (define seq (cdr code))
+    (if (pair? seq)
+        (sexy-seq-subcontractor seq #t)
+        (sexy-error code "Empty sequences are forbidden!")))
+
+(define (sexy-seq-subcontractor xs prep?)
+    (define head (car xs))
+    (define tail (cdr xs))
+    (let ((head-c (sexy-compile head)))
+        (if (pair? tail)
+            (let ((tail-c (sexy-seq-subcontractor tail #f)))
+                (if prep?
+                    (frag
+                        (prep-defs
+                            xs
+                            env
+                            (lambda (null)
+                                (head-c
+                                    env
+                                    (lambda (h) (tail-c env cont err))
+                                    err))
+                            err))
+                    (frag
+                        (head-c
+                            env
+                            (lambda (h) (tail-c env cont err))
+                            err))))
+            head-c)))
+
+(define (check-formals formals)
+    (if (pair? formals)
+        (let loop ((f (car formals)) (fs (cdr formals)))
+            (if (holy? f)
+                (begin (sexy-error (blasphemy f)) #f)
+                (if (pair? fs)
+                    (loop (car fs) (cdr fs))
+                    #t)))
+        #t))
+
+(define (make-sexy-lambda code env formals body)
+    (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor body #f))
+    (if (check-formals formals)
+        (let ((p
+            (sexy-proc
+                code
+                env 
+                (lambda (args opts cont err)
+                    (if (not (= arity (length args)))
+                        (err (list 'arity code (sprintf "This lambda requires ~A arguments. Given: " arity) args) cont)
+                        (let* ((fargs (if (pair? args) (take args arity) '())))
+                               (extend
+                                    env 
+                                    formals
+                                    fargs
+                                    (lambda (noob)
+                                        (bodies-c noob cont err))
+                                    err)))))))
+            (hts! p 'type 'λ)
+            p)
+        (sexy-error 'bad-formals-in-lambda code)))
+
+(define (sexy-compile-lambda code)
+    (let ((formals (cadr code)) (bodies (cddr code)))
+        (frag
+            (cont (make-sexy-lambda code env formals bodies)))))
+
+(define (make-sexy-proc code env formals bodies)
+    (define arity (length formals))
+    (define bodies-c (sexy-seq-subcontractor bodies #t))
+    (if (check-formals formals)
+        (sexy-proc
+            code
+            env 
+            (lambda (args opts cont err)
+                (if (< (length args) arity)
+                    (err (list 'arity code (sprintf "This procedure requires at least ~A arguments. Given: " arity) args) cont)
+                    (let* ((fargs (if (pair? args) (take args arity) '()))
+                           (the-rest (if (pair? args) (drop args arity) '()))
+                           (returner cont))
+                           (extend
+                                env 
+                                (append formals '(opt rest return))
+                                (append fargs (list opts the-rest returner))
+                                (lambda (noob)
+                                    (bodies-c noob cont err))
+                                err)))))
+        (sexy-error 'bad-formals-in-proc code)))
+
+(define (sexy-compile-proc code)
+    (define is-named (symbol? (cadr code)))
+    (if is-named
+        (sexy-compile `(def ,(cadr code) (proc ,(caddr code) ,@(cdddr code))))
+        (let ((formals (cadr code)) (bodies (cddr code)))
+            (frag
+                (cont (make-sexy-proc code env formals bodies))))))
+
+(define (sexy-compile-macro code)
+    (define name (cadr code))
+    (define formals (caddr code))
+    (define bodies (cdddr code))
+    (if (not (symbol? name))
+        (sexy-error "macro expects it's first argument to be a symbol.  Got " code)
+        (frag
+            (sexy-send-env env 'has?
+                (lambda (haz?)
+                    (sexy-send-env env 'get
+                        (lambda (getter)
+                            (if (and
+                                    (haz? name)
+                                    (not (eq? will-exist (getter name))))
+                                (err (list 'bad-def code name " is already defined in the local environment.") cont)
+                                (let ((thing (make-sexy-proc code env formals bodies)))
+                                    (hts! thing 'type 'operator)
+                                    (mutate!
+                                        env
+                                        (lambda (null)
+                                            (cont thing))
+                                        err
+                                        name
+                                        thing))))
+                        err))
+                err))))
+
+(define (sexy-compile-wall code)
+    (define args (cadr code))
+    (define exprs (cddr code))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
+    ; create new env and copy args
+    (frag
+        (define noob (sexy-environment #f))
+        (sexy-send noob 'def!
+            (lambda (def!)
+                (let loop ((travellers args))
+                    (if (pair? travellers)
+                        (let ((x (car travellers)) (xs (cdr travellers)))
+                            (lookup env x
+                                (lambda (v)
+                                    (def! x v)
+                                    (loop xs))
+                                err))
+                        (expr-c noob cont err))))
+                    err)))
+
+(define (sexy-compile-gate code)
+    (define exprs (cdr code))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
+    (frag
+        (cont
+            (expr-c env identity err))))
+
+(define (sexy-compile-capture code)
+    (define name (cadr code))
+    (define lamb (cons 'proc (cons (list name) (cddr code))))
+    (define lamb-c (sexy-compile lamb))
+    (frag
+        (lamb-c
+            env
+            (lambda (funk)
+                (sexy-apply
+                    funk
+                    (list (lambda (k-val) (cont k-val)))
+                    'null
+                    top-cont
+                    err))
+            err)))
+
+(define (sexy-compile-guard code)
+    (define handler (cadr code))
+    (define exprs (cddr code))
+    (define handler-c (sexy-compile handler))
+    (define expr-c (sexy-seq-subcontractor exprs #t))
+    (frag
+        (handler-c
+            env
+            (lambda (handler-fn)
+                (define (new-err-cont e k)
+                    (sexy-apply handler-fn (list e k) 'null cont err))
+                (expr-c env cont new-err-cont))
+            err)))
+
+(define (sexy-compile-error code)
+    (define errobj (cadr code))
+    (define erob-c (sexy-compile errobj))
+    (frag
+        (erob-c
+            env
+            (lambda (e)
+                (err e cont))
+            err)))
+
+(define (sexy-compile-use code)
+    (define name (cadr code))
+    (define path (caddr code))
+    (define module
+        (if (hte? sexy-modules path)
+            (htr sexy-modules path)
+            (lambda args 'null)))
+    (define load-env (local-env))
+    (define args-opts (prepare-sexy-args (cddr code)))
+    (define args-c (sexy-compile-list (cdar args-opts)))
+    (define opts-c (sexy-compile-list (cdr args-opts)))
+    (frag 
+        (args-c
+            env
+            (lambda (args)
+                (opts-c
+                    env
+                    (lambda (opts)
+                        (module load-env top-cont top-err)
+                        (lookup load-env 'sexy-internal-library-export-procedure
+                            (lambda (exporter)
+                                (if (eq? exporter not-found)
+                                    (cont (lambda args 'null))
+                                    (sexy-apply
+                                        exporter
+                                        args
+                                        (prep-options opts)
+                                        (lambda (v)
+                                            (mutate!
+                                                env
+                                                (lambda (null)
+                                                    (cont v))
+                                                err
+                                                name
+                                                v))
+                                        err)))
+                            err))
+                    err))
+            err)))
+
+(define (sexy-compile-list xs)
+    (if (pair? xs)
+        (let ((head (sexy-compile (car xs))) (tail (sexy-compile-list (cdr xs))))
+            (frag
+                (head
+                    env
+                    (lambda (h)
+                        (tail
+                            env
+                            (lambda (t) (cont (cons h t)))
+                            err))
+                    err)))
+        (frag (cont '()))))
+
+(define (sexy-compile-application code)
+    (define fn-c (sexy-compile (car code)))
+    (define args-opts (prepare-sexy-args (cdr code)))
+    (define args-c (sexy-compile-list (car args-opts)))
+    (define opts-c (sexy-compile-list (cdr args-opts)))
+    (frag
+        (fn-c
+            env
+            (lambda (f) 
+                (args-c
+                    env
+                    (lambda (args)
+                        (opts-c
+                            env
+                            (lambda (opts)
+                                (sexy-apply f args (prep-options opts) cont err))
+                            err))
+                    err))
+            err)))
+)
