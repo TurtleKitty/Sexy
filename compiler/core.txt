@@ -418,7 +418,6 @@ reader literals:
 prelude:
 
 (macro lib (vars body))
-(macro use (name uri))
 (macro thunk ())
 (proc isa? (thing type))
 (proc bool? (thing))

@@ -39,7 +39,7 @@
     stream       control-stream
     fs-socket    control-fs-socket
     tcp-socket   control-tcp-socket
-)
+))
 
 (def object-defaults (:
     type    (λ (obj) 'object)
@@ -47,7 +47,7 @@
     write   (λ (obj) %(object @(send obj 'messages)))
     print   (λ (obj) %(object @(send obj 'messages)))
     to-bool (λ (obj) true)
-)
+))
 
 (proc has-msg? (obj msg)
     ((sexy-internal-object-answers? obj) msg))
