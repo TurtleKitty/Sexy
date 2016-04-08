@@ -17,21 +17,21 @@
             %(send $obj (quote $msg))
             "Message not understood."))) 
 
-(def null-messages '(to-symbol to-text apply))
+(def null-messages '(to-symbol apply))
 
 (def control-null (:
     type      (prob null)
-    view      (prob null)
-    write     (prob null)
-    print     (prob null)
+    view      (prob "null")
+    write     (prob "null")
+    print     (prob "null")
+    to-text   (prob "null")
     to-bool   (prob false)
     messages  (prob null-messages)
     answers?  (prob (prom (null-messages.has? msg)))
-    autos     (prob ())
+    autos     (prob '(to-symbol))
     resends   (prob ())
     default   (prob (prom null))
     to-symbol (prob null)
-    to-text   (prob "null")
     apply (prob
         (error-object
             'apply-null
@@ -43,9 +43,10 @@
 
 (def control-bool (:
     type      (prob 'bool)
-    view      (prob obj)
-    write     (prob obj)
-    print     (prob obj)
+    view      (prob (if obj "true" "false"))
+    write     (prob (if obj "true" "false"))
+    print     (prob (if obj "true" "false"))
+    to-text   (prob (if obj "true" "false"))
     to-bool   (prob obj)
     messages  (prob bool-messages)
     answers?  (prob (prom (bool-messages.has? msg)))
@@ -53,7 +54,6 @@
     resends   (prob ())
     default   idk
     to-symbol (prob obj)
-    to-text   (prob (if obj "true" "false"))
     not       (prob (sexy-internal-primitive-not obj))
 ))
 
@@ -61,10 +61,10 @@
 
 (def control-int (:
     type      (prob 'int)
-    view      (prob (sexy-internal-primitive-number->string obj))
-    write     (prob (sexy-internal-primitive-number->string obj))
-    print     (prob (sexy-internal-primitive-number->string obj))
-    to-text   (prob (sexy-internal-primitive-number->string obj))
+    view      (prob (sexy-internal-primitive-number-to-text obj))
+    write     (prob (sexy-internal-primitive-number-to-text obj))
+    print     (prob (sexy-internal-primitive-number-to-text obj))
+    to-text   (prob (sexy-internal-primitive-number-to-text obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
     messages  (prob int-messages)
     answers?  (prob (prom (int-messages.has? msg)))
@@ -72,7 +72,7 @@
     resends   (prob ())
     default   idk
     to-number (prob obj)
-    to-utf8   (prob (sexy-internal-primitive-integer->char obj))
+    to-utf8   (prob (sexy-internal-primitive-int-to-rune obj))
     zero?     (prob (= obj 0))
     pos?      (prob (> obj 0))
     neg?      (prob (< obj 0))
@@ -91,10 +91,10 @@
 
 (def control-rat (:
     type      (prob 'rat)
-    view      (prob (sexy-internal-primitive-number->string obj))
-    write     (prob (sexy-internal-primitive-number->string obj))
-    print     (prob (sexy-internal-primitive-number->string obj))
-    to-text   (prob (sexy-internal-primitive-number->string obj))
+    view      (prob (sexy-internal-primitive-number-to-text obj))
+    write     (prob (sexy-internal-primitive-number-to-text obj))
+    print     (prob (sexy-internal-primitive-number-to-text obj))
+    to-text   (prob (sexy-internal-primitive-number-to-text obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
     messages  (prob rat-messages)
     answers?  (prob (prom (rat-messages.has? msg)))
@@ -116,10 +116,10 @@
 
 (def control-real (:
     type      (prob 'real)
-    view      (prob (sexy-internal-primitive-number->string obj))
-    write     (prob (sexy-internal-primitive-number->string obj))
-    print     (prob (sexy-internal-primitive-number->string obj))
-    to-text   (prob (sexy-internal-primitive-number->string obj))
+    view      (prob (sexy-internal-primitive-number-to-text obj))
+    write     (prob (sexy-internal-primitive-number-to-text obj))
+    print     (prob (sexy-internal-primitive-number-to-text obj))
+    to-text   (prob (sexy-internal-primitive-number-to-text obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
     messages  (prob real-messages)
     answers?  (prob (prom (real-messages.has? msg)))
@@ -142,47 +142,124 @@
 
 (def control-rune (:
     type      (prob 'rune)
-    view      (prob (sexy-internal-primitive-list->string (list \\ obj)))
-    write     (prob (sexy-internal-primitive-list->string (list \\ obj))) ; FIXME \space, \tab, \newline, \return
-    print     (prob (sexy-internal-primitive-list->string (list obj)))
-    to-text   (prob (sexy-internal-primitive-list->string (list obj)))
-    to-bool   (prob (sexy-internal-primitive-not (sexy-internal-primitive-char-whitespace? obj)))
+    view      (prob (sexy-internal-primitive-list-to-text (list \\ obj)))
+    write     (prob (sexy-internal-primitive-list-to-text (list \\ obj))) ; FIXME \space, \tab, \newline, \return
+    print     (prob (sexy-internal-primitive-list-to-text (list obj)))
+    to-text   (prob (sexy-internal-primitive-list-to-text (list obj)))
+    to-bool   (prob (sexy-internal-primitive-not (sexy-internal-primitive-rune-whitespace? obj)))
     messages  (prob rune-messages)
     answers?  (prob (prom (rune-messages.has? msg)))
     autos     (prob rune-messages)
     resends   (prob ())
     default   idk
     to-rune   (prob obj)
-    to-int    (prob (sexy-internal-primitive-string->number (sexy-internal-primitive-string obj)))
-    code      (prob (sexy-internal-primitive-char->integer obj))
-    alpha?       (proc (sexy-internal-primitive-char-alpha? obj))
-    digit?       (proc (sexy-internal-primitive-char-digit? obj))
-    whitespace?  (proc (sexy-internal-primitive-char-whitespace? obj))
-    uc?  (proc (sexy-internal-primitive-char-uc? obj))
-    lc?  (proc (sexy-internal-primitive-char-lc? obj))
-    uc   (proc (sexy-internal-primitive-char-uc obj))
-    lc   (proc (sexy-internal-primitive-char-lc obj))
+    to-int    (prob (sexy-internal-primitive-text-to-number (sexy-internal-primitive-text obj)))
+    code      (prob (sexy-internal-primitive-rune-to-int obj))
+    alpha?       (proc (sexy-internal-primitive-rune-alpha? obj))
+    digit?       (proc (sexy-internal-primitive-rune-digit? obj))
+    whitespace?  (proc (sexy-internal-primitive-rune-whitespace? obj))
+    uc?  (proc (sexy-internal-primitive-rune-uc? obj))
+    lc?  (proc (sexy-internal-primitive-rune-lc? obj))
+    uc   (proc (sexy-internal-primitive-rune-uc obj))
+    lc   (proc (sexy-internal-primitive-rune-lc obj))
 ))
 
 (def symbol-messages '(to-symbol))
 
 (def control-symbol (:
-    type      (prob 'rune)
-    view      (prob (sexy-internal-primitive-symbol->string (list \\ obj)))
-    write     (prob (sexy-internal-primitive-symbol->string (list \\ obj))) ; FIXME \space, \tab, \newline, \return
-    print     (prob (sexy-internal-primitive-symbol->string (list obj)))
-    to-text   (prob (sexy-internal-primitive-symbol->string (list obj)))
+    type      (prob 'symbol)
+    view      (prob (sexy-internal-primitive-symbol-to-text obj))
+    write     (prob (sexy-internal-primitive-symbol-to-text obj))
+    print     (prob (sexy-internal-primitive-symbol-to-text obj))
+    to-text   (prob (sexy-internal-primitive-symbol-to-text obj))
     to-bool   (prob true)
     messages  (prob symbol-messages)
     answers?  (prob (prom (symbol-messages.has? msg)))
-    autos     (prob rune-messages)
+    autos     (prob symbol-messages)
     resends   (prob ())
     default   idk
     to-symbol (prob obj)
 ))
 
-(def control-bin (:))
-(def control-text (:))
+(def bin-messages '(to-int to-list size clone set!))
+
+(def control-bin (:
+    ; FIXME
+    type      (prob 'bin)
+    view      (prob (sexy-internal-primitive-bin-to-text obj))
+    write     (prob (sexy-internal-primitive-bin-to-text obj))
+    print     (prob (sexy-internal-primitive-bin-to-text obj))
+    to-text   (prob (sexy-internal-primitive-bin-to-text obj))
+    to-bool   (prob true)
+    messages  (prob bin-messages)
+    answers?  (prob (prom (bin-messages.has? msg)))
+    autos     (prob '(to-number to-list size clone))
+    resends   (prob ())
+    default   idk
+    to-int    idk
+    to-list   idk
+    size      idk
+    clone     idk
+    set!      idk
+))
+
+(def text-messages '(to-symbol to-option to-number to-list to-bin to-stream size empty clone chomp trim ltrim rtrim lpad rpad set! index take drop match split capture replace))
+
+(def control-text (:
+    type      (prob 'text)
+    view      (prob (cat \" obj \"))
+    write     (prob (cat \" obj \"))
+    print     (prob obj)
+    to-text   (prob obj)
+    to-bool   (prob (if (= "" obj) false true))
+    messages  (prob text-messages)
+    answers?  (prob (prom (text-messages.has? msg)))
+    autos     (prob text-messages)
+    resends   (prob ())
+    default   (prob
+                 (prom 
+                     (if (number? msg)
+                         (if (> (sexy-internal-primitive-text-size obj) msg)
+                             (sexy-internal-primitive-text-ref obj msg)
+                             (error-object 'out-of-bounds %(send $obj $msg) "text: index out of bounds."))
+                         ((idk obj) msg))))
+    to-symbol   (prob (sexy-internal-primitive-text-to-symbol obj))
+    to-option   (prob (sexy-internal-primitive-text-to-keyword obj))
+    to-number   (prob (sexy-internal-primitive-text-to-number obj))
+    to-list     (prob (sexy-internal-primitive-text-to-list obj))
+    to-bin      (prob (sexy-internal-primitive-text-to-bin obj))
+    to-stream   (prob (sexy-internal-primitive-text-to-stream obj))
+    size    (prob (sexy-internal-primitive-text-size obj))
+    empty?  (prob (= "" obj))
+    clone   (prob (sexy-internal-primitive-text-clone obj))
+    chomp   (prob (sexy-internal-primitive-text-chomp obj))
+    trim    (prob (sexy-internal-primitive-text-trim obj))
+    ltrim   (prob (sexy-internal-primitive-text-trim-left obj))
+    rtrim   (prob (sexy-internal-primitive-text-trim-right obj))
+    lpad    (prob (λ (rune n) (sexy-internal-primitive-text-pad-left obj rune n)))
+    rpad    (prob (λ (rune n) (sexy-internal-primitive-text-pad-right obj rune n)))
+    set!    (prob (λ (n rune) (sexy-internal-primitive-text-set! obj n rune)))
+    index   (prob (λ (substr) (sexy-internal-primitive-text-subtext-index obj substr)))
+    take    (prob (λ (n) (sexy-internal-primitive-text-take obj n)))
+    drop    (prob (λ (n) (sexy-internal-primitive-text-drop obj n)))
+    match (prob
+        (proc (regex)
+            (def flags (or opt.flags ""))
+            (sexy-internal-primitive-text-match obj regex flags)))
+    split (prob
+        (proc (regex)
+            (def flags (or opt.flags ""))
+            (sexy-internal-primitive-text-split obj regex flags)))
+    capture (prob
+        (proc (regex)
+            (def flags (or opt.flags ""))
+            (sexy-internal-primitive-text-capture obj regex flags)))
+    replace (prob
+        (proc (regex replacement)
+            (def flags (or opt.flags ""))
+            (sexy-internal-primitive-text-replace obj regex flags)))
+))
+
 (def control-env (:))
 (def control-pair (:))
 (def control-vector (:))
@@ -262,48 +339,6 @@
 
 (rem:
 "
-
-bin
-
-view  (64 127 99 22 ...)
-to-bool 'true
-to-number -> ReallyBigInt
-to-list -> list of ints
-to-text -> UTF8
-size -> no of bytes
-clone
-set! <index> <uint 0-255>
-
-
-text
-
-view
-to-bool -> empty is false, else true
-to-symbol
-to-option
-to-number -> int or real
-to-list -> (\a \b \c)
-to-bin -> bin
-to-text -> self
-to-stream
-size
-empty?
-clone
-chomp
-trim
-ltrim
-rtrim
-(lpad \rune n)
-(rpad \rune n)
-(take n)
-(drop m)
-set! ???
-(index "subtext")
-(match "regex")
-(split "regex")
-(capture "regex")
-(replace "regex" "replacement")
-
 
 pair
 
@@ -502,123 +537,6 @@ remote-port -> remote port number of the socket
 )
 
 
-; 
-; (define (sexy-send-text obj msg cont err)
-;     (define msgs
-;         '(view clone to-bool to-symbol to-keyword to-number
-;           to-list to-text to-stream size chomp index take drop
-;           trim ltrim rtrim lpad rpad set! split match capture replace))
-;     (define (build-regex re flags)
-;         (define opts
-;             (append
-;                 (list re 'fast 'utf8)
-;                 (filter
-;                     (lambda (x) (not (eq? x 'g)))
-;                     (map string->symbol (string-split flags "")))))
-;         (apply irregex opts))
-;     (case msg
-;         ((type view autos resends default clone to-bool to-symbol to-keyword to-number to-list to-text to-stream size chomp index take drop trim ltrim rtrim lpad rpad messages responds?)
-;             (cont
-;                 (case msg
-;                     ((type) 'text)
-;                     ((view) obj)
-;                     ((autos) '(view to-bool to-symbol to-text to-keyword to-number to-list to-stream size chomp ltrim rtrim trim))
-;                     ((resends) '())
-;                     ((default) default-default)
-;                     ((clone) (string-copy obj))
-;                     ((to-bool) (not (eq? (string-length obj) 0)))
-;                     ((to-symbol) (string->symbol obj))
-;                     ((to-keyword) (string->keyword obj))
-;                     ((to-number) (string->number obj))
-;                     ((to-list) (string->list obj))
-;                     ((to-vector) (list->vector (string->list obj)))
-;                     ((to-text) obj)
-;                     ((to-stream) (open-input-string obj))
-;                     ((take) (lambda (n) (string-take obj n)))
-;                     ((drop) (lambda (n) (string-drop obj n)))
-;                     ((trim) (string-trim-both obj))
-;                     ((ltrim) (string-trim obj))
-;                     ((rtrim) (string-trim-right obj))
-;                     ((lpad) (lambda (rune n) (string-pad obj n rune)))
-;                     ((rpad) (lambda (rune n) (string-pad-right obj n rune)))
-;                     ((chomp) (string-chomp obj))
-;                     ((index) (lambda (which) (substring-index which obj)))
-;                     ((size) (string-length obj))
-;                     ((messages) msgs)
-;                     ((responds?)
-;                         (lambda (msg)
-;                             (or
-;                                 (and (number? msg) (> (string-length obj) msg))
-;                                 (if (member msg msgs) #t #f)))))))
-;         ((split)
-;             (cont
-;                 (sexy-proc
-;                     primitive-type
-;                     'text
-;                     (lambda (args opts cont err)
-;                         (define flags (sexy-send-atomic opts 'flags))
-;                         (define re (build-regex (car args) (if (eq? 'null flags) "" flags)))
-;                         (cont (irregex-split re obj))))))
-;         ((match)
-;             (cont
-;                 (sexy-proc
-;                     primitive-type
-;                     'text
-;                     (lambda (args opts cont err)
-;                         (define flags (sexy-send-atomic opts 'flags))
-;                         (define re (build-regex (car args) (if (eq? 'null flags) "" flags)))
-;                         (define rez (irregex-search re obj))
-;                         (cont 
-;                             (if rez
-;                                 #t
-;                                 #f))))))
-;         ((capture)
-;             (cont
-;                 (sexy-proc
-;                     primitive-type
-;                     'text
-;                     (lambda (args opts cont err)
-;                         (define flags (sexy-send-atomic opts 'flags))
-;                         (define re (build-regex (car args) (if (eq? 'null flags) "" flags)))
-;                         (cont
-;                             (irregex-fold
-;                                 re
-;                                 (lambda (idx match acc)
-;                                     (define n (irregex-match-num-submatches match))
-;                                     (let loop ((this n) (matches '()))
-;                                         (if (= this 0)
-;                                             (cons matches acc)
-;                                             (loop (- this 1) (cons (irregex-match-substring match this) matches)))))
-;                                 '()
-;                                 obj
-;                                 (lambda (idx acc) (reverse acc))))))))
-;         ((replace)
-;             (cont
-;                 (sexy-proc
-;                     primitive-type
-;                     'text
-;                     (lambda (args opts cont err)
-;                         (define fopt (sexy-send-atomic opts 'flags))
-;                         (define flags (if (eq? 'null fopt) "" fopt))
-;                         (define re (build-regex (car args) flags))
-;                         (cont
-;                             (if (string-contains flags "g")
-;                                 (apply irregex-replace/all (cons re (cons obj (cdr args))))
-;                                 (apply irregex-replace (cons re (cons obj (cdr args))))))))))
-;         ((set!)
-;             (cont 
-;                 (lambda (idx val)
-;                     (if (> idx (string-length obj))
-;                         (err (sexy-error-object 'out-of-bounds `(,obj ,idx) "text: index out of bounds.") cont)
-;                         (begin
-;                             (string-set! obj idx val)
-;                             obj)))))
-;         (else
-;             (if (number? msg)
-;                 (if (> (string-length obj) msg)
-;                     (cont (string-ref obj msg))
-;                     (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "text: index out of bounds.") cont))
-;                 (idk obj msg cont err)))))
 ; 
 ; (define (sexy-ho code obj cont err)
 ;     (sexy-apply
