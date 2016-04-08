@@ -90,7 +90,7 @@
 (def rat-messages '(to-number zero? pos? neg? abs floor ceil round truncate))
 
 (def control-rat (:
-    type      (prob 'rat)
+    type      (prob 'rational)
     view      (prob (sexy-internal-primitive-number-to-text obj))
     write     (prob (sexy-internal-primitive-number-to-text obj))
     print     (prob (sexy-internal-primitive-number-to-text obj))
@@ -265,7 +265,7 @@
 (def control-vector (:))
 (def control-record (:))
 (def control-λ (:))
-(def control-prov (:))
+(def control-proc (:))
 (def control-stream (:))
 (def control-fs-socket (:))
 (def control-tcp-socket (:))
@@ -285,7 +285,7 @@
     vector       control-vector
     record       control-record
     λ            control-λ
-    proc         control-prov
+    proc         control-proc
     stream       control-stream
     fs-socket    control-fs-socket
     tcp-socket   control-tcp-socket
