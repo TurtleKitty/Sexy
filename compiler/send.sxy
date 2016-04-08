@@ -164,7 +164,23 @@
     lc   (proc (sexy-internal-primitive-char-lc obj))
 ))
 
-(def control-symbol (:))
+(def symbol-messages '(to-symbol))
+
+(def control-symbol (:
+    type      (prob 'rune)
+    view      (prob (sexy-internal-primitive-symbol->string (list \\ obj)))
+    write     (prob (sexy-internal-primitive-symbol->string (list \\ obj))) ; FIXME \space, \tab, \newline, \return
+    print     (prob (sexy-internal-primitive-symbol->string (list obj)))
+    to-text   (prob (sexy-internal-primitive-symbol->string (list obj)))
+    to-bool   (prob true)
+    messages  (prob symbol-messages)
+    answers?  (prob (prom (symbol-messages.has? msg)))
+    autos     (prob rune-messages)
+    resends   (prob ())
+    default   idk
+    to-symbol (prob obj)
+))
+
 (def control-bin (:))
 (def control-text (:))
 (def control-env (:))
@@ -246,13 +262,6 @@
 
 (rem:
 "
-
-symbol
-
-view
-to-bool
-to-text
-
 
 bin
 
@@ -493,33 +502,6 @@ remote-port -> remote port number of the socket
 )
 
 
-; (define (sexy-send-symbol obj msg cont err)
-;     (define msgs '(view to-text to-bool))
-;     (case msg
-;         ((autos) (cont '(view to-bool to-text)))
-;         ((resends) (cont '()))
-;         ((default) (cont default-default))
-;         ((view) (cont obj))
-;         ((to-symbol)
-;             (cont
-;                 (if (keyword? obj)
-;                     (keyword->symbol obj)
-;                     obj)))
-;         ((to-text) (cont (symbol->string obj)))
-;         (else
-;             (case obj
-;                 ((true)  (sexy-send-bool #t msg cont err))
-;                 ((false) (sexy-send-bool #f msg cont err))
-;                 ((null)  (sexy-send-null obj msg cont err))
-;                 (else
-;                     (case msg
-;                         ((type) (cont 'symbol))
-;                         ((to-bool) (cont #t))
-;                         ((messages) (cont msgs))
-;                         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
-;                         (else (idk obj msg cont err))))))))
-; 
-; 
 ; 
 ; (define (sexy-send-text obj msg cont err)
 ;     (define msgs
