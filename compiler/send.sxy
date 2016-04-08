@@ -72,6 +72,7 @@
     resends   (prob ())
     default   idk
     to-number (prob obj)
+    to-utf8   (prob (sexy-internal-primitive-integer->char obj))
     zero?     (prob (= obj 0))
     pos?      (prob (> obj 0))
     neg?      (prob (< obj 0))
@@ -114,14 +115,14 @@
 (def real-messages '(to-number zero? pos? neg? abs floor ceil round truncate))
 
 (def control-real (:
-    type      (prob 'int)
+    type      (prob 'real)
     view      (prob (sexy-internal-primitive-number->string obj))
     write     (prob (sexy-internal-primitive-number->string obj))
     print     (prob (sexy-internal-primitive-number->string obj))
     to-text   (prob (sexy-internal-primitive-number->string obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
-    messages  (prob int-messages)
-    answers?  (prob (prom (int-messages.has? msg)))
+    messages  (prob real-messages)
+    answers?  (prob (prom (real-messages.has? msg)))
     autos     (prob '(to-number zero? pos? neg? abs floor ceil round truncate))
     resends   (prob ())
     default   idk
@@ -137,7 +138,32 @@
     abs       (prob (sexy-internal-primitive-abs obj))
 ))
 
-(def control-rune (:))
+(def rune-messages '(to-rune to-int code alpha? digit? whitespace? uc? lc? uc lc))
+
+(def control-rune (:
+    type      (prob 'rune)
+    view      (prob (sexy-internal-primitive-list->string (list \\ obj)))
+    write     (prob (sexy-internal-primitive-list->string (list \\ obj))) ; FIXME \space, \tab, \newline, \return
+    print     (prob (sexy-internal-primitive-list->string (list obj)))
+    to-text   (prob (sexy-internal-primitive-list->string (list obj)))
+    to-bool   (prob (sexy-internal-primitive-not (sexy-internal-primitive-char-whitespace? obj)))
+    messages  (prob rune-messages)
+    answers?  (prob (prom (rune-messages.has? msg)))
+    autos     (prob rune-messages)
+    resends   (prob ())
+    default   idk
+    to-rune   (prob obj)
+    to-int    (prob (sexy-internal-primitive-string->number (sexy-internal-primitive-string obj)))
+    code      (prob (sexy-internal-primitive-char->integer obj))
+    alpha?       (proc (sexy-internal-primitive-char-alpha? obj))
+    digit?       (proc (sexy-internal-primitive-char-digit? obj))
+    whitespace?  (proc (sexy-internal-primitive-char-whitespace? obj))
+    uc?  (proc (sexy-internal-primitive-char-uc? obj))
+    lc?  (proc (sexy-internal-primitive-char-lc? obj))
+    uc   (proc (sexy-internal-primitive-char-uc obj))
+    lc   (proc (sexy-internal-primitive-char-lc obj))
+))
+
 (def control-symbol (:))
 (def control-bin (:))
 (def control-text (:))
@@ -174,9 +200,9 @@
 
 (def object-defaults (:
     type    (λ (obj) 'object)
-    view    (λ (obj) %(object @(send obj 'messages)))
-    write   (λ (obj) %(object @(send obj 'messages)))
-    print   (λ (obj) %(object @(send obj 'messages)))
+    view    (λ (obj) %(object: @(send obj 'messages)))
+    write   (λ (obj) %(object: @(send obj 'messages)))
+    print   (λ (obj) %(object: @(send obj 'messages)))
     to-bool (λ (obj) true)
 ))
 
@@ -220,38 +246,6 @@
 
 (rem:
 "
-object
-
-type
-view
-write
-print
-to-bool
-to-text
-messages
-answers?
-autos
-resends
-default
-
-
-
-rune
-
-view
-to-rune
-to-text
-to-bool -> true
-to-number -> int, real, or ERROR
-code -> UTF8
-alpha?
-digit?
-whitespace?
-uc?
-lc?
-uc
-lc
-
 
 symbol
 
@@ -499,43 +493,6 @@ remote-port -> remote port number of the socket
 )
 
 
-; (define default-default
-;     (sexy-proc
-;         primitive-type
-;         'proc
-;         (lambda (args opts cont err)
-;              (err (sexy-error-object 'message-not-understood '(send obj msg) "Message not understood.") cont))))
-; 
-; (define (sexy-send obj msg cont err)
-;     (define (wtf)
-;         (write (list `(send ,obj ,msg) "Unknown object."))
-;         (newline)
-;         (cont 'WTF))
-;     (cond
-;         ((boolean? obj) (sexy-send-bool obj msg cont err))
-;         ((symbol? obj) (sexy-send-symbol obj msg cont err))
-;         ((number? obj) (sexy-send-number obj msg cont err))
-;         ((char? obj) (sexy-send-rune obj msg cont err))
-;         ((string? obj) (sexy-send-text obj msg cont err))
-;         ((null? obj) (sexy-send-empty obj msg cont err))
-;         ((list? obj) (sexy-send-list obj msg cont err))
-;         ((pair? obj) (sexy-send-pair obj msg cont err))
-;         ((procedure? obj) (sexy-send-primitive obj msg cont err))
-;         ((vector? obj) (sexy-send-vector obj msg cont err))
-;         ((port? obj) (sexy-send-stream obj msg cont err))
-;         ((hash-table? obj)
-;             (let ((t (htr obj 'type)))
-;                 (case t
-;                     ((env)    (sexy-send-env obj msg cont err))
-;                     ((record) (sexy-send-record obj msg cont err))
-;                     ((λ proc operator) (sexy-send-proc obj msg cont err))
-;                     (else (sexy-send-object obj msg cont err)))))
-;         ((eof-object? obj) (sexy-send-eof obj msg cont err))
-;         (else (wtf))))
-; 
-; (define (sexy-send-atomic obj msg)
-;     (sexy-send obj msg top-cont top-err))
-; 
 ; (define (sexy-send-symbol obj msg cont err)
 ;     (define msgs '(view to-text to-bool))
 ;     (case msg
@@ -563,37 +520,6 @@ remote-port -> remote port number of the socket
 ;                         (else (idk obj msg cont err))))))))
 ; 
 ; 
-; (define (sexy-send-rune obj msg cont err)
-;     (define msgs '(view code to-rune to-text to-bool to-number alpha? digit? whitespace? uc? lc? uc lc))
-;     (case msg
-;         ((type) (cont 'rune))
-;         ((autos) (cont '(view code to-bool to-rune to-text to-number alpha? digit? whitespace? uc? lc? uc lc)))
-;         ((resends) (cont '()))
-;         ((default) (cont default-default))
-;         ((view)
-;             (cont
-;                 (list 'rune: 
-;                     (case obj
-;                         ((#\space) "space")
-;                         ((#\newline) "lf")
-;                         ((#\return) "cr")
-;                         ((#\tab) "tab")
-;                         (else (string obj))))))
-;         ((code) (cont (char->integer obj)))
-;         ((alpha?) (cont (char-alphabetic? obj)))
-;         ((digit?) (cont (char-numeric? obj)))
-;         ((whitespace?) (cont (char-whitespace? obj)))
-;         ((uc?) (cont (char-upper-case? obj)))
-;         ((lc?) (cont (char-lower-case? obj)))
-;         ((uc) (cont (char-upcase obj)))
-;         ((lc) (cont (char-downcase obj)))
-;         ((to-bool) (cont #t))
-;         ((to-number) (cont (string->number (string obj))))
-;         ((to-text) (cont (string obj)))
-;         ((to-rune) (cont obj))
-;         ((messages) (cont msgs))
-;         ((responds?) (cont (lambda (msg) (if (member msg msgs) #t #f))))
-;         (else (idk obj msg cont err))))
 ; 
 ; (define (sexy-send-text obj msg cont err)
 ;     (define msgs
