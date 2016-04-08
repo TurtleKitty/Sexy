@@ -2,22 +2,61 @@
 (lib () send)
 
 (macro prob ()
-    %(proc (obj) @rest))
+    %(λ (obj) @rest))
+
+(macro prom ()
+    %(λ (msg) @rest))
+
+(def default-messages
+    '(type view write print to-bool messages answers? autos resends default))
+
+(proc idk (obj)
+    (prom
+        (error-object
+            'message-not-understood
+            %(send $obj (quote $msg))
+            "Message not understood."))) 
+
+(def null-messages '(to-symbol to-text apply))
 
 (def control-null (:
-    view  (prob null)
-    write (prob null)
-    print (prob null)
+    type      (prob null)
+    view      (prob null)
+    write     (prob null)
+    print     (prob null)
+    to-bool   (prob false)
+    messages  (prob null-messages)
+    answers?  (prob (prom (null-messages.has? msg)))
+    autos     (prob ())
+    resends   (prob ())
+    default   (prob (prom null))
     to-symbol (prob null)
-    to-bool (prob false)
+    to-text   (prob "null")
     apply (prob
         (error-object
             'apply-null
             null
-            "Null is not applicable.  It cannot be used as a procedure."))
+            "null can not be used as a procedure."))
 ))
 
-(def control-bool (:))
+(def bool-messages '(to-symbol to-text not))
+
+(def control-bool (:
+    type      (prob obj)
+    view      (prob obj)
+    write     (prob obj)
+    print     (prob obj)
+    to-bool   (prob obj)
+    messages  (prob bool-messages)
+    answers?  (prob (prom (bool-messages.has? msg)))
+    autos     (prob ())
+    resends   (prob ())
+    default   idk
+    to-symbol (prob obj)
+    to-text   (prob (if obj "true" "false"))
+    not       (prob (sexy-internal-primitive-not obj))
+))
+
 (def control-int (:))
 (def control-rat (:))
 (def control-real (:))
