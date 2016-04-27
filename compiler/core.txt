@@ -322,6 +322,20 @@ remote-addr -> remote IP address of the socket
 remote-port -> remote port number of the socket
 
 
+time
+
+type 'time
+view <unix-epoch>
+write (time: <unix-epoch>)
+print "2012-04-01"
+to-int <unix-epoch int>
+to-text "2012-04-01"
+(fmt <format>)
+(add <time-interval>) -> time
+(sub <time-interval>) -> time
+(diff <time>) -> time-interval
+
+
 sys
 
 sys.messages
@@ -384,19 +398,23 @@ is?
 >
 <
 
+bin
+text
 pair
 list
 vector
 record
 environment
+time
 object
 
-apply
-send
-syntax-ok?
-gensym
 rand
 uuid
+
+send
+apply
+syntax-ok?
+gensym
 math
 physics
 

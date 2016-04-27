@@ -1,5 +1,5 @@
 
-(lib () send)
+(lib () sender)
 
 (macro prob ()
     %(λ (obj) @rest))
@@ -20,7 +20,7 @@
 (def null-messages '(to-symbol apply))
 
 (def control-null (:
-    type      (prob null)
+    type      (prob 'null)
     view      (prob "null")
     write     (prob "null")
     print     (prob "null")
@@ -203,7 +203,7 @@
     set!      idk
 ))
 
-(def text-messages '(to-symbol to-option to-number to-list to-bin to-stream size empty clone chomp trim ltrim rtrim lpad rpad set! index take drop match split capture replace))
+(def text-messages '(to-symbol to-option to-number to-list to-bin to-stream size empty? clone chomp trim ltrim rtrim lpad rpad set! index take drop match split capture replace))
 
 (def control-text (:
     type      (prob 'text)
@@ -260,15 +260,144 @@
             (sexy-internal-primitive-text-replace obj regex flags)))
 ))
 
-(def control-env (:))
-(def control-pair (:))
-(def control-vector (:))
-(def control-record (:))
-(def control-λ (:))
-(def control-proc (:))
+(def env-messages
+    '(mama to-list to-record empty? size empty? clone def! has? get set! del! lookup lookup-list extend partition expand eval))
+
+; env
+; (standard | repl | immutable | wild)
+; (def! x 1 y 2 z 3 ...)
+; (get x)
+; (set! x 2 y 3 z 5 ...)
+; (has? x)     ; local
+; (del! x y z ...)
+; (lookup x)   ; local or ancestral
+; (lookup-list '(x y z))
+; (extend u 7 v 8)
+; (partition '(x y z))
+; (expand form)
+; (eval expr)
+
+(def control-env (:
+    type      (prob 'env)
+    view      (prob (sexy-internal-primitive-env-to-text obj))
+    write     (prob (sexy-internal-primitive-env-to-text obj))
+    print     (prob (sexy-internal-primitive-env-to-text obj))
+    to-text   (prob (sexy-internal-primitive-env-to-text obj))
+    to-bool   (prob true)
+    messages  (prob env-messages)
+    answers?  (prob (prom (env-messages.has? msg)))
+    autos     (prob '(empty? mama to-list to-record))
+    resends   (prob ())
+    default   idk
+    mama      (prob (sexy-internal-primitive-env-mama obj))
+    to-list   (prob (sexy-internal-primitive-env-to-list obj))
+    to-record (prob (sexy-internal-primitive-env-to-record obj))
+    empty?    (prob (= 0 (sexy-internal-primitive-env-size obj)))
+    def!      (prob (sexy-internal-primitive-env-def! obj))   ; local
+    get       (prob (sexy-internal-primitive-env-get obj))    ; local
+    set!      (prob (sexy-internal-primitive-env-set! obj))   ; local or ancestral
+    has?      (prob (sexy-internal-primitive-env-has? obj))   ; local
+    del!      (prob (sexy-internal-primitive-env-del! obj))   ; local or ancestral
+    lookup    (prob (sexy-internal-primitive-env-lookup obj)) ; local or ancestral
+    lookup-list  (prob (sexy-internal-primitive-env-lookup-list obj)) ; local or ancestral
+    extend       (prob (sexy-internal-primitive-env-extend obj))
+    partition    (prob (sexy-internal-primitive-env-partition obj))
+    expand    (prob 
+        ; FIXME : macroexpand expr
+    )
+    eval      (prob
+        ; FIXME : expand then interpret expr
+    )
+))
+
+(def control-pair (:
+
+))
+
+(def control-vector (:
+
+))
+
+(def control-record (:
+
+))
+
+(def proc-messages '(apply arity code env formals))
+
+(def control-λ (:
+    type      (prob 'λ)
+    view      (prob (sexy-internal-primitive-λ-to-text obj))
+    write     (prob (sexy-internal-primitive-λ-to-text obj))
+    print     (prob (sexy-internal-primitive-λ-to-text obj))
+    to-text   (prob (sexy-internal-primitive-λ-to-text obj))
+    to-bool   (prob true)
+    messages  (prob proc-messages)
+    answers?  (prob (prom (proc-messages.has? msg)))
+    autos     (prob '(arity code env formals))
+    resends   (prob ())
+    default   idk
+    apply     (prob (λ (args opts) (sexy-internal-primitive-apply obj args opts)))
+    arity     (prob (sexy-internal-primitive-proc-arity obj))
+    code      (prob (sexy-internal-primitive-proc-code obj))
+    env       (prob (sexy-internal-primitive-proc-env obj))
+    formals   (prob (sexy-internal-primitive-proc-formals obj))
+))
+
+(def control-proc (:
+    type      (prob 'proc)
+    view      (prob (sexy-internal-primitive-proc-to-text obj))
+    write     (prob (sexy-internal-primitive-proc-to-text obj))
+    print     (prob (sexy-internal-primitive-proc-to-text obj))
+    to-text   (prob (sexy-internal-primitive-proc-to-text obj))
+    to-bool   (prob true)
+    messages  (prob proc-messages)
+    answers?  (prob (prom (proc-messages.has? msg)))
+    autos     (prob '(arity code env formals))
+    resends   (prob ())
+    default   idk
+    apply     (prob (λ (args opts) (sexy-internal-primitive-apply obj args opts)))
+    arity     (prob (sexy-internal-primitive-proc-arity obj))
+    code      (prob (sexy-internal-primitive-proc-code obj))
+    env       (prob (sexy-internal-primitive-proc-env obj))
+    formals   (prob (sexy-internal-primitive-proc-formals obj))
+))
+
+(def control-operator (:
+    type      (prob 'operator)
+    view      (prob (sexy-internal-primitive-operator-to-text obj))
+    write     (prob (sexy-internal-primitive-operator-to-text obj))
+    print     (prob (sexy-internal-primitive-operator-to-text obj))
+    to-text   (prob (sexy-internal-primitive-operator-to-text obj))
+    to-bool   (prob true)
+    messages  (prob proc-messages)
+    answers?  (prob (prom (proc-messages.has? msg)))
+    autos     (prob '(arity code env formals))
+    resends   (prob ())
+    default   idk
+    apply     (prob (λ (args opts) (sexy-internal-primitive-apply obj args opts)))
+    arity     (prob (sexy-internal-primitive-proc-arity obj))
+    code      (prob (sexy-internal-primitive-proc-code obj))
+    env       (prob (sexy-internal-primitive-proc-env obj))
+    formals   (prob (sexy-internal-primitive-proc-formals obj))
+))
+
 (def control-stream (:))
 (def control-fs-socket (:))
 (def control-tcp-socket (:))
+
+(def control-eof (:
+    type      (prob 'EOF)
+    view      (prob "EOF")
+    write     (prob "EOF")
+    print     (prob "EOF")
+    to-text   (prob "END OF LINE.")
+    to-bool   (prob false)
+    messages  (prob proc-messages)
+    answers?  (prob (prom (proc-messages.has? msg)))
+    autos     (prob '(arity code env formals))
+    resends   (prob ())
+    default   idk
+))
 
 (def control (:
     null         control-null
@@ -286,9 +415,11 @@
     record       control-record
     λ            control-λ
     proc         control-proc
+    operator     control-operator
     stream       control-stream
     fs-socket    control-fs-socket
     tcp-socket   control-tcp-socket
+    eof          control-eof
 ))
 
 (def object-defaults (:
@@ -310,7 +441,7 @@
                 method))
         (def-thunk)))
 
-(proc send (obj msg)
+(proc sender (obj msg)
     (def t (sexy-internal-get-object-type obj))
     (if (sexy-internal-record-has? control t)
         (let (dispatcher (sexy-internal-record-get control t))
@@ -425,27 +556,6 @@ clone
 (each proc)
 
 
-env (standard | repl | immutable | wild)
-
-view
-mama
-to-env
-to-bool
-to-text
-to-list
-to-record
-empty?
-(def! x 1 y 2 z 3 ...)
-(get x)
-(set! x 2 y 3 z 5 ...)
-(has? x)     ; local
-(del! x y z ...)
-(lookup x)   ; local or ancestral
-(lookup-list '(x y z))
-(extend u 7 v 8)
-(partition '(x y z))
-(expand form)
-(eval expr)
 
 
 proc / λ / operator
@@ -1272,15 +1382,4 @@ remote-port -> remote port number of the socket
 ;         ((close) (close-output-port obj) (cont 'null))
 ;         (else (idk msg obj cont err))))
 ; 
-; (define (sexy-send-eof obj msg cont err)
-;     (case msg
-;         ((type) (cont 'EOF))
-;         ((view) (cont 'EOF))
-;         ((to-bool) (cont #f))
-;         ((to-text) (cont "END OF LINE."))
-;         ((autos) '(view to-text to-bool))
-;         ((resends) '())
-;         ((default) (cont default-default))
-;         ((apply) (err (sexy-error-object 'eof-is-not-applicable '(EOF ...) "EOF objects can not be used as procedures.") cont))
-;         (else (idk msg obj cont err))))
 
