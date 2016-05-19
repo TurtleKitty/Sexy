@@ -263,20 +263,6 @@
 (def env-messages
     '(mama to-list to-record empty? size empty? clone def! has? get set! del! lookup lookup-list extend partition expand eval))
 
-; env
-; (standard | repl | immutable | wild)
-; (def! x 1 y 2 z 3 ...)
-; (get x)
-; (set! x 2 y 3 z 5 ...)
-; (has? x)     ; local
-; (del! x y z ...)
-; (lookup x)   ; local or ancestral
-; (lookup-list '(x y z))
-; (extend u 7 v 8)
-; (partition '(x y z))
-; (expand form)
-; (eval expr)
-
 (def control-env (:
     type      (prob 'env)
     view      (prob (sexy-internal-primitive-env-to-text obj))
@@ -315,19 +301,6 @@
 (def pair-messages
     '(head key tail val to-list to-vector to-record size empty? reverse cons has? append take drop apply fold reduce map filter sort each))
 
-; (cons x)
-; (has? x)
-; (append x)
-; (take n)
-; (drop n)
-; (apply (n) null)
-; (fold init proc)
-; (reduce init proc)
-; (map proc)
-; (filter proc)
-; (sort op)
-; (each proc)
-
 (def control-pair (:
     type      (prob 'pair)
     view      (prob (sexy-internal-primitive-pair-write obj))
@@ -337,7 +310,7 @@
     to-bool   (prob (if (= () obj) false true))
     messages  (prob pair-messages)
     answers?  (prob (prom (pair-messages.has? msg)))
-    autos     (prob '(empty? mama to-list to-record))
+    autos     (prob '(head key tail val to-list to-vector to-record size empty? reverse))
     resends   (prob ())
     default   (prob
                 (prom
@@ -422,12 +395,77 @@
                              (xs.tail.each funk)))))
 ))
 
+(def vector-messages
+    '())
+
 (def control-vector (:
 
 ))
 
-(def control-record (:
+(def record-messages
+    '(to-list to-record size empty? keys values pairs clone get put rm set! del! has? apply merge fold reduce map filter sort each))
 
+(def control-record (:
+    type      (prob 'record)
+    view      (prob (sexy-internal-primitive-record-to-text obj))
+    write     (prob (sexy-internal-primitive-record-to-text obj))
+    print     (prob (sexy-internal-primitive-record-to-text obj))
+    to-text   (prob (sexy-internal-primitive-record-to-text obj))
+    to-bool   (prob (if (= 0 sexy-internal-primitive-record-size obj) false true))
+    messages  (prob record-messages)
+    answers?  (prob (prom (record-messages.has? msg)))
+    autos     (prob '(size keys values pairs clone to-list to-record))
+    resends   (prob ())
+    default   (prob
+                (prom
+                    (if (sexy-internal-primitive-record-has? obj msg)
+                        (sexy-internal-primitive-record-has? obj msg)
+                        null)))
+    to-list   (prob (sexy-internal-primitive-record-to-list obj))
+    to-record (prob obj)
+    size      (prob (sexy-internal-primitive-record-size obj))
+    empty?    (prob (= 0 (sexy-internal-primitive-record-size obj)))
+    keys      (prob (sexy-internal-primitive-record-keys obj))
+    values    (prob (sexy-internal-primitive-record-values obj))
+    pairs     (prob (sexy-internal-primitive-record-to-list obj))
+    clone     (prob (sexy-internal-primitive-record-clone obj))
+    get       (prob (proc (k) (sexy-internal-primitive-record-get obj k)))
+    put       (prob (proc () (sexy-internal-primitive-record-put obj rest)))
+    rm        (prob (proc () (sexy-internal-primitive-record-rm obj rest)))
+    set!      (prob (proc () (sexy-internal-primitive-record-set! obj rest)))
+    del!      (prob (proc () (sexy-internal-primitive-record-del! obj rest)))
+    has?      (prob (proc (k) (sexy-internal-primitive-record-has? obj k)))
+    merge     (prob (proc (other) (sexy-internal-primitive-record-merge obj other)))
+    apply     (prob
+                (λ (args options)
+                    (if (!= (sexy-internal-primitive-pair-size args) 1)
+                        (error-object 'arg-error %(record.apply $args $options) "Record apply takes only one argument.")
+                        (sexy-internal-primitive-record-get obj args.head))))
+    fold      (prob
+                (def xs obj.to-list)
+                (λ (acc funk)
+                    (if xs.empty?
+                        acc
+                        (xs.tail.fold (funk acc xs.head) funk))))
+    reduce    (prob
+                (def xs obj.to-list)
+                (λ (acc funk)
+                    (if xs.empty?
+                        acc
+                        (funk xs.head (xs.tail.reduce acc funk)))))
+    map       (prob
+                (def noob (record))
+                (def ps obj.pairs)
+                (λ (funk)
+                    (ps.each (λ (p) (noob.set! p.head (funk p))))))
+    filter    (prob
+                (def noob (record))
+                (def ps obj.pairs)
+                (λ (funk)
+                    (ps.each (λ (p) (if (funk p) (noob.set! p.head p.tail) null)))))
+    each      (prob
+                (λ (funk)
+                    (obj.to-list.each funk)))
 ))
 
 (def proc-messages '(apply arity code env formals))
@@ -489,9 +527,26 @@
     formals   (prob (sexy-internal-primitive-proc-formals obj))
 ))
 
-(def control-stream (:))
-(def control-fs-socket (:))
-(def control-tcp-socket (:))
+(def stream-messages
+    '())
+
+(def control-stream (:
+
+))
+
+(def fs-socket-messages
+    '())
+
+(def control-fs-socket (:
+
+))
+
+(def tcp-socket-messages
+    '())
+
+(def control-tcp-socket (:
+
+))
 
 (def control-eof (:
     type      (prob 'EOF)
@@ -607,35 +662,6 @@ pairs
 (each proc)
 
 
-record
-
-view
-to-bool
-to-list   -> alist
-to-record
-to-text
-size
-empty?
-keys
-values
-pairs
-clone
-(get k)
-(put k v k2 v2 ...)
-(rm k k2 k3)
-(set! k 1 k2 2 k3 3 ...)
-(del! k k2 k3 ...)
-(has? k)
-(apply (k) null)
-(merge r)
-(fold init proc)
-(reduce init proc)
-(map proc) -> record
-(filter proc) -> record
-(sort op) -> alist
-(each proc)
-
-
 stream
 
 view
@@ -713,158 +739,6 @@ remote-port -> remote port number of the socket
 )
 
 
-; (define (sexy-send-record obj msg cont err)
-;     (define msgs
-;         '(view size clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt to-text merge fold reduce map filter))
-;     (define vars (htr obj 'vars))
-;     (define (rdefault msg)
-;         (if (hte? vars msg)
-;             (htr vars msg)
-;             'null))
-;     (case msg
-;         ((type view size autos resends default clone to-bool get put set! rm del! has? apply keys values pairs to-list to-opt to-text merge messages responds?)
-;             (cont
-;                 (case msg
-;                     ((type) 'record)
-;                     ((view to-text)
-;                         (let ((keys (htks vars)))
-;                             (cons
-;                                 (string->keyword "record")
-;                                 (fold
-;                                     (lambda (p xs)
-;                                         (cons (car p) (cons (sexy-view (cdr p)) xs)))
-;                                     '()
-;                                     (hash-table->alist vars)))))
-;                     ((size) (hash-table-size vars))
-;                     ((autos) '(view size clone to-bool to-list to-text keys values pairs))
-;                     ((resends) '())
-;                     ((default) rdefault)
-;                     ((clone)
-;                         (let ((noob (sexy-record)))
-;                             (hts! noob 'vars (hash-table-copy vars))
-;                             noob))
-;                     ((to-bool)
-;                         (> (hash-table-size vars) 0))
-;                     ((get)
-;                         (lambda (k)
-;                             (if (hte? vars k)
-;                                 (htr vars k)
-;                                 'null)))
-;                     ((put)
-;                         (lambda args
-;                             (define noob (sexy-record))
-;                             (hts! noob 'vars (hash-table-copy vars))
-;                             (sexy-send-record
-;                                 noob
-;                                 'set!
-;                                 (lambda (setter!)
-;                                     (apply setter! args)
-;                                     noob)
-;                                 err)))
-;                     ((set!)
-;                         (lambda args
-;                             (for-pairs (lambda (k v) (hts! vars k v)) args)
-;                             'null))
-;                     ((rm)
-;                         (lambda args
-;                             (define noob (sexy-record))
-;                             (hts! noob 'vars (hash-table-copy vars))
-;                             (sexy-send-record
-;                                 noob
-;                                 'del!
-;                                 (lambda (deleter!)
-;                                     (apply deleter! args)
-;                                     noob)
-;                                 err)))
-;                     ((del!)
-;                         (lambda args
-;                             (map (lambda (k) (htd! vars k)) args)
-;                             'null))
-;                     ((has?)
-;                         (lambda (x)
-;                             (hte? vars x)))
-;                     ((apply)
-;                         (sexy-proc
-;                             primitive-type
-;                             'record
-;                             (lambda (args opts cont err)
-;                                 (sexy-send-record obj (caar args) cont err))))
-;                     ((keys) (htks vars))
-;                     ((values) (htvs vars))
-;                     ((pairs to-list) (hash-table->alist vars))
-;                     ((to-opt)
-;                         (fold
-;                             (lambda (p xs)
-;                                 (cons (symbol->keyword (car p)) (cons (cdr p) xs)))
-;                             '()
-;                             (hash-table->alist vars)))
-;                     ((messages) msgs)
-;                     ((responds?)
-;                         (lambda (msg)
-;                             (or 
-;                                 (hte? vars msg)
-;                                 (if (member msg msgs) #t #f))))
-;                     ((merge)
-;                         (lambda (other)
-;                             (define nuvars (hash-table-merge (htr other 'vars) vars))
-;                             (define noob (mkht))
-;                             (hts! noob 'type 'record)
-;                             (hts! noob 'vars nuvars)
-;                             noob)))))
-;             ((fold) (sexy-send-list
-;                         (hash-table->alist vars)
-;                         'fold
-;                         cont
-;                         err))
-;             ((reduce) (sexy-send-list
-;                         (hash-table->alist vars)
-;                         'reduce
-;                         cont
-;                         err))
-;             ((map)
-;                 (sexy-ho
-;                     '(λ (rec)
-;                         (λ (funk)
-;                             (def mapped (rec.to-list.map funk))
-;                             mapped.to-record))
-;                     obj
-;                     cont
-;                     err))
-;             ((filter) 
-;                 (sexy-ho
-;                     '(λ (rec)
-;                         (λ (funk)
-;                             (def mapped (rec.to-list.filter funk))
-;                             mapped.to-record))
-;                     obj
-;                     cont
-;                     err))
-;             (else (cont (rdefault msg)))))
-; 
-; (define (sexy-send-object obj msg cont err)
-;     (define fields (htr obj 'fields))
-;     (define resends (htr obj 'resends))
-;     (define autos (htr obj 'autos))
-;     (define (get-msgs)
-;         (append (hash-table-keys fields) (hash-table-keys resends)))
-;     (if (hte? fields msg)
-;         (let ((v (htr fields msg)))
-;             (if (hte? autos msg)
-;                 (sexy-apply v '() 'null cont err) ; exec the thunk
-;                 (cont v)))
-;         (if (hte? resends msg)
-;             (sexy-send (htr resends msg) msg cont err)
-;             (case msg
-;                 ((type) (cont 'object))
-;                 ((view) (cont `(,(if (hte? fields 'type) (htr fields 'type) 'object) ,@(get-msgs))))
-;                 ((to-text) (cont "object"))
-;                 ((to-bool) (cont (not (eq? 0 (length (hash-table-keys fields))))))
-;                 ((responds?) (cont (lambda (x) (hte? fields x))))
-;                 ((messages) (cont (get-msgs)))
-;                 ((autos) (cont (hash-table-keys autos)))
-;                 ((resends) (cont (hash-table-keys resends)))
-;                 ((default) (cont (htr obj 'default)))
-;                 (else (sexy-apply (htr obj 'default) (list msg) 'null cont err))))))
 ; 
 ; (define (sexy-send-vector obj msg cont err)
 ;     (define msgs '(view to-bool to-text to-list pairs size clone has? set! apply fold reduce map filter sort))
