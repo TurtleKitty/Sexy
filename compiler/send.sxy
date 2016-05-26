@@ -183,8 +183,7 @@
 
 (def bin-messages '(to-int to-list size clone set!))
 
-(def control-bin (:
-    ; FIXME
+(def control-bin (: ; FIXME
     type      (prob 'bin)
     view      (prob (sexy-internal-primitive-bin-to-text obj))
     write     (prob (sexy-internal-primitive-bin-to-text obj))
@@ -288,8 +287,8 @@
     lookup-list  (prob (sexy-internal-primitive-env-lookup-list obj)) ; local or ancestral
     extend       (prob (sexy-internal-primitive-env-extend obj))
     partition    (prob (sexy-internal-primitive-env-partition obj))
-    seal! ; FIXME
-    wild! ; FIXME
+    seal! null ; FIXME
+    wild! null ; FIXME
     expand    (prob 
         ; FIXME : macroexpand expr
     )
@@ -340,7 +339,7 @@
     has?      (prob
                 (proc (item)
                     (sexy-internal-primitive-pair-has? obj item)))
-    append
+    append    null ; FIXME
     take      (prob
                 (proc (n)
                     (sexy-internal-primitive-pair-take obj n)))
@@ -396,10 +395,50 @@
 ))
 
 (def vector-messages
-    '())
+    '(size empty? has? index put set! to-list to-vector to-record append take drop apply fold reduce map filter sort each))
 
 (def control-vector (:
-
+    type      (prob 'vector)
+    view      (prob (sexy-internal-primitive-vector-write obj))
+    write     (prob (sexy-internal-primitive-vector-write obj))
+    print     (prob (sexy-internal-primitive-vector-write obj))
+    to-text   (prob (sexy-internal-primitive-vector-to-text obj)) ; all members must be runes
+    to-bool   (prob (if (= 0 (sexy-internal-primitive-vector-size obj)) false true))
+    messages  (prob vector-messages)
+    answers?  (prob (prom (vector-messages.has? msg)))
+    autos     (prob '(to-list to-vector to-record size empty?))
+    resends   (prob ())
+    default   (prob
+                (prom
+                    (if (= (sexy-internal-get-object-type msg) 'int)
+                        (sexy-internal-primitive-vector-ref obj msg)
+                        (idk))))
+    to-list   (prob (sexy-internal-primitive-vector-to-list obj))
+    to-vector (prob obj)
+    to-record (prob (sexy-internal-primitive-vector-to-record obj))
+    size      (prob (sexy-internal-primitive-vector-size obj))
+    empty?    (prob (if (= 0 (sexy-internal-primitive-vector-size obj)) true false))
+    has?      (prob
+                (proc (item)
+                    (sexy-internal-primitive-vector-has? obj item)))
+    append    null ; FIXME
+    take      (prob
+                (proc (n)
+                    (sexy-internal-primitive-vector-take obj n)))
+    drop      (prob
+                (proc (n)
+                    (sexy-internal-primitive-vector-drop obj n)))
+    apply     (prob
+                (λ (args options)
+                    (if (!= (sexy-internal-primitive-vector-size args) 1)
+                        (error-object 'arg-error %(vector.apply args opts) "vector.apply takes only one integer argument.")
+                        (sexy-internal-primitive-vector-ref obj (sexy-internal-primitive-pair-head args)))))
+    fold      (prob null) ;FIXME
+    reduce    (prob null) ;FIXME
+    map       (prob null) ;FIXME
+    filter    (prob null) ;FIXME
+    sort      (prob null) ;FIXME
+    each      (prob null) ;FIXME
 ))
 
 (def record-messages
@@ -634,34 +673,6 @@
 (rem:
 "
 
-vector
-
-view
-to-bool -> (#) is false, else true
-to-text -> all items must be runes
-to-list
-to-vector
-to-record
-size
-empty?
-clone
-pairs
-(has? item)
-(index item) -> n or null
-(put n v n v n v)   ; functional
-(set! n v n v n v)  ; imperative
-(append x)
-(take n)
-(drop n)
-(apply (n) null)
-(fold init proc)
-(reduce init proc)
-(map proc)
-(filter proc)
-(sort op)
-(each proc)
-
-
 stream
 
 view
@@ -739,101 +750,6 @@ remote-port -> remote port number of the socket
 )
 
 
-; 
-; (define (sexy-send-vector obj msg cont err)
-;     (define msgs '(view to-bool to-text to-list pairs size clone has? set! apply fold reduce map filter sort))
-;     (define (vdefault msg)
-;         (if (number? msg)
-;             (if (> (vector-length obj) msg)
-;                 (cont (vector-ref obj msg))
-;                 (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "vector: index out of bounds.") cont))
-;             (idk obj msg cont err)))
-;     (case msg
-;         ((type view autos resends default to-bool to-text to-list pairs size clone has? set! apply messages responds?)
-;             (cont 
-;                 (case msg
-;                     ((type) 'vector)
-;                     ((view) (cons (string->keyword "vector") (map sexy-view (vector->list obj))))
-;                     ((to-bool) (not (eq? (vector-length obj) 0)))
-;                     ((to-list) (vector->list obj))
-;                     ((to-text) (apply string (vector->list obj)))
-;                     ((autos) '(view to-text to-bool to-list size pairs clone))
-;                     ((resends) '())
-;                     ((default) vdefault)
-;                     ((pairs) (vector->list (vector-map (lambda (i x) (cons i x)) obj)))
-;                     ((size) (vector-length obj))
-;                     ((clone) (vector-copy obj))
-;                     ((has?)
-;                         (lambda (item)
-;                             (if (vector-index
-;                                     (lambda (x) (eq? x item))
-;                                     obj)
-;                                 #t
-;                                 #f)))
-;                     ((set!)
-;                         (lambda (idx val)
-;                             (if (> idx (vector-length obj))
-;                                 (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "vector: index out of bounds.") cont)
-;                                 (begin
-;                                     (vector-set! obj idx val)
-;                                     obj))))
-;                     ((messages) msgs)
-;                     ((responds?)
-;                         (lambda (msg)
-;                             (or
-;                                 (and (number? msg) (> (vector-length obj) msg))
-;                                 (if (member msg msgs) #t #f))))
-;                     ((apply)
-;                         (sexy-proc
-;                             primitive-type
-;                             'pair
-;                             (lambda (args opts cont err)
-;                                 (sexy-send-vector obj (caar args) cont err)))))))
-;         ((fold)
-;             (sexy-ho
-;                 '(λ (vec)
-;                     (λ (acc funk)
-;                         (vec.to-list.fold acc funk)))
-;                 obj
-;                 cont
-;                 err))
-;         ((reduce)
-;             (sexy-ho
-;                 '(λ (vec)
-;                     (λ (acc funk)
-;                         (vec.to-list.reduce acc funk)))
-;                 obj
-;                 cont
-;                 err))
-;         ((map)
-;             (sexy-ho
-;                 '(λ (vec)
-;                     (λ (funk)
-;                         (def mapped (vec.to-list.map funk))
-;                         mapped.to-vector))
-;                 obj
-;                 cont
-;                 err))
-;         ((filter)
-;             (sexy-ho
-;                 '(λ (vec)
-;                     (λ (funk)
-;                         (def mapped (vec.to-list.filter funk))
-;                         mapped.to-vector))
-;                 obj
-;                 cont
-;                 err))
-;         ((sort)
-;             (sexy-ho
-;                 '(λ (vec)
-;                     (λ (funk)
-;                         (def sorted (vec.to-list.sort funk))
-;                         sorted.to-vector))
-;                 obj
-;                 cont
-;                 err))
-;         (else
-;             (vdefault msg))))
 ; 
 ; (define (sexy-send-stream obj msg cont err)
 ;     (case msg
