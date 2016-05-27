@@ -8,7 +8,7 @@
     %(λ (msg) @rest))
 
 (def default-messages
-    '(type view write print to-bool to-text messages answers? autos resends default))
+    '(type view to-text to-bool messages answers? autos resends default))
 
 (proc idk (obj)
     (prom
@@ -22,12 +22,10 @@
 (def control-null (:
     type      (prob 'null)
     view      (prob "null")
-    write     (prob "null")
-    print     (prob "null")
     to-text   (prob "null")
     to-bool   (prob false)
     messages  (prob null-messages)
-    answers?  (prob (prom (null-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (null-messages.has? msg))))
     autos     (prob '(to-symbol))
     resends   (prob ())
     default   (prob (prom null))
@@ -39,17 +37,15 @@
             "null can not be used as a procedure."))
 ))
 
-(def bool-messages '(to-symbol to-text not))
+(def bool-messages '(to-symbol not))
 
 (def control-bool (:
     type      (prob 'bool)
     view      (prob (if obj "true" "false"))
-    write     (prob (if obj "true" "false"))
-    print     (prob (if obj "true" "false"))
     to-text   (prob (if obj "true" "false"))
     to-bool   (prob obj)
     messages  (prob bool-messages)
-    answers?  (prob (prom (bool-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (bool-messages.has? msg))))
     autos     (prob ())
     resends   (prob ())
     default   idk
@@ -62,12 +58,10 @@
 (def control-int (:
     type      (prob 'int)
     view      (prob (sexy-internal-primitive-number-to-text obj))
-    write     (prob (sexy-internal-primitive-number-to-text obj))
-    print     (prob (sexy-internal-primitive-number-to-text obj))
     to-text   (prob (sexy-internal-primitive-number-to-text obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
     messages  (prob int-messages)
-    answers?  (prob (prom (int-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (int-messages.has? msg))))
     autos     (prob '(to-number zero? pos? neg? odd? even? abs floor ceil round truncate inc dec))
     resends   (prob ())
     default   idk
@@ -92,12 +86,10 @@
 (def control-rat (:
     type      (prob 'rational)
     view      (prob (sexy-internal-primitive-number-to-text obj))
-    write     (prob (sexy-internal-primitive-number-to-text obj))
-    print     (prob (sexy-internal-primitive-number-to-text obj))
     to-text   (prob (sexy-internal-primitive-number-to-text obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
     messages  (prob rat-messages)
-    answers?  (prob (prom (rat-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (rat-messages.has? msg))))
     autos     (prob '(to-number zero? pos? neg? abs floor ceil round truncate))
     resends   (prob ())
     default   idk
@@ -117,12 +109,10 @@
 (def control-real (:
     type      (prob 'real)
     view      (prob (sexy-internal-primitive-number-to-text obj))
-    write     (prob (sexy-internal-primitive-number-to-text obj))
-    print     (prob (sexy-internal-primitive-number-to-text obj))
     to-text   (prob (sexy-internal-primitive-number-to-text obj))
     to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
     messages  (prob real-messages)
-    answers?  (prob (prom (real-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (real-messages.has? msg))))
     autos     (prob '(to-number zero? pos? neg? abs floor ceil round truncate))
     resends   (prob ())
     default   idk
@@ -142,13 +132,11 @@
 
 (def control-rune (:
     type      (prob 'rune)
-    view      (prob (sexy-internal-primitive-list-to-text (list \\ obj)))
-    write     (prob (sexy-internal-primitive-list-to-text (list \\ obj))) ; FIXME \space, \tab, \newline, \return
-    print     (prob (sexy-internal-primitive-list-to-text (list obj)))
-    to-text   (prob (sexy-internal-primitive-list-to-text (list obj)))
+    view      (prob (sexy-internal-primitive-list-to-text (list \\ obj))) ; FIXME \space, \tab, \newline, \return
+    to-text   (prob (sexy-internal-primitive-text obj))
     to-bool   (prob (sexy-internal-primitive-not (sexy-internal-primitive-rune-whitespace? obj)))
     messages  (prob rune-messages)
-    answers?  (prob (prom (rune-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (rune-messages.has? msg))))
     autos     (prob rune-messages)
     resends   (prob ())
     default   idk
@@ -169,34 +157,31 @@
 (def control-symbol (:
     type      (prob 'symbol)
     view      (prob (sexy-internal-primitive-symbol-to-text obj))
-    write     (prob (sexy-internal-primitive-symbol-to-text obj))
-    print     (prob (sexy-internal-primitive-symbol-to-text obj))
     to-text   (prob (sexy-internal-primitive-symbol-to-text obj))
     to-bool   (prob true)
     messages  (prob symbol-messages)
-    answers?  (prob (prom (symbol-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (symbol-messages.has? msg))))
     autos     (prob symbol-messages)
     resends   (prob ())
     default   idk
     to-symbol (prob obj)
 ))
 
-(def bin-messages '(to-int to-list size clone set!))
+(def bin-messages '(to-int to-list to-vector size clone set!))
 
 (def control-bin (: ; FIXME
     type      (prob 'bin)
     view      (prob (sexy-internal-primitive-bin-to-text obj))
-    write     (prob (sexy-internal-primitive-bin-to-text obj))
-    print     (prob (sexy-internal-primitive-bin-to-text obj))
     to-text   (prob (sexy-internal-primitive-bin-to-text obj))
     to-bool   (prob true)
     messages  (prob bin-messages)
-    answers?  (prob (prom (bin-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (bin-messages.has? msg))))
     autos     (prob '(to-number to-list size clone))
     resends   (prob ())
     default   idk
     to-int    idk
     to-list   idk
+    to-vector idk
     size      idk
     clone     idk
     set!      idk
@@ -207,12 +192,10 @@
 (def control-text (:
     type      (prob 'text)
     view      (prob (cat \" obj \"))
-    write     (prob (cat \" obj \"))
-    print     (prob obj)
     to-text   (prob obj)
     to-bool   (prob (if (= "" obj) false true))
     messages  (prob text-messages)
-    answers?  (prob (prom (text-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (text-messages.has? msg))))
     autos     (prob text-messages) ; FIXME
     resends   (prob ())
     default   (prob
@@ -265,12 +248,10 @@
 (def control-env (:
     type      (prob 'env)
     view      (prob (sexy-internal-primitive-env-to-text obj))
-    write     (prob (sexy-internal-primitive-env-to-text obj))
-    print     (prob (sexy-internal-primitive-env-to-text obj))
     to-text   (prob (sexy-internal-primitive-env-to-text obj))
     to-bool   (prob true)
     messages  (prob env-messages)
-    answers?  (prob (prom (env-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (env-messages.has? msg))))
     autos     (prob '(empty? mama to-list to-record))
     resends   (prob ())
     default   idk
@@ -302,13 +283,11 @@
 
 (def control-pair (:
     type      (prob 'pair)
-    view      (prob (sexy-internal-primitive-pair-write obj))
-    write     (prob (sexy-internal-primitive-pair-write obj))
-    print     (prob (sexy-internal-primitive-pair-write obj))
+    view      (prob (sexy-internal-primitive-pair-view obj))
     to-text   (prob (sexy-internal-primitive-pair-to-text obj)) ; all members must be runes
     to-bool   (prob (if (= () obj) false true))
     messages  (prob pair-messages)
-    answers?  (prob (prom (pair-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (pair-messages.has? msg))))
     autos     (prob '(head key tail val to-list to-vector to-record size empty? reverse))
     resends   (prob ())
     default   (prob
@@ -349,7 +328,7 @@
     apply     (prob
                 (λ (args options)
                     (if (!= (sexy-internal-primitive-pair-size args) 1)
-                        (error-object 'arg-error %(list.apply args opts) "List apply takes only one integer argument.")
+                        (error-object 'arg-error %(list.apply args opts) "list.apply takes only one integer argument.")
                         (sexy-internal-primitive-list-ref obj (sexy-internal-primitive-pair-head args)))))
     fold      (prob
                 (λ (acc funk)
@@ -399,13 +378,11 @@
 
 (def control-vector (:
     type      (prob 'vector)
-    view      (prob (sexy-internal-primitive-vector-write obj))
-    write     (prob (sexy-internal-primitive-vector-write obj))
-    print     (prob (sexy-internal-primitive-vector-write obj))
+    view      (prob (sexy-internal-primitive-vector-view obj))
     to-text   (prob (sexy-internal-primitive-vector-to-text obj)) ; all members must be runes
     to-bool   (prob (if (= 0 (sexy-internal-primitive-vector-size obj)) false true))
     messages  (prob vector-messages)
-    answers?  (prob (prom (vector-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (vector-messages.has? msg))))
     autos     (prob '(to-list to-vector to-record size empty?))
     resends   (prob ())
     default   (prob
@@ -447,12 +424,10 @@
 (def control-record (:
     type      (prob 'record)
     view      (prob (sexy-internal-primitive-record-to-text obj))
-    write     (prob (sexy-internal-primitive-record-to-text obj))
-    print     (prob (sexy-internal-primitive-record-to-text obj))
     to-text   (prob (sexy-internal-primitive-record-to-text obj))
     to-bool   (prob (if (= 0 sexy-internal-primitive-record-size obj) false true))
     messages  (prob record-messages)
-    answers?  (prob (prom (record-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (record-messages.has? msg))))
     autos     (prob '(size keys values pairs clone to-list to-record))
     resends   (prob ())
     default   (prob
@@ -512,12 +487,10 @@
 (def control-λ (:
     type      (prob 'λ)
     view      (prob (sexy-internal-primitive-λ-to-text obj))
-    write     (prob (sexy-internal-primitive-λ-to-text obj))
-    print     (prob (sexy-internal-primitive-λ-to-text obj))
     to-text   (prob (sexy-internal-primitive-λ-to-text obj))
     to-bool   (prob true)
     messages  (prob proc-messages)
-    answers?  (prob (prom (proc-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
     autos     (prob '(arity code env formals))
     resends   (prob ())
     default   idk
@@ -531,12 +504,10 @@
 (def control-proc (:
     type      (prob 'proc)
     view      (prob (sexy-internal-primitive-proc-to-text obj))
-    write     (prob (sexy-internal-primitive-proc-to-text obj))
-    print     (prob (sexy-internal-primitive-proc-to-text obj))
     to-text   (prob (sexy-internal-primitive-proc-to-text obj))
     to-bool   (prob true)
     messages  (prob proc-messages)
-    answers?  (prob (prom (proc-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
     autos     (prob '(arity code env formals))
     resends   (prob ())
     default   idk
@@ -550,12 +521,10 @@
 (def control-operator (:
     type      (prob 'operator)
     view      (prob (sexy-internal-primitive-operator-to-text obj))
-    write     (prob (sexy-internal-primitive-operator-to-text obj))
-    print     (prob (sexy-internal-primitive-operator-to-text obj))
     to-text   (prob (sexy-internal-primitive-operator-to-text obj))
     to-bool   (prob true)
     messages  (prob proc-messages)
-    answers?  (prob (prom (proc-messages.has? msg)))
+    answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
     autos     (prob '(arity code env formals))
     resends   (prob ())
     default   idk
@@ -566,37 +535,166 @@
     formals   (prob (sexy-internal-primitive-proc-formals obj))
 ))
 
-(def stream-messages
-    '())
+; 
+; (define (sexy-send-input-stream obj msg cont err)
+;     (if (port-closed? obj)
+;         (err (sexy-error-object 'input-stream-closed `(send ,obj ,msg) "Input stream closed.") cont)
+;         (cont 
+;             (case msg
+;                 ((autos) '(view to-text to-bool to-list ready? input? output? open? read read-rune peek-rune read-line read-text read-sexy)) 
+;                 ((ready?) (char-ready? obj))
+;                 ((read) (sexy-read obj))
+;                 ((read-rune) (read-char obj))
+;                 ((peek-rune) (peek-char obj))
+;                 ((read-line) (read-line obj))
+;                 ((read-text) (read-string #f obj))
+;                 ((read-sexy) (sexy-read-file obj))
+;                 ((assert-rune)
+;                     (sexy-proc
+;                         primitive-type
+;                         'stream
+;                         (lambda (args opts cont err)
+;                             (if (not (= 1 (length args)))
+;                                 (err (sexy-error-object 'arity `assert-rune "stream.assert-rune requires one text argument") cont)
+;                                 (let ((runes (string->list (car args))))
+;                                     (define next (read-char obj))
+;                                     (if (member next runes)
+;                                         (cont next)
+;                                         (err (sexy-error-object 'assert-rune-FAIL `(assert-rune next ,(car args)) "Assertion FAIL") cont)))))))
+;                 ((skip)
+;                     (lambda (n)
+;                         (read-string n obj)
+;                         'null))
+;                 ((skip-while)
+;                     (lambda (s)
+;                         (define runes (string->list s))
+;                         (let loop ((tok (peek-char obj)))
+;                             (if (member tok runes)
+;                                 (begin
+;                                     (read-char obj)
+;                                     (loop (peek-char obj)))
+;                                 'null))))
+;                 ((skip-until)
+;                     (lambda (s)
+;                         (define runes (string->list s))
+;                         (let loop ((tok (peek-char obj)))
+;                             (if (member tok runes)
+;                                 'null
+;                                 (begin
+;                                     (read-char obj)
+;                                     (loop (peek-char obj)))))))
+;                 ((read-token read-tokens)
+;                     (lambda (n)
+;                         (read-string n obj)))
+;                 ((read-token-while)
+;                     (lambda (s)
+;                         (define runes (string->list s))
+;                         (let loop ((tok (peek-char obj)) (acc '()))
+;                             (if (member tok runes)
+;                                 (let ((t (read-char obj)))
+;                                     (loop (peek-char obj) (cons t acc)))
+;                                 (list->string (reverse acc))))))
+;                 ((read-token-until)
+;                     (lambda (s)
+;                         (define runes (string->list s))
+;                         (let loop ((tok (peek-char obj)) (acc '()))
+;                             (if (member tok runes)
+;                                 (list->string (reverse acc))
+;                                 (let ((t (read-char obj)))
+;                                     (loop (peek-char obj) (cons t acc)))))))
+;                 ((read-token-if)
+;                     (sexy-proc
+;                         primitive-type
+;                         'env
+;                         (lambda (args opts cont err)
+;                             (if (not (= 1 (length args)))
+;                                 (err (sexy-error-object 'arity `(read-token-if) "read-token-if: requires one proc argument.") cont)
+;                                 (let ((pred (car args)))
+;                                     (let loop ((tok (peek-char obj)) (acc '()))
+;                                         (sexy-apply
+;                                             pred
+;                                             (list tok)
+;                                             'null
+;                                             (lambda (rv)
+;                                                 (sexy-bool
+;                                                     rv
+;                                                     (lambda (ok)
+;                                                         (if ok
+;                                                             (let ((t (read-char obj)))
+;                                                                 (loop (peek-char obj) (cons t acc)))
+;                                                             (cont (list->string (reverse acc)))))
+;                                                     err))
+;                                             err)))))))
+;                 ((to-list read-lines) (read-lines obj))))))
+; 
 
-(def control-stream (:
+(def source-messages
+    '(open? ready? close
+      read read-rune peek-rune read-line read-lines read-text read-sexy
+      assert-rune skip skip-while skip-until read-tokens
+      read-tokens-while read-tokens-until read-token-if each))
 
+(def control-source (:
+    type      (prob 'source)
+    view      (prob (sexy-internal-primitive-source-view obj))
+    to-text   (prob (sexy-internal-primitive-source-view obj))
+    to-bool   (prob true)
+    messages  (prob source-messages)
+    answers?  (prob (prom (or (default-messages.has? msg) (source-messages.has? msg))))
+    autos     (prob '(open? close))
+    resends   (prob ())
+    default   idk
+    open?     (prob (sexy-internal-primitive-stream-open? obj))
+    ready?    (prob (sexy-internal-primitive-stream-ready? obj))
+    close     (prob (sexy-internal-primitive-stream-close obj))
+;    read
+;    read-rune
+;    peek-rune
+;    read-line
+;    read-lines -> to-list
+;    read-text -> slurp
+;    read-sexy -> all sexy forms to list
+;    (assert-rune "runes")
+;    (skip n)
+;    (skip-while "runes")
+;    (skip-until "runes")
+;    (read-tokens n)
+;    (read-token-while "runes")
+;    (read-token-until "runes")
+;    (read-token-if proc)
+;    (each proc) ?
 ))
 
-(def fs-socket-messages
-    '())
+(def sink-messages
+    '(open? close flush write print say nl))
 
-(def control-fs-socket (:
-
-))
-
-(def tcp-socket-messages
-    '())
-
-(def control-tcp-socket (:
-
+(def control-sink (:
+    type      (prob 'sink)
+    view      (prob (sexy-internal-primitive-sink-view obj))
+    to-text   (prob (sexy-internal-primitive-sink-view obj))
+    to-bool   (prob true)
+    messages  (prob sink-messages)
+    answers?  (prob (prom (or (default-messages.has? msg) (sink-messages.has? msg))))
+    autos     (prob '(open? close))
+    resends   (prob ())
+    default   idk
+    open?     (prob (sexy-internal-primitive-stream-open? obj))
+    close     (prob (sexy-internal-primitive-stream-close obj))
+    flush     (prob (sexy-internal-primitive-sink-flush obj))
+    write     (prob (sexy-internal-primitive-sink-write obj))
+    print     (prob (sexy-internal-primitive-sink-print obj))
+    say       (prob (sexy-internal-primitive-sink-say obj))
+    nl        (prob (sexy-internal-primitive-sink-newline obj))
 ))
 
 (def control-eof (:
     type      (prob 'EOF)
     view      (prob "EOF")
-    write     (prob "EOF")
-    print     (prob "EOF")
-    to-text   (prob "END OF LINE.")
+    to-text   (prob "END OF LINE.") ; FIXME - print actual eof-object?
     to-bool   (prob false)
-    messages  (prob proc-messages)
-    answers?  (prob (prom (proc-messages.has? msg)))
-    autos     (prob '(arity code env formals))
+    messages  (prob ())
+    answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
+    autos     (prob ())
     resends   (prob ())
     default   idk
 ))
@@ -618,9 +716,8 @@
     λ            control-λ
     proc         control-proc
     operator     control-operator
-    stream       control-stream
-    fs-socket    control-fs-socket
-    tcp-socket   control-tcp-socket
+    source       control-source
+    sink         control-sink
     EOF          control-eof
 ))
 
@@ -669,243 +766,4 @@
             default: 
                 (autofire obj msg (λ () ((sexy-internal-object-default obj) msg))))))
 
-
-(rem:
-"
-
-stream
-
-view
-to-bool
-input?
-output?
-open?
-close
-
-source
-
-view
-to-bool -> open?
-to-text -> printable
-ready?
-read
-read-rune
-peek-rune
-read-line
-read-lines -> to-list
-read-text -> slurp
-read-sexy -> all sexy forms to list
-(assert-rune "runes")
-(skip n)
-(skip-while "runes")
-(skip-until "runes")
-(read-tokens n)
-(read-token-while "runes")
-(read-token-until "runes")
-(read-token-if proc)
-(each proc) ?
-
-sink
-
-flush
-nl -> newline
-(write obj) -> obj.view
-(print obj) -> obj.to-text
-(say obj)   -> obj.print + obj.nl
-
-
-fs-socket
-
-to-bool -> true
-ready? -> true if there is a connection ready to be accepted
-accept -> accepts a connection and returns a socket
-close -> shut down the TCP listener
-path -> returns the file system path of the listener
-
-socket messages
-
-to-bool -> true
-close -> close the socket
-path -> file system path the socket is connected to
-
-
-tcp-socket
-
-to-bool -> true
-ready? -> true if there is a connection ready to be accepted
-accept -> accepts a connection and returns a socket
-close -> shut down the TCP listener
-ip -> returns local IP address
-port -> returns the port number of the listener
-
-socket messages
-
-to-bool -> true
-close -> close the socket
-local-addr -> local IP address of the socket
-local-port -> local port number of the socket
-remote-addr -> remote IP address of the socket
-remote-port -> remote port number of the socket
-"
-)
-
-
-; 
-; (define (sexy-send-stream obj msg cont err)
-;     (case msg
-;         ((type view resends default to-text to-bool to-stream input? output? open? resends default)
-;             (cont 
-;                 (case msg
-;                     ((type) 'stream)
-;                     ((view to-text) obj)
-;                     ((to-bool) #t)
-;                     ((to-stream) obj)
-;                     ((resends) '())
-;                     ((default) (cont default-default))
-;                     ((input?) (input-port? obj))
-;                     ((output?) (output-port? obj))
-;                     ((open?) (not (port-closed? obj))))))
-;         (else
-;             (if (input-port? obj)
-;                 (sexy-send-input-stream obj msg cont err) 
-;                 (sexy-send-output-stream obj msg cont err)))))
-; 
-; (define (sexy-send-input-stream obj msg cont err)
-;     (define msgs
-;         '(view to-bool input? output? open? close
-;           ready? read read-rune peek-rune read-line read-text assert-rune skip skip-while skip-until
-;           read-token read-token-while read-token-until read-token-if to-list to-text read-sexy))
-;     (case msg
-;         ((ready? autos read read-rune peek-rune read-line read-text assert-rune skip skip-while skip-until
-;           read-token read-token-while read-token-until read-token-if to-list to-text read-sexy
-;           messages responds?)
-;             (if (port-closed? obj)
-;                 (err (sexy-error-object 'input-stream-closed `(send ,obj ,msg) "Input stream closed.") cont)
-;                 (cont 
-;                     (case msg
-;                         ((autos) '(view to-text to-bool to-list ready? input? output? open? read read-rune peek-rune read-line read-text read-sexy)) 
-;                         ((ready?) (char-ready? obj))
-;                         ((read) (sexy-read obj))
-;                         ((read-rune) (read-char obj))
-;                         ((peek-rune) (peek-char obj))
-;                         ((read-line) (read-line obj))
-;                         ((read-text) (read-string #f obj))
-;                         ((read-sexy) (sexy-read-file obj))
-;                         ((assert-rune)
-;                             (sexy-proc
-;                                 primitive-type
-;                                 'stream
-;                                 (lambda (args opts cont err)
-;                                     (if (not (= 1 (length args)))
-;                                         (err (sexy-error-object 'arity `assert-rune "stream.assert-rune requires one text argument") cont)
-;                                         (let ((runes (string->list (car args))))
-;                                             (define next (read-char obj))
-;                                             (if (member next runes)
-;                                                 (cont next)
-;                                                 (err (sexy-error-object 'assert-rune-FAIL `(assert-rune next ,(car args)) "Assertion FAIL") cont)))))))
-;                         ((skip)
-;                             (lambda (n)
-;                                 (read-string n obj)
-;                                 'null))
-;                         ((skip-while)
-;                             (lambda (s)
-;                                 (define runes (string->list s))
-;                                 (let loop ((tok (peek-char obj)))
-;                                     (if (member tok runes)
-;                                         (begin
-;                                             (read-char obj)
-;                                             (loop (peek-char obj)))
-;                                         'null))))
-;                         ((skip-until)
-;                             (lambda (s)
-;                                 (define runes (string->list s))
-;                                 (let loop ((tok (peek-char obj)))
-;                                     (if (member tok runes)
-;                                         'null
-;                                         (begin
-;                                             (read-char obj)
-;                                             (loop (peek-char obj)))))))
-;                         ((read-token read-tokens)
-;                             (lambda (n)
-;                                 (read-string n obj)))
-;                         ((read-token-while)
-;                             (lambda (s)
-;                                 (define runes (string->list s))
-;                                 (let loop ((tok (peek-char obj)) (acc '()))
-;                                     (if (member tok runes)
-;                                         (let ((t (read-char obj)))
-;                                             (loop (peek-char obj) (cons t acc)))
-;                                         (list->string (reverse acc))))))
-;                         ((read-token-until)
-;                             (lambda (s)
-;                                 (define runes (string->list s))
-;                                 (let loop ((tok (peek-char obj)) (acc '()))
-;                                     (if (member tok runes)
-;                                         (list->string (reverse acc))
-;                                         (let ((t (read-char obj)))
-;                                             (loop (peek-char obj) (cons t acc)))))))
-;                         ((read-token-if)
-;                             (sexy-proc
-;                                 primitive-type
-;                                 'env
-;                                 (lambda (args opts cont err)
-;                                     (if (not (= 1 (length args)))
-;                                         (err (sexy-error-object 'arity `(read-token-if) "read-token-if: requires one proc argument.") cont)
-;                                         (let ((pred (car args)))
-;                                             (let loop ((tok (peek-char obj)) (acc '()))
-;                                                 (sexy-apply
-;                                                     pred
-;                                                     (list tok)
-;                                                     'null
-;                                                     (lambda (rv)
-;                                                         (sexy-bool
-;                                                             rv
-;                                                             (lambda (ok)
-;                                                                 (if ok
-;                                                                     (let ((t (read-char obj)))
-;                                                                         (loop (peek-char obj) (cons t acc)))
-;                                                                     (cont (list->string (reverse acc)))))
-;                                                             err))
-;                                                     err)))))))
-;                         ((messages) msgs)
-;                         ((responds?)
-;                             (lambda (msg)
-;                                 (if (member msg msgs) #t #f)))
-;                         ((to-list read-lines) (read-lines obj))))))
-;         ((close) (close-input-port obj) (cont 'null))
-;         (else (idk msg obj cont err))))
-; 
-; (define (sexy-send-output-stream obj msg cont err)
-;     (define msgs
-;         '(view to-text to-bool input? output? open? write print say nl flush close))
-;     (case msg
-;         ((write print say nl autos)
-;             (if (port-closed? obj)
-;                 (err (sexy-error-object 'output-stream-closed `(send ,obj ,msg) "Output stream closed.") cont)
-;                 (cont
-;                     (case msg
-;                         ((autos) '(view to-text to-bool ready? input? output? open? nl close)) 
-;                         ((write)
-;                             (lambda (x)
-;                                 (sexy-write x obj)
-;                                 'null))
-;                         ((print)
-;                             (lambda (x)
-;                                 (sexy-print x obj)
-;                                 'null))
-;                         ((say)
-;                             (lambda (x)
-;                                 (sexy-print x obj)
-;                                 (newline obj)
-;                                 'null))
-;                         ((nl) (newline obj) 'null)))))
-;         ((messages) (cont msgs))
-;         ((responds?)
-;             (cont
-;                 (lambda (msg)
-;                     (if (member msg msgs) #t #f))))
-;         ((flush) (flush-output obj) (cont 'null))
-;         ((close) (close-output-port obj) (cont 'null))
-;         (else (idk msg obj cont err))))
-; 
 
