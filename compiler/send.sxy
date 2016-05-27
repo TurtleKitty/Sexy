@@ -535,99 +535,6 @@
     formals   (prob (sexy-internal-primitive-proc-formals obj))
 ))
 
-; 
-; (define (sexy-send-input-stream obj msg cont err)
-;     (if (port-closed? obj)
-;         (err (sexy-error-object 'input-stream-closed `(send ,obj ,msg) "Input stream closed.") cont)
-;         (cont 
-;             (case msg
-;                 ((autos) '(view to-text to-bool to-list ready? input? output? open? read read-rune peek-rune read-line read-text read-sexy)) 
-;                 ((ready?) (char-ready? obj))
-;                 ((read) (sexy-read obj))
-;                 ((read-rune) (read-char obj))
-;                 ((peek-rune) (peek-char obj))
-;                 ((read-line) (read-line obj))
-;                 ((read-text) (read-string #f obj))
-;                 ((read-sexy) (sexy-read-file obj))
-;                 ((assert-rune)
-;                     (sexy-proc
-;                         primitive-type
-;                         'stream
-;                         (lambda (args opts cont err)
-;                             (if (not (= 1 (length args)))
-;                                 (err (sexy-error-object 'arity `assert-rune "stream.assert-rune requires one text argument") cont)
-;                                 (let ((runes (string->list (car args))))
-;                                     (define next (read-char obj))
-;                                     (if (member next runes)
-;                                         (cont next)
-;                                         (err (sexy-error-object 'assert-rune-FAIL `(assert-rune next ,(car args)) "Assertion FAIL") cont)))))))
-;                 ((skip)
-;                     (lambda (n)
-;                         (read-string n obj)
-;                         'null))
-;                 ((skip-while)
-;                     (lambda (s)
-;                         (define runes (string->list s))
-;                         (let loop ((tok (peek-char obj)))
-;                             (if (member tok runes)
-;                                 (begin
-;                                     (read-char obj)
-;                                     (loop (peek-char obj)))
-;                                 'null))))
-;                 ((skip-until)
-;                     (lambda (s)
-;                         (define runes (string->list s))
-;                         (let loop ((tok (peek-char obj)))
-;                             (if (member tok runes)
-;                                 'null
-;                                 (begin
-;                                     (read-char obj)
-;                                     (loop (peek-char obj)))))))
-;                 ((read-token read-tokens)
-;                     (lambda (n)
-;                         (read-string n obj)))
-;                 ((read-token-while)
-;                     (lambda (s)
-;                         (define runes (string->list s))
-;                         (let loop ((tok (peek-char obj)) (acc '()))
-;                             (if (member tok runes)
-;                                 (let ((t (read-char obj)))
-;                                     (loop (peek-char obj) (cons t acc)))
-;                                 (list->string (reverse acc))))))
-;                 ((read-token-until)
-;                     (lambda (s)
-;                         (define runes (string->list s))
-;                         (let loop ((tok (peek-char obj)) (acc '()))
-;                             (if (member tok runes)
-;                                 (list->string (reverse acc))
-;                                 (let ((t (read-char obj)))
-;                                     (loop (peek-char obj) (cons t acc)))))))
-;                 ((read-token-if)
-;                     (sexy-proc
-;                         primitive-type
-;                         'env
-;                         (lambda (args opts cont err)
-;                             (if (not (= 1 (length args)))
-;                                 (err (sexy-error-object 'arity `(read-token-if) "read-token-if: requires one proc argument.") cont)
-;                                 (let ((pred (car args)))
-;                                     (let loop ((tok (peek-char obj)) (acc '()))
-;                                         (sexy-apply
-;                                             pred
-;                                             (list tok)
-;                                             'null
-;                                             (lambda (rv)
-;                                                 (sexy-bool
-;                                                     rv
-;                                                     (lambda (ok)
-;                                                         (if ok
-;                                                             (let ((t (read-char obj)))
-;                                                                 (loop (peek-char obj) (cons t acc)))
-;                                                             (cont (list->string (reverse acc)))))
-;                                                     err))
-;                                             err)))))))
-;                 ((to-list read-lines) (read-lines obj))))))
-; 
-
 (def source-messages
     '(open? ready? close
       read read-rune peek-rune read-line read-lines read-text read-sexy
@@ -641,28 +548,79 @@
     to-bool   (prob true)
     messages  (prob source-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (source-messages.has? msg))))
-    autos     (prob '(open? close))
+    autos     (prob '(open? ready? close read read-rune peek-rune read-line read-text read-sexy))
     resends   (prob ())
     default   idk
     open?     (prob (sexy-internal-primitive-stream-open? obj))
     ready?    (prob (sexy-internal-primitive-stream-ready? obj))
     close     (prob (sexy-internal-primitive-stream-close obj))
-;    read
-;    read-rune
-;    peek-rune
-;    read-line
-;    read-lines -> to-list
-;    read-text -> slurp
-;    read-sexy -> all sexy forms to list
-;    (assert-rune "runes")
-;    (skip n)
-;    (skip-while "runes")
-;    (skip-until "runes")
-;    (read-tokens n)
-;    (read-token-while "runes")
-;    (read-token-until "runes")
-;    (read-token-if proc)
-;    (each proc) ?
+    read      (prob (sexy-internal-primitive-source-read obj))
+    read-rune (prob (sexy-internal-primitive-source-read-rune obj))
+    peek-rune (prob (sexy-internal-primitive-source-peek-rune obj))
+    read-line (prob (sexy-internal-primitive-source-read-line obj))
+    read-lines (prob (sexy-internal-primitive-source-read-lines obj))
+    read-text (prob (sexy-internal-primitive-source-read-text obj))
+    read-sexy (prob (sexy-internal-primitive-source-read-sexy obj))
+    assert-rune (prob
+        (λ (runes)
+            (def rune-list runes.to-list)
+            (def next obj.read-rune)
+            (if (rune-list.has? next)
+                next
+                (error-object
+                    'assert-rune-FAIL %(assert-rune $runes $next) "Assertion failed."))))
+    skip (prob
+        (λ (n)
+            (let loop (x n)
+                (if x.zero?
+                    null
+                    (seq
+                        obj.read-rune
+                        (loop x.dec))))))
+    skip-while (prob
+        (λ (runes)
+            (def rune-list runes.to-list)
+            (let loop (tok obj.peek-rune)
+                (if (rune-list.has? tok)
+                    (seq
+                        obj.read-rune
+                        (loop obj.peek-rune))
+                    null))))
+    skip-until (prob
+        (λ (runes)
+            (def rune-list runes.to-list)
+            (let loop (tok obj.peek-rune)
+                (if (rune-list.has? tok)
+                    null
+                    (seq
+                        obj.read-rune
+                        (loop obj.peek-rune))))))
+    read-tokens (prob
+        (λ (n)
+            (let loop (x n tokens ())
+                (if x.zero?
+                    tokens.reverse.to-text
+                    (loop x.dec (pair obj.read-rune tokens))))))
+    read-token-while (prob
+        (λ (runes)
+            (def rune-list runes.to-list)
+            (let loop (tok obj.peek-rune tokens ())
+                (if (rune-list.has? tok)
+                    (loop obj.peek-rune (pair obj.read-rune tokens))
+                    tokens.reverse.to-text))))
+    read-token-until (prob
+        (λ (runes)
+            (def rune-list runes.to-list)
+            (let loop (tok obj.peek-rune tokens ())
+                (if (rune-list.has? tok)
+                    tokens.reverse.to-text
+                    (loop obj.peek-rune (pair obj.read-rune tokens))))))
+    read-token-if (prob
+        (λ (pred?)
+            (let loop (tok obj.peek-rune tokens ())
+                (if (pred? tok)
+                    (loop obj.peek-rune (pair obj.read-rune tokens))
+                    tokens.reverse.to-text))))
 ))
 
 (def sink-messages
@@ -724,8 +682,7 @@
 (def object-defaults (:
     type    (λ (obj) 'object)
     view    (λ (obj) %(object: @(send obj 'messages)))
-    write   (λ (obj) %(object: @(send obj 'messages)))
-    print   (λ (obj) %(object: @(send obj 'messages)))
+    to-text (λ (obj) %(object: @(send obj 'messages)))
     to-bool (λ (obj) true)
 ))
 
@@ -760,7 +717,7 @@
             (resends)
                 (sexy-internal-object-resends obj)
             ; end reflection; begin shadowable messages with defaults
-            (type view write print to-bool)
+            (type view to-text to-bool)
                 (autofire obj msg (λ () ((object-defaults msg) obj)))
             ; regular messages
             default: 

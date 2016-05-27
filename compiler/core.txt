@@ -3,8 +3,7 @@ object
 
 type
 view
-write
-print
+to-text
 to-bool
 messages
 answers?
