@@ -639,10 +639,16 @@
     open?     (prob (sexy-internal-primitive-stream-open? obj))
     close     (prob (sexy-internal-primitive-stream-close obj))
     flush     (prob (sexy-internal-primitive-sink-flush obj))
-    write     (prob (sexy-internal-primitive-sink-write obj))
-    print     (prob (sexy-internal-primitive-sink-print obj))
-    say       (prob (sexy-internal-primitive-sink-say obj))
-    nl        (prob (sexy-internal-primitive-sink-newline obj))
+    write     (prob
+        (λ (thing)
+            (sexy-internal-primitive-sink-print obj thing.view)))
+    print     (prob 
+        (λ (thing)
+            (sexy-internal-primitive-sink-print obj thing.to-text)))
+    say       (prob
+        (λ (thing)
+            (sexy-internal-primitive-sink-print obj (cat thing.to-text "\n"))))
+    nl  (prob (sexy-internal-primitive-sink-newline obj))
 ))
 
 (def control-eof (:
