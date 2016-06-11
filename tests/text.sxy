@@ -1,6 +1,7 @@
 
 (def empty "")
 (def str "sexy")
+(def yuck "YUCK")
 (def one "1")
 (def pi "3.14")
 (def fbb "foo.bar.baz")
@@ -16,6 +17,8 @@
 (sys.test 'text-to-real (= pi.to-number 3.14))
 (sys.test 'text-split (= '("foo" "bar" "baz") (fbb.split "[.]")))
 (sys.test 'text-set! (= "2" (seq (one.set! 0 \2) one)))
+(sys.test 'text-uc   (= "SEXY" str.uc))
+(sys.test 'text-lc   (= "yuck" yuck.lc))
 (sys.test 'text-take (= "se" (str.take 2)))
 (sys.test 'text-drop (= "xy" (str.drop 2)))
 (sys.test 'text-trim (= fb.trim "foonballardy!!!"))

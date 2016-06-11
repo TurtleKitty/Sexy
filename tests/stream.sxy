@@ -20,6 +20,9 @@
 (sys.test 'stream-read-text
     (= lines.to-stream.read-text lines))
 
+(sys.test 'stream-to-text
+    (= lines.to-stream.to-text lines))
+
 (sys.test 'stream-read-sexy
     (= '((foo (bar baz)) (quux 2 3)) sexprs.to-stream.read-sexy))
 

@@ -179,7 +179,7 @@
                     (map string->symbol (string-split flags "")))))
         (apply irregex opts))
     (case msg
-        ((type view autos resends default clone to-bool to-symbol to-keyword to-number to-list to-text to-stream size chomp index take drop trim ltrim rtrim lpad rpad messages responds?)
+        ((type view autos resends default clone to-bool to-symbol to-keyword to-number to-list to-text to-stream size chomp index uc lc take drop trim ltrim rtrim lpad rpad messages responds?)
             (cont
                 (case msg
                     ((type) 'text)
@@ -196,6 +196,8 @@
                     ((to-vector) (list->vector (string->list obj)))
                     ((to-text) obj)
                     ((to-stream) (open-input-string obj))
+                    ((uc) (string-upcase obj))
+                    ((lc) (string-downcase obj))
                     ((take) (lambda (n) (string-take obj n)))
                     ((drop) (lambda (n) (string-drop obj n)))
                     ((trim) (string-trim-both obj))
@@ -861,7 +863,7 @@
 
 (define (sexy-send-stream obj msg cont err)
     (case msg
-        ((type view resends default to-text to-bool to-stream input? output? open? resends default)
+        ((type view resends default to-bool to-stream input? output? open?)
             (cont 
                 (case msg
                     ((type) 'stream)
@@ -897,7 +899,7 @@
                         ((read-rune) (read-char obj))
                         ((peek-rune) (peek-char obj))
                         ((read-line) (read-line obj))
-                        ((read-text) (read-string #f obj))
+                        ((read-text to-text) (read-string #f obj))
                         ((read-sexy) (sexy-read-file obj))
                         ((assert-rune)
                             (sexy-proc
@@ -985,14 +987,14 @@
 
 (define (sexy-send-output-stream obj msg cont err)
     (define msgs
-        '(view to-text to-bool input? output? open? write print say nl flush close))
+        '(view to-bool input? output? open? write print say nl flush close))
     (case msg
         ((write print say nl autos)
             (if (port-closed? obj)
                 (err (sexy-error-object 'output-stream-closed `(send ,obj ,msg) "Output stream closed.") cont)
                 (cont
                     (case msg
-                        ((autos) '(view to-text to-bool ready? input? output? open? nl close)) 
+                        ((autos) '(view to-bool ready? input? output? open? nl close)) 
                         ((write)
                             (lambda (x)
                                 (sexy-write x obj)
