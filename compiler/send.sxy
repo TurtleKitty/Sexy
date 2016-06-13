@@ -50,29 +50,29 @@
     resends   (prob ())
     default   idk
     to-symbol (prob obj)
-    not       (prob (sexy-internal-primitive-not obj))
+    not       (prob (sexy-internal-not obj))
 ))
 
 (def int-messages '(to-number zero? pos? neg? odd? even? abs floor ceil round truncate inc dec))
 
 (def control-int (:
     type      (prob 'int)
-    view      (prob (sexy-internal-primitive-number-to-text obj))
-    to-text   (prob (sexy-internal-primitive-number-to-text obj))
-    to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
+    view      (prob (sexy-internal-number-to-text obj))
+    to-text   (prob (sexy-internal-number-to-text obj))
+    to-bool   (prob (sexy-internal-not (= obj 0)))
     messages  (prob int-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (int-messages.has? msg))))
     autos     (prob '(to-number zero? pos? neg? odd? even? abs floor ceil round truncate inc dec))
     resends   (prob ())
     default   idk
     to-number (prob obj)
-    to-utf8   (prob (sexy-internal-primitive-int-to-rune obj))
+    to-utf8   (prob (sexy-internal-int-to-rune obj))
     zero?     (prob (= obj 0))
     pos?      (prob (> obj 0))
     neg?      (prob (< obj 0))
     odd?      (prob (= 1 (mod obj 2)))
     even?     (prob (= 0 (mod obj 2)))
-    abs       (prob (sexy-internal-primitive-abs obj))
+    abs       (prob (sexy-internal-abs obj))
     floor     (prob obj)
     ceil      (prob obj)
     round     (prob obj)
@@ -85,9 +85,9 @@
 
 (def control-rat (:
     type      (prob 'rational)
-    view      (prob (sexy-internal-primitive-number-to-text obj))
-    to-text   (prob (sexy-internal-primitive-number-to-text obj))
-    to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
+    view      (prob (sexy-internal-number-to-text obj))
+    to-text   (prob (sexy-internal-number-to-text obj))
+    to-bool   (prob (sexy-internal-not (= obj 0)))
     messages  (prob rat-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (rat-messages.has? msg))))
     autos     (prob '(to-number zero? pos? neg? abs floor ceil round truncate))
@@ -97,20 +97,20 @@
     zero?     (prob false)
     pos?      (prob (> obj 0))
     neg?      (prob (< obj 0))
-    abs       (prob (sexy-internal-primitive-abs obj))
-    floor     (prob (sexy-internal-primitive-floor obj))
-    ceil      (prob (sexy-internal-primitive-ceil obj))
-    round     (prob (sexy-internal-primitive-round obj))
-    truncate  (prob (sexy-internal-primitive-truncate obj))
+    abs       (prob (sexy-internal-abs obj))
+    floor     (prob (sexy-internal-floor obj))
+    ceil      (prob (sexy-internal-ceil obj))
+    round     (prob (sexy-internal-round obj))
+    truncate  (prob (sexy-internal-truncate obj))
 ))
 
 (def real-messages '(to-number zero? pos? neg? abs floor ceil round truncate))
 
 (def control-real (:
     type      (prob 'real)
-    view      (prob (sexy-internal-primitive-number-to-text obj))
-    to-text   (prob (sexy-internal-primitive-number-to-text obj))
-    to-bool   (prob (sexy-internal-primitive-not (= obj 0)))
+    view      (prob (sexy-internal-number-to-text obj))
+    to-text   (prob (sexy-internal-number-to-text obj))
+    to-bool   (prob (sexy-internal-not (= obj 0)))
     messages  (prob real-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (real-messages.has? msg))))
     autos     (prob '(to-number zero? pos? neg? abs floor ceil round truncate))
@@ -120,44 +120,43 @@
     zero?     (prob (= obj 0))
     pos?      (prob (> obj 0))
     neg?      (prob (< obj 0))
-    abs       (prob (sexy-internal-primitive-abs obj))
-    floor     (prob (sexy-internal-primitive-floor obj))
-    ceil      (prob (sexy-internal-primitive-ceil obj))
-    round     (prob (sexy-internal-primitive-round obj))
-    truncate  (prob (sexy-internal-primitive-truncate obj))
-    abs       (prob (sexy-internal-primitive-abs obj))
+    abs       (prob (sexy-internal-abs obj))
+    floor     (prob (sexy-internal-floor obj))
+    ceil      (prob (sexy-internal-ceil obj))
+    round     (prob (sexy-internal-round obj))
+    truncate  (prob (sexy-internal-truncate obj))
 ))
 
 (def rune-messages '(to-rune to-int code alpha? digit? whitespace? uc? lc? uc lc))
 
 (def control-rune (:
     type      (prob 'rune)
-    view      (prob (sexy-internal-primitive-list-to-text (list \\ obj))) ; FIXME \space, \tab, \newline, \return
-    to-text   (prob (sexy-internal-primitive-text obj))
-    to-bool   (prob (sexy-internal-primitive-not (sexy-internal-primitive-rune-whitespace? obj)))
+    view      (prob (sexy-internal-list-to-text (list \\ obj))) ; FIXME \space, \tab, \newline, \return
+    to-text   (prob (sexy-internal-text obj))
+    to-bool   (prob (sexy-internal-not (sexy-internal-rune-whitespace? obj)))
     messages  (prob rune-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (rune-messages.has? msg))))
     autos     (prob rune-messages)
     resends   (prob ())
     default   idk
     to-rune   (prob obj)
-    to-int    (prob (sexy-internal-primitive-text-to-number (sexy-internal-primitive-text obj)))
-    code      (prob (sexy-internal-primitive-rune-to-int obj))
-    alpha?       (prob (sexy-internal-primitive-rune-alpha? obj))
-    digit?       (prob (sexy-internal-primitive-rune-digit? obj))
-    whitespace?  (prob (sexy-internal-primitive-rune-whitespace? obj))
-    uc?  (prob (sexy-internal-primitive-rune-uc? obj))
-    lc?  (prob (sexy-internal-primitive-rune-lc? obj))
-    uc   (prob (sexy-internal-primitive-rune-uc obj))
-    lc   (prob (sexy-internal-primitive-rune-lc obj))
+    to-int    (prob (sexy-internal-text-to-number (sexy-internal-text obj)))
+    code      (prob (sexy-internal-rune-to-int obj))
+    alpha?       (prob (sexy-internal-rune-alpha? obj))
+    digit?       (prob (sexy-internal-rune-digit? obj))
+    whitespace?  (prob (sexy-internal-rune-whitespace? obj))
+    uc?  (prob (sexy-internal-rune-uc? obj))
+    lc?  (prob (sexy-internal-rune-lc? obj))
+    uc   (prob (sexy-internal-rune-uc obj))
+    lc   (prob (sexy-internal-rune-lc obj))
 ))
 
 (def symbol-messages '(to-symbol))
 
 (def control-symbol (:
     type      (prob 'symbol)
-    view      (prob (sexy-internal-primitive-symbol-to-text obj))
-    to-text   (prob (sexy-internal-primitive-symbol-to-text obj))
+    view      (prob (sexy-internal-symbol-to-text obj))
+    to-text   (prob (sexy-internal-symbol-to-text obj))
     to-bool   (prob true)
     messages  (prob symbol-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (symbol-messages.has? msg))))
@@ -171,8 +170,8 @@
 
 (def control-bin (: ; FIXME
     type      (prob 'bin)
-    view      (prob (sexy-internal-primitive-bin-to-text obj))
-    to-text   (prob (sexy-internal-primitive-bin-to-text obj))
+    view      (prob (sexy-internal-bin-to-text obj))
+    to-text   (prob (sexy-internal-bin-to-text obj))
     to-bool   (prob true)
     messages  (prob bin-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (bin-messages.has? msg))))
@@ -201,45 +200,45 @@
     default   (prob
                  (prom 
                      (if (number? msg)
-                         (if (> (sexy-internal-primitive-text-size obj) msg)
-                             (sexy-internal-primitive-text-ref obj msg)
+                         (if (> (sexy-internal-text-size obj) msg)
+                             (sexy-internal-text-ref obj msg)
                              (error-object 'out-of-bounds %(send $obj $msg) "text: index out of bounds."))
                          ((idk obj) msg))))
-    to-symbol   (prob (sexy-internal-primitive-text-to-symbol obj))
-    to-option   (prob (sexy-internal-primitive-text-to-keyword obj))
-    to-number   (prob (sexy-internal-primitive-text-to-number obj))
-    to-list     (prob (sexy-internal-primitive-text-to-list obj))
-    to-bin      (prob (sexy-internal-primitive-text-to-bin obj))
-    to-stream   (prob (sexy-internal-primitive-text-to-stream obj))
-    size    (prob (sexy-internal-primitive-text-size obj))
+    to-symbol   (prob (sexy-internal-text-to-symbol obj))
+    to-option   (prob (sexy-internal-text-to-keyword obj))
+    to-number   (prob (sexy-internal-text-to-number obj))
+    to-list     (prob (sexy-internal-text-to-list obj))
+    to-bin      (prob (sexy-internal-text-to-bin obj))
+    to-stream   (prob (sexy-internal-text-to-stream obj))
+    size    (prob (sexy-internal-text-size obj))
     empty?  (prob (= "" obj))
-    clone   (prob (sexy-internal-primitive-text-clone obj))
-    chomp   (prob (sexy-internal-primitive-text-chomp obj))
-    trim    (prob (sexy-internal-primitive-text-trim obj))
-    ltrim   (prob (sexy-internal-primitive-text-trim-left obj))
-    rtrim   (prob (sexy-internal-primitive-text-trim-right obj))
-    lpad    (prob (λ (rune n) (sexy-internal-primitive-text-pad-left obj rune n)))
-    rpad    (prob (λ (rune n) (sexy-internal-primitive-text-pad-right obj rune n)))
-    set!    (prob (λ (n rune) (sexy-internal-primitive-text-set! obj n rune)))
-    index   (prob (λ (substr) (sexy-internal-primitive-text-subtext-index obj substr)))
-    take    (prob (λ (n) (sexy-internal-primitive-text-take obj n)))
-    drop    (prob (λ (n) (sexy-internal-primitive-text-drop obj n)))
+    clone   (prob (sexy-internal-text-clone obj))
+    chomp   (prob (sexy-internal-text-chomp obj))
+    trim    (prob (sexy-internal-text-trim obj))
+    ltrim   (prob (sexy-internal-text-trim-left obj))
+    rtrim   (prob (sexy-internal-text-trim-right obj))
+    lpad    (prob (λ (rune n) (sexy-internal-text-pad-left obj rune n)))
+    rpad    (prob (λ (rune n) (sexy-internal-text-pad-right obj rune n)))
+    set!    (prob (λ (n rune) (sexy-internal-text-set! obj n rune)))
+    index   (prob (λ (substr) (sexy-internal-text-subtext-index obj substr)))
+    take    (prob (λ (n) (sexy-internal-text-take obj n)))
+    drop    (prob (λ (n) (sexy-internal-text-drop obj n)))
     match (prob
         (proc (regex)
             (def flags (or opt.flags ""))
-            (sexy-internal-primitive-text-match obj regex flags)))
+            (sexy-internal-text-match obj regex flags)))
     split (prob
         (proc (regex)
             (def flags (or opt.flags ""))
-            (sexy-internal-primitive-text-split obj regex flags)))
+            (sexy-internal-text-split obj regex flags)))
     capture (prob
         (proc (regex)
             (def flags (or opt.flags ""))
-            (sexy-internal-primitive-text-capture obj regex flags)))
+            (sexy-internal-text-capture obj regex flags)))
     replace (prob
         (proc (regex replacement)
             (def flags (or opt.flags ""))
-            (sexy-internal-primitive-text-replace obj regex flags)))
+            (sexy-internal-text-replace obj regex flags)))
 ))
 
 (def env-messages
@@ -247,27 +246,27 @@
 
 (def control-env (:
     type      (prob 'env)
-    view      (prob (sexy-internal-primitive-env-to-text obj))
-    to-text   (prob (sexy-internal-primitive-env-to-text obj))
+    view      (prob (sexy-internal-env-to-text obj))
+    to-text   (prob (sexy-internal-env-to-text obj))
     to-bool   (prob true)
     messages  (prob env-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (env-messages.has? msg))))
     autos     (prob '(empty? mama to-list to-record))
     resends   (prob ())
     default   idk
-    mama      (prob (sexy-internal-primitive-env-mama obj))
-    to-list   (prob (sexy-internal-primitive-env-to-list obj))
-    to-record (prob (sexy-internal-primitive-env-to-record obj))
-    empty?    (prob (= 0 (sexy-internal-primitive-env-size obj)))
-    def!      (prob (sexy-internal-primitive-env-def! obj))   ; local
-    get       (prob (sexy-internal-primitive-env-get obj))    ; local
-    set!      (prob (sexy-internal-primitive-env-set! obj))   ; local or ancestral
-    has?      (prob (sexy-internal-primitive-env-has? obj))   ; local
-    del!      (prob (sexy-internal-primitive-env-del! obj))   ; local or ancestral
-    lookup    (prob (sexy-internal-primitive-env-lookup obj)) ; local or ancestral
-    lookup-list  (prob (sexy-internal-primitive-env-lookup-list obj)) ; local or ancestral
-    extend       (prob (sexy-internal-primitive-env-extend obj))
-    partition    (prob (sexy-internal-primitive-env-partition obj))
+    mama      (prob (sexy-internal-env-mama obj))
+    to-list   (prob (sexy-internal-env-to-list obj))
+    to-record (prob (sexy-internal-env-to-record obj))
+    empty?    (prob (= 0 (sexy-internal-env-size obj)))
+    def!      (prob (sexy-internal-env-def! obj))   ; local
+    get       (prob (sexy-internal-env-get obj))    ; local
+    set!      (prob (sexy-internal-env-set! obj))   ; local or ancestral
+    has?      (prob (sexy-internal-env-has? obj))   ; local
+    del!      (prob (sexy-internal-env-del! obj))   ; local or ancestral
+    lookup    (prob (sexy-internal-env-lookup obj)) ; local or ancestral
+    lookup-list  (prob (sexy-internal-env-lookup-list obj)) ; local or ancestral
+    extend       (prob (sexy-internal-env-extend obj))
+    partition    (prob (sexy-internal-env-partition obj))
     seal! null ; FIXME
     wild! null ; FIXME
     expand    (prob 
@@ -283,8 +282,8 @@
 
 (def control-pair (:
     type      (prob 'pair)
-    view      (prob (sexy-internal-primitive-pair-view obj))
-    to-text   (prob (sexy-internal-primitive-pair-to-text obj)) ; all members must be runes
+    view      (prob (sexy-internal-pair-view obj))
+    to-text   (prob (sexy-internal-pair-to-text obj)) ; all members must be runes
     to-bool   (prob (if (= () obj) false true))
     messages  (prob pair-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (pair-messages.has? msg))))
@@ -293,43 +292,43 @@
     default   (prob
                 (prom
                     (if (= (sexy-internal-get-object-type msg) 'int)
-                        (sexy-internal-primitive-list-ref obj msg)
+                        (sexy-internal-list-ref obj msg)
                         (idk))))
-    head      (prob (sexy-internal-primitive-pair-head obj))
-    key       (prob (sexy-internal-primitive-pair-head obj))
-    car       (prob (sexy-internal-primitive-pair-head obj))
-    tail      (prob (sexy-internal-primitive-pair-tail obj))
-    val       (prob (sexy-internal-primitive-pair-tail obj))
-    cdr       (prob (sexy-internal-primitive-pair-tail obj))
+    head      (prob (sexy-internal-pair-head obj))
+    key       (prob (sexy-internal-pair-head obj))
+    car       (prob (sexy-internal-pair-head obj))
+    tail      (prob (sexy-internal-pair-tail obj))
+    val       (prob (sexy-internal-pair-tail obj))
+    cdr       (prob (sexy-internal-pair-tail obj))
     to-list   (prob
-                (if (sexy-internal-primitive-list? obj)
+                (if (sexy-internal-list? obj)
                     obj
-                    (sexy-internal-primitive-list
-                        (sexy-internal-primitive-pair-head obj)
-                        (sexy-internal-primitive-pair-tail obj))))
-    to-vector (prob (sexy-internal-primitive-pair-to-vector obj))
-    to-record (prob (sexy-internal-primitive-pair-to-record obj))
-    size      (prob (sexy-internal-primitive-pair-size obj))
+                    (sexy-internal-list
+                        (sexy-internal-pair-head obj)
+                        (sexy-internal-pair-tail obj))))
+    to-vector (prob (sexy-internal-pair-to-vector obj))
+    to-record (prob (sexy-internal-pair-to-record obj))
+    size      (prob (sexy-internal-pair-size obj))
     empty?    (prob (if (= obj ()) true false))
-    reverse   (prob (sexy-internal-primitive-pair-reverse obj))
+    reverse   (prob (sexy-internal-pair-reverse obj))
     cons      (prob
                 (proc (item)
-                    (sexy-internal-primitive-pair item obj)))
+                    (sexy-internal-pair item obj)))
     has?      (prob
                 (proc (item)
-                    (sexy-internal-primitive-pair-has? obj item)))
+                    (sexy-internal-pair-has? obj item)))
     append    null ; FIXME
     take      (prob
                 (proc (n)
-                    (sexy-internal-primitive-pair-take obj n)))
+                    (sexy-internal-pair-take obj n)))
     drop      (prob
                 (proc (n)
-                    (sexy-internal-primitive-pair-drop obj n)))
+                    (sexy-internal-pair-drop obj n)))
     apply     (prob
                 (λ (args options)
-                    (if (!= (sexy-internal-primitive-pair-size args) 1)
+                    (if (!= (sexy-internal-pair-size args) 1)
                         (error-object 'arg-error %(list.apply args opts) "list.apply takes only one integer argument.")
-                        (sexy-internal-primitive-list-ref obj (sexy-internal-primitive-pair-head args)))))
+                        (sexy-internal-list-ref obj (sexy-internal-pair-head args)))))
     fold      (prob
                 (λ (acc funk)
                     (if obj.empty?
@@ -378,9 +377,9 @@
 
 (def control-vector (:
     type      (prob 'vector)
-    view      (prob (sexy-internal-primitive-vector-view obj))
-    to-text   (prob (sexy-internal-primitive-vector-to-text obj)) ; all members must be runes
-    to-bool   (prob (if (= 0 (sexy-internal-primitive-vector-size obj)) false true))
+    view      (prob (sexy-internal-vector-view obj))
+    to-text   (prob (sexy-internal-vector-to-text obj)) ; all members must be runes
+    to-bool   (prob (if (= 0 (sexy-internal-vector-size obj)) false true))
     messages  (prob vector-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (vector-messages.has? msg))))
     autos     (prob '(to-list to-vector to-record size empty?))
@@ -388,28 +387,28 @@
     default   (prob
                 (prom
                     (if (= (sexy-internal-get-object-type msg) 'int)
-                        (sexy-internal-primitive-vector-ref obj msg)
+                        (sexy-internal-vector-ref obj msg)
                         (idk))))
-    to-list   (prob (sexy-internal-primitive-vector-to-list obj))
+    to-list   (prob (sexy-internal-vector-to-list obj))
     to-vector (prob obj)
-    to-record (prob (sexy-internal-primitive-vector-to-record obj))
-    size      (prob (sexy-internal-primitive-vector-size obj))
-    empty?    (prob (if (= 0 (sexy-internal-primitive-vector-size obj)) true false))
+    to-record (prob (sexy-internal-vector-to-record obj))
+    size      (prob (sexy-internal-vector-size obj))
+    empty?    (prob (if (= 0 (sexy-internal-vector-size obj)) true false))
     has?      (prob
                 (proc (item)
-                    (sexy-internal-primitive-vector-has? obj item)))
+                    (sexy-internal-vector-has? obj item)))
     append    null ; FIXME
     take      (prob
                 (proc (n)
-                    (sexy-internal-primitive-vector-take obj n)))
+                    (sexy-internal-vector-take obj n)))
     drop      (prob
                 (proc (n)
-                    (sexy-internal-primitive-vector-drop obj n)))
+                    (sexy-internal-vector-drop obj n)))
     apply     (prob
                 (λ (args options)
-                    (if (!= (sexy-internal-primitive-vector-size args) 1)
+                    (if (!= (sexy-internal-vector-size args) 1)
                         (error-object 'arg-error %(vector.apply args opts) "vector.apply takes only one integer argument.")
-                        (sexy-internal-primitive-vector-ref obj (sexy-internal-primitive-pair-head args)))))
+                        (sexy-internal-vector-ref obj (sexy-internal-pair-head args)))))
     fold      (prob null) ;FIXME
     reduce    (prob null) ;FIXME
     map       (prob null) ;FIXME
@@ -423,38 +422,38 @@
 
 (def control-record (:
     type      (prob 'record)
-    view      (prob (sexy-internal-primitive-record-to-text obj))
-    to-text   (prob (sexy-internal-primitive-record-to-text obj))
-    to-bool   (prob (if (= 0 sexy-internal-primitive-record-size obj) false true))
+    view      (prob (sexy-internal-record-to-text obj))
+    to-text   (prob (sexy-internal-record-to-text obj))
+    to-bool   (prob (if (= 0 sexy-internal-record-size obj) false true))
     messages  (prob record-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (record-messages.has? msg))))
     autos     (prob '(size keys values pairs clone to-list to-record))
     resends   (prob ())
     default   (prob
                 (prom
-                    (if (sexy-internal-primitive-record-has? obj msg)
-                        (sexy-internal-primitive-record-has? obj msg)
+                    (if (sexy-internal-record-has? obj msg)
+                        (sexy-internal-record-has? obj msg)
                         null)))
-    to-list   (prob (sexy-internal-primitive-record-to-list obj))
+    to-list   (prob (sexy-internal-record-to-list obj))
     to-record (prob obj)
-    size      (prob (sexy-internal-primitive-record-size obj))
-    empty?    (prob (= 0 (sexy-internal-primitive-record-size obj)))
-    keys      (prob (sexy-internal-primitive-record-keys obj))
-    values    (prob (sexy-internal-primitive-record-values obj))
-    pairs     (prob (sexy-internal-primitive-record-to-list obj))
-    clone     (prob (sexy-internal-primitive-record-clone obj))
-    get       (prob (proc (k) (sexy-internal-primitive-record-get obj k)))
-    put       (prob (proc () (sexy-internal-primitive-record-put obj rest)))
-    rm        (prob (proc () (sexy-internal-primitive-record-rm obj rest)))
-    set!      (prob (proc () (sexy-internal-primitive-record-set! obj rest)))
-    del!      (prob (proc () (sexy-internal-primitive-record-del! obj rest)))
-    has?      (prob (proc (k) (sexy-internal-primitive-record-has? obj k)))
-    merge     (prob (proc (other) (sexy-internal-primitive-record-merge obj other)))
+    size      (prob (sexy-internal-record-size obj))
+    empty?    (prob (= 0 (sexy-internal-record-size obj)))
+    keys      (prob (sexy-internal-record-keys obj))
+    values    (prob (sexy-internal-record-values obj))
+    pairs     (prob (sexy-internal-record-to-list obj))
+    clone     (prob (sexy-internal-record-clone obj))
+    get       (prob (proc (k) (sexy-internal-record-get obj k)))
+    put       (prob (proc () (sexy-internal-record-put obj rest)))
+    rm        (prob (proc () (sexy-internal-record-rm obj rest)))
+    set!      (prob (proc () (sexy-internal-record-set! obj rest)))
+    del!      (prob (proc () (sexy-internal-record-del! obj rest)))
+    has?      (prob (proc (k) (sexy-internal-record-has? obj k)))
+    merge     (prob (proc (other) (sexy-internal-record-merge obj other)))
     apply     (prob
                 (λ (args options)
-                    (if (!= (sexy-internal-primitive-pair-size args) 1)
+                    (if (!= (sexy-internal-pair-size args) 1)
                         (error-object 'arg-error %(record.apply $args $options) "Record apply takes only one argument.")
-                        (sexy-internal-primitive-record-get obj args.head))))
+                        (sexy-internal-record-get obj args.head))))
     fold      (prob
                 (def xs obj.to-list)
                 (λ (acc funk)
@@ -486,53 +485,53 @@
 
 (def control-λ (:
     type      (prob 'λ)
-    view      (prob (sexy-internal-primitive-λ-to-text obj))
-    to-text   (prob (sexy-internal-primitive-λ-to-text obj))
+    view      (prob (sexy-internal-λ-to-text obj))
+    to-text   (prob (sexy-internal-λ-to-text obj))
     to-bool   (prob true)
     messages  (prob proc-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
     autos     (prob '(arity code env formals))
     resends   (prob ())
     default   idk
-    apply     (prob (λ (args opts) (sexy-internal-primitive-apply obj args opts)))
-    arity     (prob (sexy-internal-primitive-proc-arity obj))
-    code      (prob (sexy-internal-primitive-proc-code obj))
-    env       (prob (sexy-internal-primitive-proc-env obj))
-    formals   (prob (sexy-internal-primitive-proc-formals obj))
+    apply     (prob (λ (args opts) (sexy-internal-apply obj args opts)))
+    arity     (prob (sexy-internal-proc-arity obj))
+    code      (prob (sexy-internal-proc-code obj))
+    env       (prob (sexy-internal-proc-env obj))
+    formals   (prob (sexy-internal-proc-formals obj))
 ))
 
 (def control-proc (:
     type      (prob 'proc)
-    view      (prob (sexy-internal-primitive-proc-to-text obj))
-    to-text   (prob (sexy-internal-primitive-proc-to-text obj))
+    view      (prob (sexy-internal-proc-to-text obj))
+    to-text   (prob (sexy-internal-proc-to-text obj))
     to-bool   (prob true)
     messages  (prob proc-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
     autos     (prob '(arity code env formals))
     resends   (prob ())
     default   idk
-    apply     (prob (λ (args opts) (sexy-internal-primitive-apply obj args opts)))
-    arity     (prob (sexy-internal-primitive-proc-arity obj))
-    code      (prob (sexy-internal-primitive-proc-code obj))
-    env       (prob (sexy-internal-primitive-proc-env obj))
-    formals   (prob (sexy-internal-primitive-proc-formals obj))
+    apply     (prob (λ (args opts) (sexy-internal-apply obj args opts)))
+    arity     (prob (sexy-internal-proc-arity obj))
+    code      (prob (sexy-internal-proc-code obj))
+    env       (prob (sexy-internal-proc-env obj))
+    formals   (prob (sexy-internal-proc-formals obj))
 ))
 
 (def control-operator (:
     type      (prob 'operator)
-    view      (prob (sexy-internal-primitive-operator-to-text obj))
-    to-text   (prob (sexy-internal-primitive-operator-to-text obj))
+    view      (prob (sexy-internal-operator-to-text obj))
+    to-text   (prob (sexy-internal-operator-to-text obj))
     to-bool   (prob true)
     messages  (prob proc-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (proc-messages.has? msg))))
     autos     (prob '(arity code env formals))
     resends   (prob ())
     default   idk
-    apply     (prob (λ (args opts) (sexy-internal-primitive-apply obj args opts)))
-    arity     (prob (sexy-internal-primitive-proc-arity obj))
-    code      (prob (sexy-internal-primitive-proc-code obj))
-    env       (prob (sexy-internal-primitive-proc-env obj))
-    formals   (prob (sexy-internal-primitive-proc-formals obj))
+    apply     (prob (λ (args opts) (sexy-internal-apply obj args opts)))
+    arity     (prob (sexy-internal-proc-arity obj))
+    code      (prob (sexy-internal-proc-code obj))
+    env       (prob (sexy-internal-proc-env obj))
+    formals   (prob (sexy-internal-proc-formals obj))
 ))
 
 (def source-messages
@@ -543,24 +542,24 @@
 
 (def control-source (:
     type      (prob 'source)
-    view      (prob (sexy-internal-primitive-source-view obj))
-    to-text   (prob (sexy-internal-primitive-source-view obj))
+    view      (prob (sexy-internal-source-view obj))
+    to-text   (prob (sexy-internal-source-view obj))
     to-bool   (prob true)
     messages  (prob source-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (source-messages.has? msg))))
     autos     (prob '(open? ready? close read read-rune peek-rune read-line read-text read-sexy))
     resends   (prob ())
     default   idk
-    open?     (prob (sexy-internal-primitive-stream-open? obj))
-    ready?    (prob (sexy-internal-primitive-stream-ready? obj))
-    close     (prob (sexy-internal-primitive-stream-close obj))
-    read      (prob (sexy-internal-primitive-source-read obj))
-    read-rune (prob (sexy-internal-primitive-source-read-rune obj))
-    peek-rune (prob (sexy-internal-primitive-source-peek-rune obj))
-    read-line (prob (sexy-internal-primitive-source-read-line obj))
-    read-lines (prob (sexy-internal-primitive-source-read-lines obj))
-    read-text (prob (sexy-internal-primitive-source-read-text obj))
-    read-sexy (prob (sexy-internal-primitive-source-read-sexy obj))
+    open?     (prob (sexy-internal-stream-open? obj))
+    ready?    (prob (sexy-internal-stream-ready? obj))
+    close     (prob (sexy-internal-stream-close obj))
+    read      (prob (sexy-internal-source-read obj))
+    read-rune (prob (sexy-internal-source-read-rune obj))
+    peek-rune (prob (sexy-internal-source-peek-rune obj))
+    read-line (prob (sexy-internal-source-read-line obj))
+    read-lines (prob (sexy-internal-source-read-lines obj))
+    read-text (prob (sexy-internal-source-read-text obj))
+    read-sexy (prob (sexy-internal-source-read-sexy obj))
     assert-rune (prob
         (λ (runes)
             (def rune-list runes.to-list)
@@ -628,27 +627,27 @@
 
 (def control-sink (:
     type      (prob 'sink)
-    view      (prob (sexy-internal-primitive-sink-view obj))
-    to-text   (prob (sexy-internal-primitive-sink-view obj))
+    view      (prob (sexy-internal-sink-view obj))
+    to-text   (prob (sexy-internal-sink-view obj))
     to-bool   (prob true)
     messages  (prob sink-messages)
     answers?  (prob (prom (or (default-messages.has? msg) (sink-messages.has? msg))))
     autos     (prob '(open? close))
     resends   (prob ())
     default   idk
-    open?     (prob (sexy-internal-primitive-stream-open? obj))
-    close     (prob (sexy-internal-primitive-stream-close obj))
-    flush     (prob (sexy-internal-primitive-sink-flush obj))
+    open?     (prob (sexy-internal-stream-open? obj))
+    close     (prob (sexy-internal-stream-close obj))
+    flush     (prob (sexy-internal-sink-flush obj))
     write     (prob
         (λ (thing)
-            (sexy-internal-primitive-sink-print obj thing.view)))
+            (sexy-internal-sink-print obj thing.view)))
     print     (prob 
         (λ (thing)
-            (sexy-internal-primitive-sink-print obj thing.to-text)))
+            (sexy-internal-sink-print obj thing.to-text)))
     say       (prob
         (λ (thing)
-            (sexy-internal-primitive-sink-print obj (cat thing.to-text "\n"))))
-    nl  (prob (sexy-internal-primitive-sink-newline obj))
+            (sexy-internal-sink-print obj (cat thing.to-text "\n"))))
+    nl  (prob (sexy-internal-sink-newline obj))
 ))
 
 (def control-eof (:
