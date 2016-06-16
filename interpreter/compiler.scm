@@ -6,7 +6,8 @@
             cadr
             (filter
                 (lambda (x)
-                    (and (pair? x)
+                    (and (list? x)
+                         (> (length x) 1)
                          (or
                             (eq? (car x) 'def)
                             (and (eq? (car x) 'proc) (symbol? (cadr x)))

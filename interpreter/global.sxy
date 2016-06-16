@@ -320,7 +320,7 @@
                 $v))))
 
 (macro test ()
-    'null) ; FIXME
+    'this-macro-not-yet-implemented) ; FIXME
 
 (macro qw ()
     (pair 'list (rest.map (λ (x) x.to-text))))
