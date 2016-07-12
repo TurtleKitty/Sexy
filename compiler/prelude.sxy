@@ -112,6 +112,7 @@
         (object 'type 'error
                 'name name
                 'form form
+                'view (list 'error name form message)
                 'message message
                 'to-text message)))
 
