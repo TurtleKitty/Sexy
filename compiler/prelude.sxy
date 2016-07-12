@@ -107,17 +107,19 @@
         (proc ()
             (f.apply (append cargs rest) opt))) rest))
 
-(proc error-object (name form to-text)
-    (object 'type 'error
-            'name name
-            'form form
-            'to-text to-text))
+(proc error (name form message)
+    (fail
+        (object 'type 'error
+                'name name
+                'form form
+                'message message
+                'to-text message)))
 
 (proc compose ()
     ((proc (funz)
         (def s funz.size)
         (if (= s 0)
-            (error (error-object 'too-few-args %(compose @rest) "(compose ...) requires at least one argument.  It prefers more than one."))
+            (error 'too-few-args %(compose @rest) "(compose ...) requires at least one argument.  It prefers more than one.")
             (if (= s 1)
                 rest.head
                 (if (= s 2)
@@ -161,17 +163,16 @@
                     (if (pair? xs)
                         (loop xs.head xs.tail.head xs.tail.tail noob)
                         noob))
-                (error (error-object 'args-fail %(: @rest) "(: ...) requires an even number of arguments")))
+                (error 'args-fail %(: @rest) "(: ...) requires an even number of arguments"))
             ())))
 
 (macro cond ()
     (def default
         (if (opt.get 'default)
             (opt.get 'default)
-            (list 'error (list 'object ''name ''cond-no-matching-clause ''to-text "(cond... ) form fell through!"
-                                ''form (list 'pair ''cond (list 'quote rest))))))
+            (list 'error ''cond-no-matching-clause (list 'pair ''cond (list 'quote rest)) "(cond... ) form fell through!")))
     (if (< rest.size 2)
-        (error (error-object 'syntax-error (pair 'cond rest) "(cond ...) should have at least one predicate and consequent."))
+        (error 'syntax-error (pair 'cond rest) "(cond ...) should have at least one predicate and consequent.")
         (let loop (pred rest.0 conseq rest.1 remaining rest.tail.tail)
             (if remaining
                 (list 'if pred conseq (loop remaining.0 remaining.1 remaining.tail.tail))
@@ -237,10 +238,9 @@
     (def default
         (if (opt.get 'default)
             (opt.get 'default)
-            (list 'error (list 'object ''name ''case-no-matching-clause ''to-text "(case ...) form fell through!"
-                               ''form (list 'pair ''case (list 'quote rest))))))
+            (list 'error ''case-no-matching-clause (list 'pair ''case (list 'quote rest)) "(case ...) form fell through!")))
     (if (< rest.size 2)
-        (error (error-object 'syntax-error (pair 'case rest) "(case ...) should have at least one predicate and consequent."))
+        (error 'syntax-error (pair 'case rest) "(case ...) should have at least one predicate and consequent.")
         (seq
             (def cval (gensym))
             (qq
@@ -288,11 +288,11 @@
 
 (macro set! ()
     (when (< rest.size 2)
-        (error (error-object 'syntax-error %(set! @rest) "set! requires at least two arguments.")))
+        (error 'syntax-error %(set! @rest) "set! requires at least two arguments."))
     %(env.set!
         @(let loop (k rest.head v rest.1 others rest.tail.tail rv ())
             (when (not (symbol? k))
-                (error (error-object 'syntax-error %(set! @rest) "set! requires keys to be symbols.")))
+                (error 'syntax-error %(set! @rest) "set! requires keys to be symbols."))
             (def noob (pair %(quote $k) (pair v rv)))
             (if others.empty?
                 noob
@@ -300,12 +300,12 @@
 
 (macro del! ()
     (when (< rest.size 1)
-        (error (error-object 'syntax-error %(del! @rest) "del! requires at least one argument.")))
+        (error 'syntax-error %(del! @rest) "del! requires at least one argument."))
     %(env.del!
         @(rest.map
             (_
                 (when (not (symbol? _))
-                    (error (error-object 'syntax-error %(del! @rest) "del! requires keys to be symbols.")))
+                    (error 'syntax-error %(del! @rest) "del! requires keys to be symbols."))
                 (list 'quote _)))))
 
 (macro ensure (thnk)
@@ -313,14 +313,14 @@
     %(guard
         (proc (e k)
             ($thnk)
-            (error e)) 
+            (fail e)) 
         (gate
             (let ($v (seq @rest))
                 ($thnk)
                 $v))))
 
 (macro test ()
-    'null) ; FIXME
+    'this-macro-not-yet-implemented) ; FIXME
 
 (macro qw ()
     (pair 'list (rest.map (λ (x) x.to-text))))
@@ -441,11 +441,11 @@
             (let ((unq testy) (quote (unq predicate)) (unq result) (unq predicate))
                 (if (send (unq result) 'to-bool)
                     true
-                    (error (error-object 'assertion-failed (unq testy) "(assert ...) FAIL")))))))
+                    (error 'assertion-failed (unq testy) "(assert ...) FAIL"))))))
 
 (proc ndx (n x)
     (when (or (< n 0) (< x 0))
-        (error (error-object 'type-error %(ndx $n $x) "usage: (ndx n x) : n and x must be integers greater than zero.")))
+        (error 'type-error %(ndx $n $x) "usage: (ndx n x) : n and x must be integers greater than zero."))
     (proc dx ()
         (+ 1 (rand x)))
     (let loop (m n total 0)
@@ -482,7 +482,7 @@
                 p.read-rune ; discard opening [
                 (let loop (next p.peek-rune items ())
                     (when (eof? next)
-                        (error (error-object 'json-read-error items "Unexpected EOF in JSON array!")))
+                        (error 'json-read-error items "Unexpected EOF in JSON array!"))
                     (if next.whitespace?
                         (seq p.read-rune (loop p.peek-rune items))
                         (case next
@@ -495,7 +495,7 @@
                 p.read-rune ; discard opening {
                 (let loop (next p.peek-rune items (record))
                     (when (eof? next)
-                        (error (error-object 'json-read-error items "Unexpected EOF in JSON object!")))
+                        (error 'json-read-error items "Unexpected EOF in JSON object!"))
                     (if next.whitespace?
                         (seq p.read-rune (loop p.peek-rune items))
                         (case next
@@ -518,15 +518,15 @@
                     (case next
                         (\")     (read-text p)
                         (\[)     (read-array p)
-                        (\])     (error (error-object 'json-read-error txt "Unexpected ] !"))
+                        (\])     (error 'json-read-error txt "Unexpected ] !")
                         (\{)     (read-object p)
-                        (\})     (error (error-object 'json-read-error txt "Unexpected } !"))
+                        (\})     (error 'json-read-error txt "Unexpected } !")
                         (\- \0 \1 \2 \3 \4 \5 \6 \7 \8 \9)
                             (read-num p)
                         default:
                             (let (this-guy (read-symbol p))
                                 (if (not (syms.has? this-guy))
-                                    (error (error-object 'json-read-error this-guy "Unquoted string!"))
+                                    (error 'json-read-error this-guy "Unquoted string!")
                                     this-guy)))))
             (reader txt.to-stream))
 
@@ -547,7 +547,7 @@
                     default: 
                         (if (thing.responds? 'to-json)
                             thing.to-json
-                            (error (error-object 'json-write-error thing "json.write - unknown-type")))))
+                            (error 'json-write-error thing "json.write - unknown-type"))))
 
             (object
                 'read json-in
@@ -581,10 +581,10 @@
     (def forward (msgs.filter none-shall-pass))
     (proc unseal (xyzzy)
         (if (null? secret)
-            (error (error-object 'ACCESS-DENIED sealed "Object not unsealable!"))
+            (error 'ACCESS-DENIED sealed "Object not unsealable!")
             (if (= xyzzy secret)
                 obj
-                (error (error-object 'ACCESS-DENIED sealed "WRONG!!!")))))
+                (error 'ACCESS-DENIED sealed "WRONG!!!"))))
     (def sealed
         (object 'type type 'unseal unseal resend: %(($obj @forward)) default: obj.default))
     sealed)
@@ -595,8 +595,8 @@
 
 (proc any? (f xs)
     (when (not (proc? f))
-        (error (error-object 'bad-argument %(any? $f $xs @rest)
-                             "any?: first argument must be a procedure.")))
+        (error 'bad-argument %(any? $f $xs @rest)
+                             "any?: first argument must be a procedure."))
     (def ys xs.to-list)
     (let loop (z ys.head zs ys.tail)
         (if (f z)
@@ -607,8 +607,7 @@
 
 (proc every? (f xs)
     (when (not (proc? f))
-        (error (error-object 'bad-argument %(every? $f $xs @rest)
-                             "every?: first argument must be a procedure.")))
+        (error 'bad-argument %(every? $f $xs @rest) "every?: first argument must be a procedure."))
     (def ys xs.to-list)
     (let loop (z ys.head zs ys.tail)
         (if (f z)
@@ -619,8 +618,7 @@
 
 (proc map (f xs) ; general map
     (when (not (proc? f))
-        (error (error-object 'bad-argument %(map $f $xs @rest)
-                             "map: first argument must be a procedure.")))
+        (error 'bad-argument %(map $f $xs @rest) "map: first argument must be a procedure."))
     (proc get-heads (xs)
         (xs.map (resend 'head)))
     (proc get-tails (xs)
@@ -635,8 +633,7 @@
 
 (proc fold (kons knil) ; general fold
     (when (not (proc? kons))
-        (error (error-object 'bad-argument %(fold $kons $knil @rest)
-                             "fold: first argument must be a procedure.")))
+        (error 'bad-argument %(fold $kons $knil @rest) "fold: first argument must be a procedure."))
     (def lists (rest.map (resend 'to-list)))
     (proc fold-m (kons knil lists)
         (if (any? (resend 'empty?) lists)

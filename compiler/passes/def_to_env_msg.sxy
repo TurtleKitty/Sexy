@@ -10,7 +10,7 @@
         (case form.head
             (def)
                 %((send env (quote def!)) (quote $form.1) $(pass form.2))
-            (if quote seq wall gate capture guard error)
+            (if quote seq wall gate capture guard fail)
                 ((gen-pass form.head) pass form)
             (proc λ)
                 ((gen-pass 'proc-id) pass form)

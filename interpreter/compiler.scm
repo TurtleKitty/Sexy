@@ -64,7 +64,7 @@
             ((gate)     (sexy-compile-gate code))
             ((capture)  (sexy-compile-capture code))
             ((guard)    (sexy-compile-guard code))
-            ((error)    (sexy-compile-error code))
+            ((fail)     (sexy-compile-fail code))
             ((use)      (sexy-compile-use code))
             (else       (sexy-compile-application code)))
         (sexy-compile-atom code)))
@@ -326,7 +326,7 @@
                 (expr-c env cont new-err-cont))
             err)))
 
-(define (sexy-compile-error code)
+(define (sexy-compile-fail code)
     (define errobj (cadr code))
     (define erob-c (sexy-compile errobj))
     (frag

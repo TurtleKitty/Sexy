@@ -12,7 +12,7 @@
                 (pass form.1)
                 %(seq @(pass form.tail)))
             (case form.head
-                (def if quote seq wall gate capture guard error)
+                (def if quote seq wall gate capture guard fail)
                     ((gen-pass form.head) pass form)
                 (proc λ)
                     ((gen-pass 'proc-id) pass form)

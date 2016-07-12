@@ -31,6 +31,6 @@
         gate         pass-1
         capture      pass-2
         guard        pass-2
-        error        pass-1
+        fail         pass-1
         application  pass-n))
 

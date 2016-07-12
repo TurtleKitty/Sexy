@@ -8,7 +8,7 @@
 (proc pass (form)
     (if (pair? form)
         (case form.head
-            (if quote seq wall gate capture guard error)
+            (if quote seq wall gate capture guard fail)
                 ((gen-pass form.head) pass form)
             (proc λ)
                 ((gen-pass 'proc-id) pass form)

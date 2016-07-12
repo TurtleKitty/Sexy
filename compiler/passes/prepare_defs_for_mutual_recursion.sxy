@@ -22,7 +22,7 @@
                                     %((send env 'set!) (quote $_.1) $(pass _.2))
                                     _))))
                     %(seq @nulls @transformed))
-            (def if quote wall gate capture guard error)
+            (def if quote wall gate capture guard fail)
                 ((gen-pass form.head) pass form)
             (proc λ)
                 ((gen-pass 'proc-id) pass form)

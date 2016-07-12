@@ -35,7 +35,7 @@
             (gate)     (cps-gate form)
             (capture)  (cps-capture form)
             (guard)    (cps-guard form)
-            (error)    (cps-error form)
+            (fail)     (cps-fail form)
             default:   (cps-application form))
         (cps-atom form)))
 
@@ -181,15 +181,15 @@
                     (λ ($e $k) ($funk $cont $hand null $e $k))))
             $hand)))
 
-(proc cps-error (form)
-    (def error-obj (cps form.1))
+(proc cps-fail (form)
+    (def fail-obj (cps form.1))
     (def cont (gencont))
     (def hand (genhand))
     (def e (genval))
     (cps-frag
         cont
         hand
-        %($error-obj
+        %($fail-obj
             env
             (λ ($e)
                 ($hand $e $cont))
@@ -253,7 +253,7 @@
 
 (proc M (form)
     (when (not (atomic? form))
-        (error (object 'type 'error 'form form 'name 'not-an-atom! 'to-text "WRONG!")))
+        (error 'not-an-atom! form "WRONG!"))
     (if (not (pair? form))
         form
         (case form.head
@@ -266,7 +266,7 @@
                 (def k 'return)    ; user continuation
                 (def e (genhand))  ; error continuation
                 %($form.head $form.2 $(append form.3 (list k e)) @form.tail.tail.tail.tail)) ; remember the added IDs from pass 2
-            default: (error 'wtf))))
+            default: (fail 'wtf))))
 
 (proc T-c (form c)
     (debug (list 'T-c form c))
@@ -289,7 +289,7 @@
             (gate) form
             (capture) form
             (guard) form
-            (error) form
+            (fail) form
             default: ; procedure application
                 (T-k form.head
                     (proc (f)
@@ -321,7 +321,7 @@
             (gate) form
             (capture) form
             (guard) form
-            (error) form
+            (fail) form
             default: ; procedure application
                 (def rv (gensym "value"))
                 (def cont %(λ ($rv) $(k rv)))

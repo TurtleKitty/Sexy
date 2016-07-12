@@ -12,7 +12,7 @@
 
 (proc idk (obj)
     (prom
-        (error-object
+        (error
             'message-not-understood
             %(send $obj (quote $msg))
             "Message not understood."))) 
@@ -31,7 +31,7 @@
     default   (prob (prom null))
     to-symbol (prob null)
     apply (prob
-        (error-object
+        (error
             'apply-null
             null
             "null can not be used as a procedure."))
@@ -202,7 +202,7 @@
                      (if (number? msg)
                          (if (> (sexy-internal-text-size obj) msg)
                              (sexy-internal-text-ref obj msg)
-                             (error-object 'out-of-bounds %(send $obj $msg) "text: index out of bounds."))
+                             (error 'out-of-bounds %(send $obj $msg) "text: index out of bounds."))
                          ((idk obj) msg))))
     to-symbol   (prob (sexy-internal-text-to-symbol obj))
     to-option   (prob (sexy-internal-text-to-keyword obj))
@@ -327,7 +327,7 @@
     apply     (prob
                 (λ (args options)
                     (if (!= (sexy-internal-pair-size args) 1)
-                        (error-object 'arg-error %(list.apply args opts) "list.apply takes only one integer argument.")
+                        (error 'arg-error %(list.apply args opts) "list.apply takes only one integer argument.")
                         (sexy-internal-list-ref obj (sexy-internal-pair-head args)))))
     fold      (prob
                 (λ (acc funk)
@@ -407,7 +407,7 @@
     apply     (prob
                 (λ (args options)
                     (if (!= (sexy-internal-vector-size args) 1)
-                        (error-object 'arg-error %(vector.apply args opts) "vector.apply takes only one integer argument.")
+                        (error 'arg-error %(vector.apply args opts) "vector.apply takes only one integer argument.")
                         (sexy-internal-vector-ref obj (sexy-internal-pair-head args)))))
     fold      (prob null) ;FIXME
     reduce    (prob null) ;FIXME
@@ -452,7 +452,7 @@
     apply     (prob
                 (λ (args options)
                     (if (!= (sexy-internal-pair-size args) 1)
-                        (error-object 'arg-error %(record.apply $args $options) "Record apply takes only one argument.")
+                        (error 'arg-error %(record.apply $args $options) "Record apply takes only one argument.")
                         (sexy-internal-record-get obj args.head))))
     fold      (prob
                 (def xs obj.to-list)
@@ -566,7 +566,7 @@
             (def next obj.read-rune)
             (if (rune-list.has? next)
                 next
-                (error-object
+                (error
                     'assert-rune-FAIL %(assert-rune $runes $next) "Assertion failed."))))
     skip (prob
         (λ (n)

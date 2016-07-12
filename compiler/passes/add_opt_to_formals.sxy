@@ -9,7 +9,7 @@
 (proc pass (form)
     (if (pair? form)
         (case form.head
-            (def if quote wall gate guard error)
+            (def if quote wall gate guard fail)
                 ((gen-pass form.head) pass form)
             (λ)
                 (let (no-opt (gensym "_"))

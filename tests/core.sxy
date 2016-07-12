@@ -197,14 +197,14 @@
                 (capture k (+ 1 (k (k (k 1)))))))))
 
 
-; errors - ensure, guard, and error
+; errors - ensure, guard, and fail
 
 (proc proc-handler (err kontinue)
     (if (= err 'resume)
         (kontinue 42)
         (if (= err 'default)
             69
-            (error 'we-are-fucked))))
+            (fail 'we-are-fucked))))
 
 (sys.test 'guard-no-error
     (= 6
@@ -218,14 +218,14 @@
         (+ 1
             (guard
                 proc-handler
-                (+ 2 (error 'default))))))
+                (+ 2 (fail 'default))))))
 
 (sys.test 'guard-continue
     (= 45
         (+ 1
             (guard
                 proc-handler
-                (+ 2 (error 'resume))))))
+                (+ 2 (fail 'resume))))))
 
 (sys.test 'guard-abort
     (= 0
@@ -234,7 +234,7 @@
             (+ 1
                 (guard
                     proc-handler
-                    (+ 2 (error 'crap)))))))
+                    (+ 2 (fail 'crap)))))))
 
 (sys.test 'ensure-no-jump
     ((proc ()
@@ -269,7 +269,7 @@
                     (proc () (set! x 3))
                     (seq
                         (set! x 5)
-                        (+ 2 (error x))))))
+                        (+ 2 (fail x))))))
         (and (= x 3) (= y 12)))))
                 
 (sys.test 'wall

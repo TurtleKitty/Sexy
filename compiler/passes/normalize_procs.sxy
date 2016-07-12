@@ -12,7 +12,7 @@
         (case form.head
             (λ)
                 ((gen-pass 'proc) pass form)
-            (def if quote seq wall gate capture guard error)
+            (def if quote seq wall gate capture guard fail)
                 ((gen-pass form.head) pass form)
             (proc)
                 (if (symbol? form.1)

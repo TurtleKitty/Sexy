@@ -17,7 +17,7 @@
     (when rest (set! db rest.head))
     (if (pair? form)
         (case form.head
-            (def if quote seq wall gate guard error)
+            (def if quote seq wall gate guard fail)
                 ((gen-pass form.head) pass form)
             (capture)
                 ((gen-pass 'seq) pass form) ; after capture-lambda

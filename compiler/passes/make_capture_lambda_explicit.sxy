@@ -10,7 +10,7 @@
         (case form.head
             (capture)
                 %(capture (λ ($form.1) (seq @(pass form.tail.tail))))
-            (def if quote seq wall gate guard error)
+            (def if quote seq wall gate guard fail)
                 ((gen-pass form.head) pass form)
             (λ proc)
                 ((gen-pass 'proc-id) pass form)

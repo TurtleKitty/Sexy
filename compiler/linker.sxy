@@ -5,7 +5,7 @@
 
 (def module-fns (:))
 (def module-code (:))
-(def slurp-file (λ (f) (error 'slurp-file-undefined!)))
+(def slurp-file (λ (f) (fail 'slurp-file-undefined!)))
 
 (def sexy-expanded-dir "~/.sexy/expanded")
 
@@ -50,7 +50,7 @@
                                             $code
                                             sexy-internal-library-export-procedure)))))
                             %(def $use-name (wall (gate ($mod-fn @use-args)))))))
-            (def quote if seq wall gate capture guard error proc λ)
+            (def quote if seq wall gate capture guard fail proc λ)
                 ((gen-pass form.head) pass form)
             default:
                 ((gen-pass 'application) pass form))

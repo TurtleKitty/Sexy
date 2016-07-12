@@ -16,7 +16,7 @@
                 default:
                     %(seq $(pass form.1) $(pass form.2)))
             (case form.head
-                (def if quote wall gate capture guard error)
+                (def if quote wall gate capture guard fail)
                     ((gen-pass form.head) pass form)
                 (proc λ)
                     ((gen-pass 'proc-id) pass form)

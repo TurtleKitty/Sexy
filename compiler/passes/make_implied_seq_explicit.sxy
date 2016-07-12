@@ -17,7 +17,7 @@
                 %($form.head $form.1 (seq @(pass form.tail.tail)))
             (gate)
                 %(gate (seq @(pass form.tail)))
-            (def if quote seq error)
+            (def if quote seq fail)
                 ((gen-pass form.head) pass form)
             default:
                 ((gen-pass 'application) pass form))
