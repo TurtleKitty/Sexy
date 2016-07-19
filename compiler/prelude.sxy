@@ -539,7 +539,7 @@
                     (bool? thing)   thing.to-text
                     (num? thing)    thing.to-text
                     (symbol? thing) (json-out thing.to-text)
-                    (text? thing)   (cat \" thing \")
+                    (text? thing)   (cat \" (thing.replace "\"" "\\\"" flags: "g") \")
                     (rune? thing)   (json-out (text thing))
                     (vector? thing) (json-out thing.to-list)
                     (record? thing) (cat \{ (comma-fy (thing.to-list.map (λ (kv) (cat (json-out kv.key.to-text) \: (json-out kv.val))))) \})
