@@ -106,9 +106,7 @@
                             (define l (length args))
                             (if (< l 2)
                                 (err
-                                    (sexy-object `(type error name arity-mismatch form (send ,@args)
-                                                   to-text "send requires two arguments: an object and a message.")
-                                                   #f #f #f)
+                                    (sexy-error-object 'arity-mismatch `(send ,@args) "send requires two arguments: an object and a message.")
                                     cont)
                                 (sexy-send (car args) (cadr args) cont err)))))
                 (cons 'math

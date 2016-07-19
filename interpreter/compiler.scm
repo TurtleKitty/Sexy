@@ -89,7 +89,7 @@
                                 code
                                 (lambda (v)
                                     (if (eq? not-found v)
-                                        (err (sexy-object `(type error name undefined-symbol form ,code to-text "Name not defined.") #f #f #f) cont)
+                                        (err (sexy-error-object 'undefined-symbol code "Name not defined.") cont)
                                         (cont v)))
                                 err))))))
         pass))
@@ -107,7 +107,7 @@
                             (if (and
                                     (haz? name)
                                     (not (eq? will-exist (getter name))))
-                                (err (sexy-object `(type error name bad-def form ,code to-text "Name already defined in the local environment.") #f #f #f) cont)
+                                (err (sexy-error-object 'bad-def code "Name already defined in the local environment.") cont)
                                 (let ((val-c (sexy-compile val)))
                                     (val-c
                                         env
