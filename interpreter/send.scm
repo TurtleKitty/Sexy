@@ -272,11 +272,13 @@
         ((set!)
             (cont 
                 (lambda (idx val)
-                    (if (> idx (string-length obj))
-                        (err (sexy-error-object 'out-of-bounds `(,obj ,idx) "text: index out of bounds.") cont)
-                        (begin
-                            (string-set! obj idx val)
-                            obj)))))
+                    (if (not (number? idx))
+                        (err (sexy-error-object 'not-a-number `(,obj ,idx) "text: set! requires a number as its first argument.") cont)
+                        (if (> idx (string-length obj))
+                            (err (sexy-error-object 'out-of-bounds `(,obj ,idx) "text: index out of bounds.") cont)
+                            (begin
+                                (string-set! obj idx val)
+                                obj))))))
         (else
             (if (number? msg)
                 (if (> (string-length obj) msg)
@@ -798,11 +800,13 @@
                                 #f)))
                     ((set!)
                         (lambda (idx val)
-                            (if (> idx (vector-length obj))
-                                (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "vector: index out of bounds.") cont)
-                                (begin
-                                    (vector-set! obj idx val)
-                                    obj))))
+                            (if (not (number? idx))
+                                (err (sexy-error-object 'not-a-number `(,obj ,idx) "vector: set! requires a number as its first argument.") cont)
+                                (if (> idx (vector-length obj))
+                                    (err (sexy-error-object 'out-of-bounds `(,obj ,msg) "vector: index out of bounds.") cont)
+                                    (begin
+                                        (vector-set! obj idx val)
+                                        obj)))))
                     ((messages) msgs)
                     ((responds?)
                         (lambda (msg)
