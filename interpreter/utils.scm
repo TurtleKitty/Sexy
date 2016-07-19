@@ -42,7 +42,7 @@
     (exit))
 
 (define (sexy-error-object name form to-text)
-    (sexy-object `(type error name ,name form ,form to-text ,to-text) #f #f #f))
+    (sexy-object `(type error name ,name form ,form to-text ,to-text message ,to-text view (error ,name ,form ,to-text)) #f #f #f))
 
 (define (sexy-bool obj cont err)
     (sexy-send obj 'to-bool cont err))
