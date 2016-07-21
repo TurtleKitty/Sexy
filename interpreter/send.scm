@@ -451,7 +451,7 @@
         (cont 
             (case msg
                 ((type) 'pair)
-                ((view to-text) obj)
+                ((view to-text) (cons (sexy-view (car obj)) (sexy-view (cdr obj))))
                 ((autos) '(view empty? to-bool to-text to-list to-record head tail key val size))
                 ((resends) '())
                 ((default) default-default)
