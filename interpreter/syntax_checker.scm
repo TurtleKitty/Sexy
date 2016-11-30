@@ -130,7 +130,7 @@
     (define usage '(wall (<arg> ...) <body> ...))
     (if (< (length code) 3)
         (syntax-error code "wall: at least one body form is required." usage)
-        (if (not (pair? (cadr code)))
+        (if (not (list? (cadr code)))
             (syntax-error code "wall: second argument must be a list of parameters to pass." usage)
             #t)))
 
